@@ -142,6 +142,40 @@
   #fc-post { width: 100%; box-sizing: border-box; background: rgba(128,120,110,0.12);
     border: 1px solid rgba(128,120,110,0.2); border-radius: 3px; padding: 5px 8px;
     font-family: 'Georgia', serif; font-size: 10px; color: inherit; }
+  #fc-feed-list { max-height: 190px; overflow-y: auto; margin: 6px 0; }
+  .fc-entry { padding: 6px 0; border-bottom: 1px solid rgba(128,120,110,0.15); }
+  .fc-entry-head { font-size: 9px; opacity: 0.55; display: flex; justify-content: space-between; }
+  .fc-entry-text { font-size: 11px; line-height: 1.45; margin-top: 3px; }
+  .fc-entry-reply { font-size: 8px; letter-spacing: 0.1em; text-transform: uppercase;
+    opacity: 0.4; cursor: pointer; margin-top: 3px; }
+  .fc-entry-reply:hover { opacity: 0.9; }
+  .fc-replying { font-size: 9px; font-style: italic; opacity: 0.55; margin-bottom: 4px; }
+  .nav-menu-label { font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase;
+    opacity: 0.4; padding: 6px 4px 0; text-align: right; font-family: 'Georgia', serif;
+    color: rgba(245,240,232,0.6); }
+  body.light .nav-menu-label { color: rgba(20,18,14,0.5); }
+
+  /* Identity panel */
+  #identity-panel {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    z-index: 20; width: 270px; display: none;
+    background: rgba(12,10,8,0.9); border: 1px solid rgba(245,240,232,0.15);
+    border-radius: 5px; padding: 18px; font-family: 'Georgia', serif;
+    color: rgba(245,240,232,0.8); backdrop-filter: blur(8px);
+  }
+  #identity-panel.open { display: block; }
+  body.light #identity-panel { background: rgba(245,242,235,0.94); color: rgba(20,18,14,0.75); }
+  #ip-title { font-size: 13px; letter-spacing: 0.06em; margin-bottom: 12px; }
+  #ip-avatars { display: flex; gap: 8px; margin-bottom: 12px; }
+  .ip-avatar { font-size: 22px; padding: 6px 10px; border: 1px solid rgba(128,120,110,0.25);
+    border-radius: 4px; cursor: pointer; opacity: 0.55; }
+  .ip-avatar.selected { opacity: 1; border-color: rgba(200,160,90,0.7); background: rgba(160,128,80,0.18); }
+  #ip-token { width: 100%; box-sizing: border-box; background: rgba(128,120,110,0.12);
+    border: 1px solid rgba(128,120,110,0.25); border-radius: 3px; padding: 6px 8px;
+    font-size: 10px; color: inherit; font-family: monospace; margin-bottom: 10px; }
+  #ip-row { display: flex; gap: 8px; }
+  #ip-row .ui-btn { position: static; }
+  #ip-note { font-size: 9px; opacity: 0.4; font-style: italic; margin-top: 10px; }
 
   #nav-label {
     position: absolute; bottom: 52px; left: 50%;
@@ -604,6 +638,12 @@
   <button class="ui-btn" id="trout-btn" onclick="toggleTrout()" title="Trout Fish arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
   <button class="ui-btn" id="seal-btn" onclick="toggleSeal()" title="Matt Mondanile's Seal — ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
   <button class="ui-btn" id="y2k-btn" onclick="toggleY2k()" title="Y2K — a Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
+  <div class="nav-menu-label">Engage</div>
+  <button class="ui-btn" onclick="summonResident('trout')" title="Trout comes to the nearest water to you">🐟 summon Trout</button>
+  <button class="ui-btn" onclick="summonResident('seal')" title="The Seal gallumphs to you">🦭 summon Seal</button>
+  <button class="ui-btn" onclick="summonResident('y2k')" title="Y2K trots to you">🐕 summon Y2K</button>
+  <div class="nav-menu-label">You</div>
+  <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
 </div>
 
 <!-- Follow card — appears when the camera locks onto a resident. The
@@ -618,9 +658,20 @@
   <div id="fc-bio"></div>
   <div id="fc-feed">
     <div id="fc-feed-label">Activity</div>
-    <div id="fc-feed-body">— their feed will live here —</div>
-    <input id="fc-post" placeholder="post to the villa… (soon)" disabled>
+    <div id="fc-feed-list"></div>
+    <div id="fc-feed-body"></div>
+    <input id="fc-post" placeholder="">
   </div>
+</div>
+
+<!-- Identity panel — who this device speaks as, and its key -->
+<div id="identity-panel">
+  <div id="ip-title">Who are you in the villa?</div>
+  <div id="ip-avatars"></div>
+  <input id="ip-token" type="password" placeholder="your key from Sailor (ghp_… or github_pat_…)">
+  <div id="ip-row"><button class="ui-btn" onclick="saveIdentityFromPanel()">enter the villa</button>
+  <button class="ui-btn" onclick="document.getElementById('identity-panel').classList.remove('open')">later</button></div>
+  <div id="ip-note">the key lives only on this device</div>
 </div>
 
 <div id="nav-bar">
@@ -6756,12 +6807,22 @@ function updateTrout(t) {
 
   // Resident — a slow loiter around the colonnade and pool walk, always
   // at eye level with whoever stands on the local ground.
-  const a = troutState.anchor;
-  const lx = a.x + Math.sin(t * 0.11) * 4.2;
-  const lz = a.z + Math.cos(t * 0.07) * 3.4;
-  const ly = getVisitorHeight(lx, lz) + 1.55 + Math.sin(t * 0.9) * 0.12;
-  const target = new THREE.Vector3(lx, ly, lz);
-  troutFish.position.lerp(target, 0.02);
+  // ENGAGE (2026-07-30): summoned, he keeps to the water — swims to the
+  // nearest river point and holds there until the audience ends.
+  let target;
+  if (troutState.summonTarget && t < (troutState.summonUntil || 0)) {
+    const s = troutState.summonTarget;
+    target = new THREE.Vector3(s.x + Math.sin(t * 0.6) * 0.4, s.y + Math.sin(t * 0.9) * 0.12, s.z);
+    troutFish.position.lerp(target, 0.035);
+  } else {
+    troutState.summonTarget = null;
+    const a = troutState.anchor;
+    const lx = a.x + Math.sin(t * 0.11) * 4.2;
+    const lz = a.z + Math.cos(t * 0.07) * 3.4;
+    const ly = getVisitorHeight(lx, lz) + 1.55 + Math.sin(t * 0.9) * 0.12;
+    target = new THREE.Vector3(lx, ly, lz);
+    troutFish.position.lerp(target, 0.02);
+  }
   const vel = new THREE.Vector3().subVectors(target, troutFish.position);
   if (vel.lengthSq() > 1e-4) {
     const targetYaw = Math.atan2(vel.x, vel.z);
@@ -6896,8 +6957,18 @@ function animateSeal(t) {
     sealPup.rotation.z = Math.sin(t * 0.35) * 0.08;
     if (t > S.nextMove) {
       const up = S.mode === 'beach';
+      if (up) {
+        S.path = sealPathUp; S.rev = false;
+      } else {
+        // Home from WHEREVER he is (post-summon he may be far off the
+        // canonical route) — dynamic path back to the beach, no snapping.
+        const cur = sealPup.position.clone();
+        const mid = new THREE.Vector3((cur.x + sealBeachSpot.x) / 2, 0, (cur.z + sealBeachSpot.z) / 2);
+        mid.y = Math.max(getTerrainHeight(mid.x, mid.z) + 0.05, OCEAN_Y + 0.1);
+        S.path = new THREE.CatmullRomCurve3([cur, mid, sealBeachSpot.clone()], false, 'centripetal');
+        S.rev = false;
+      }
       S.mode = up ? 'up' : 'down';
-      S.path = sealPathUp; S.rev = !up;
       S.t0 = t; S.dur = 26;
       const b = document.getElementById('seal-btn');
       if (b) b.textContent = up ? '🦭 to the pool' : '🦭 to the beach';
@@ -7163,12 +7234,128 @@ function animateY2k(t) {
     S.nextMove = t + 18 + y2kRand(t + 1) * 30;
     y2kHusky.userData.legs.forEach(l => { l.group.rotation.x = 0; });
     const b = document.getElementById('y2k-btn');
-    if (b) b.textContent = '🐕 at ' + Y2K_SPOTS[S.spot].name.replace('the ', '');
+    const spot = Y2K_SPOTS[S.spot];
+    if (b) b.textContent = spot ? '🐕 at ' + spot.name.replace('the ', '') : '🐕 with you';
   }
 }
 
 // Y2K is a resident too — arrives on load with the rest of the household
 setTimeout(function () { if (y2kState.mode === 'off') toggleY2k(); }, 13000);
+
+// ============================================================
+// THE FEED (2026-07-30) — the guestbook rulings, made social. One file per
+// utterance in feed/, manifest.json for one-GET cold load, writes via the
+// GitHub contents API with a per-device key. RULED tonight: residents patrol
+// by default; ENGAGE summons a friend's avatar to you; the exchange is
+// stamped with where and when it happened. Not live — "the villa settles."
+// ============================================================
+const FEED_REPO = 'sailor7613/dreamgetty';
+const feedState = { entries: [], loaded: false, lastError: null };
+
+const VILLA_PLACES = [
+  { name: 'the gallery', x: 0, z: 0 }, { name: 'the plaza', x: 10, z: 6 },
+  { name: 'the pool', x: 0, z: 20 }, { name: 'the overlook', x: -9, z: 44 },
+  { name: 'the valley', x: 0, z: 60 }, { name: 'the beach', x: 6, z: 82 },
+  { name: 'the north lawn', x: -14, z: -10 }, { name: 'the mountain', x: 0, z: -70 },
+  { name: 'the river mouth', x: 0, z: 88 },
+];
+function nearestPlace(pos) {
+  let best = VILLA_PLACES[0], bd = Infinity;
+  VILLA_PLACES.forEach(p => {
+    const d = (pos.x - p.x) * (pos.x - p.x) + (pos.z - p.z) * (pos.z - p.z);
+    if (d < bd) { bd = d; best = p; }
+  });
+  return best.name;
+}
+
+// ── Identity: who this device speaks as, and its key ──
+function feedIdentity() {
+  try { return JSON.parse(localStorage.getItem('dg_identity') || 'null'); }
+  catch (e) { return null; }
+}
+function saveFeedIdentity(avatar, token) {
+  localStorage.setItem('dg_identity', JSON.stringify({ avatar: avatar, token: token }));
+}
+
+// ── Read: one GET, cold-load the manifest. 404 = young villa, empty feed ──
+function loadFeed() {
+  return fetch('feed/manifest.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(r => { if (!r.ok) throw new Error('no manifest'); return r.json(); })
+    .then(m => {
+      feedState.entries = (m.entries || []).sort((a, b) => (a.t < b.t ? 1 : -1));
+      feedState.loaded = true;
+      if (followAnimal.key) renderFeedInto(followAnimal.key);
+    })
+    .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; });
+}
+loadFeed();
+setInterval(loadFeed, 5 * 60 * 1000);   // the villa settles — refresh on its own clock
+
+// ── Write: statement file + manifest update, contents API, ruled shape ──
+function ghPut(path, contentObj, message, token, sha) {
+  const body = {
+    message: message,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(contentObj, null, 1)))),
+    branch: 'main',
+  };
+  if (sha) body.sha = sha;
+  return fetch('https://api.github.com/repos/' + FEED_REPO + '/contents/' + path, {
+    method: 'PUT',
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
+    body: JSON.stringify(body),
+  }).then(r => { if (!r.ok) return r.json().then(j => { throw new Error(j.message || r.status); }); return r.json(); });
+}
+function ghGetSha(path, token) {
+  return fetch('https://api.github.com/repos/' + FEED_REPO + '/contents/' + path + '?ref=main&t=' + Date.now(), {
+    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
+    cache: 'no-store',
+  }).then(r => r.ok ? r.json() : null);
+}
+
+function postStatement(text, toKey, replyTo) {
+  const id = feedIdentity();
+  if (!id || !id.token) { openIdentityPanel(); return Promise.reject(new Error('no key')); }
+  const authorMesh = AVATARS[id.avatar] && AVATARS[id.avatar]();
+  // The stamp: where the exchange is happening — the followed resident's
+  // spot if you're at someone's card, else your own avatar's.
+  const stampMesh = (toKey && AVATARS[toKey] && AVATARS[toKey]().visible) ? AVATARS[toKey]() : authorMesh;
+  const pos = stampMesh ? stampMesh.position : new THREE.Vector3();
+  const entry = {
+    id: Date.now() + '-' + id.avatar,
+    author: id.avatar,
+    to: toKey && toKey !== id.avatar ? toKey : null,
+    text: text.slice(0, 400),
+    t: new Date().toISOString(),
+    pos: [+pos.x.toFixed(1), +pos.y.toFixed(1), +pos.z.toFixed(1)],
+    place: nearestPlace(pos),
+    replyTo: replyTo || null,
+  };
+  feedState.entries.unshift(entry);            // optimistic
+  renderFeedInto(followAnimal.key || id.avatar);
+  const commitMsg = 'feed: ' + entry.author + (entry.to ? ' → ' + entry.to : '') + ' @ ' + entry.place;
+  return ghPut('feed/' + entry.id + '.json', entry, commitMsg, id.token)
+    .then(() => ghGetSha('feed/manifest.json', id.token))
+    .then(m => {
+      const entries = feedState.entries.slice().sort((a, b) => (a.t < b.t ? 1 : -1));
+      return ghPut('feed/manifest.json', { entries: entries }, commitMsg + ' (manifest)', id.token, m && m.sha);
+    })
+    .catch(err => {
+      feedState.entries = feedState.entries.filter(e => e.id !== entry.id);   // revert optimism
+      renderFeedInto(followAnimal.key || id.avatar);
+      feedState.lastError = err.message;
+      const fb = document.getElementById('fc-feed-body');
+      if (fb) fb.textContent = 'the villa could not remember that — ' + err.message;
+      throw err;
+    });
+}
+
+function timeAgo(iso) {
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (s < 90) return 'just now';
+  if (s < 3600) return Math.round(s / 60) + 'm ago';
+  if (s < 86400) return Math.round(s / 3600) + 'h ago';
+  return Math.round(s / 86400) + 'd ago';
+}
 
 // ============================================================
 // FOLLOW-CAM + PROFILES (2026-07-30) — click any resident and the camera
@@ -7242,8 +7429,171 @@ function updateFollowCard() {
   document.getElementById('fc-name').textContent = p.name;
   document.getElementById('fc-status').textContent = p.status();
   document.getElementById('fc-bio').textContent = p.bio;
+  renderFeedInto(followAnimal.key);
 }
-setInterval(function () { if (followAnimal.key) updateFollowCard(); }, 700);
+setInterval(function () {
+  if (followAnimal.key) {
+    const p = PROFILES[followAnimal.key];
+    if (p) document.getElementById('fc-status').textContent = p.status();
+  }
+}, 700);
+
+// ── The card's Activity area IS the feed ──
+const composeState = { replyTo: null };
+function renderFeedInto(key) {
+  const list = document.getElementById('fc-feed-list');
+  const note = document.getElementById('fc-feed-body');
+  const input = document.getElementById('fc-post');
+  if (!list || !key) return;
+  const id = feedIdentity();
+  const mine = id && id.avatar === key;
+  const entries = feedState.entries.filter(e => e.author === key || e.to === key).slice(0, 30);
+  list.innerHTML = '';
+  entries.forEach(e => {
+    const ep = PROFILES[e.author] || { emoji: '·', name: e.author };
+    const tp = e.to ? (PROFILES[e.to] || { emoji: '', name: e.to }) : null;
+    const div = document.createElement('div');
+    div.className = 'fc-entry';
+    const head = document.createElement('div');
+    head.className = 'fc-entry-head';
+    head.innerHTML = '<span>' + ep.emoji + (tp ? ' → ' + tp.emoji : '') + '</span>' +
+      '<span title="' + e.t + '">' + timeAgo(e.t) + ' · ' + (e.place || '') + '</span>';
+    div.appendChild(head);
+    const txt = document.createElement('div');
+    txt.className = 'fc-entry-text';
+    txt.textContent = e.text;
+    div.appendChild(txt);
+    const rep = document.createElement('div');
+    rep.className = 'fc-entry-reply';
+    rep.textContent = 'reply';
+    rep.onclick = function () {
+      composeState.replyTo = e.id;
+      note.innerHTML = '<span class="fc-replying">replying to ' + ep.emoji + ' — esc to cancel</span>';
+      input.focus();
+    };
+    div.appendChild(rep);
+    list.appendChild(div);
+  });
+  note.textContent = '';
+  if (!entries.length) note.textContent = feedState.loaded ? '— nothing said here yet —' : '— listening… —';
+  if (!id || !id.token) {
+    input.placeholder = 'the villa hears you but cannot remember — ask Sailor for a key';
+  } else {
+    input.placeholder = mine ? 'say something to the villa…' : 'leave word for ' + (PROFILES[key] || {}).name + '…';
+  }
+}
+
+(function wireCompose() {
+  const input = document.getElementById('fc-post');
+  input.addEventListener('keydown', function (e) {
+    e.stopPropagation();   // typing must not trigger villa hotkeys
+    if (e.key === 'Escape') { composeState.replyTo = null; document.getElementById('fc-feed-body').textContent = ''; return; }
+    if (e.key !== 'Enter') return;
+    const text = input.value.trim();
+    if (!text) return;
+    const id = feedIdentity();
+    if (!id || !id.token) { openIdentityPanel(); return; }
+    const key = followAnimal.key || id.avatar;
+    const toKey = key === id.avatar ? null : key;
+    input.value = '';
+    const replyTo = composeState.replyTo;
+    composeState.replyTo = null;
+    document.getElementById('fc-feed-body').textContent = '';
+    postStatement(text, toKey, replyTo).catch(function () {});
+  });
+})();
+
+// ── Identity panel ──
+function openIdentityPanel() {
+  const panel = document.getElementById('identity-panel');
+  const wrap = document.getElementById('ip-avatars');
+  wrap.innerHTML = '';
+  const current = feedIdentity();
+  ['ted', 'trout', 'seal', 'y2k'].forEach(function (k) {
+    const p = PROFILES[k];
+    const d = document.createElement('div');
+    d.className = 'ip-avatar' + (current && current.avatar === k ? ' selected' : '');
+    d.textContent = p.emoji;
+    d.title = p.name;
+    d.dataset.key = k;
+    d.onclick = function () {
+      wrap.querySelectorAll('.ip-avatar').forEach(function (a) { a.classList.remove('selected'); });
+      d.classList.add('selected');
+    };
+    wrap.appendChild(d);
+  });
+  if (current && current.token) document.getElementById('ip-token').value = current.token;
+  panel.classList.add('open');
+}
+function saveIdentityFromPanel() {
+  const sel = document.querySelector('#ip-avatars .ip-avatar.selected');
+  const token = document.getElementById('ip-token').value.trim();
+  if (!sel) return;
+  saveFeedIdentity(sel.dataset.key, token);
+  document.getElementById('identity-panel').classList.remove('open');
+  const b = document.getElementById('identity-btn');
+  if (b) b.textContent = '⚿ ' + (PROFILES[sel.dataset.key] || {}).name;
+  if (followAnimal.key) renderFeedInto(followAnimal.key);
+}
+document.getElementById('ip-token').addEventListener('keydown', function (e) { e.stopPropagation(); });
+(function initIdentityBtn() {
+  const id = feedIdentity();
+  const b = document.getElementById('identity-btn');
+  if (id && b) b.textContent = '⚿ ' + (PROFILES[id.avatar] || { name: 'identity' }).name;
+})();
+
+// ── ENGAGE: summon a resident to your position ──
+// Your position = Ted if you're walking/posing him, else the camera's target.
+function summonerPoint() {
+  if ((typeof visitorNav !== 'undefined' && visitorNav.active) ||
+      (typeof tedPhoto !== 'undefined' && tedPhoto.active)) {
+    return tedTurner.position.clone();
+  }
+  return camTarget.clone();
+}
+
+function summonResident(key, silent) {
+  const here = summonerPoint();
+  const t = clock.getElapsedTime();
+  if (key === 'y2k') {
+    if (y2kState.mode === 'off') toggleY2k();
+    y2kState.from = y2kHusky.position.clone();
+    y2kState.to = new THREE.Vector3(here.x + 1.6, getTerrainHeight(here.x + 1.6, here.z + 1.2) + 0.02, here.z + 1.2);
+    y2kState.spot = -1;   // not a named spot — an audience
+    y2kState.dur = Math.max(3, y2kState.from.distanceTo(y2kState.to) / 3.2);  // summoned = eager
+    y2kState.t0 = t; y2kState.mode = 'move';
+    y2kState.nextMove = t + 1e9;   // stays until the next patrol decision is forced
+    setTimeout(function () { y2kState.nextMove = clock.getElapsedTime() + 90; }, 100);
+  } else if (key === 'seal') {
+    if (sealState.mode === 'off') toggleSeal();
+    const S = sealState;
+    S.path = new THREE.CatmullRomCurve3([
+      sealPup.position.clone(),
+      new THREE.Vector3((sealPup.position.x + here.x) / 2, 0, (sealPup.position.z + here.z) / 2),
+      new THREE.Vector3(here.x - 1.4, here.y, here.z + 1.0),
+    ].map(function (p, i) {
+      if (i === 0) return p;
+      const y = Math.max(getTerrainHeight(p.x, p.z) + 0.05, OCEAN_Y + 0.1);
+      return new THREE.Vector3(p.x, i === 2 && here.y > 1 ? here.y : y, p.z);
+    }), false, 'centripetal');
+    S.rev = false; S.t0 = clock.getElapsedTime(); S.dur = Math.max(4, sealPup.position.distanceTo(here) / 2.2);
+    S.mode = 'up';   // travel mode; arrival lands him in 'pool' state = lounging beside you
+  } else if (key === 'trout') {
+    if (troutState.mode === 'off') toggleTrout();
+    // Trout keeps to the water: nearest point on the river course
+    const z = Math.max(-80, Math.min(88, here.z));
+    const cx = riverCenterX(z);
+    const wy = Math.max(getTerrainHeight(cx, z), OCEAN_Y - 1) + 0.5;
+    troutState.summonTarget = new THREE.Vector3(cx, wy, z);
+    troutState.summonUntil = clock.getElapsedTime() + 90;
+  }
+  toggleNavMenu();   // close the menu; the resident is on their way
+  startFollow(key);  // and watch them come
+  if (!silent) {
+    const fb = document.getElementById('fc-feed-body');
+    if (fb) fb.textContent = '— summoned. they are on their way —';
+  }
+}
 
 function toggleNavMenu() {
   const m = document.getElementById('nav-menu');
