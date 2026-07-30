@@ -6964,7 +6964,7 @@ function animateSeal(t) {
         // canonical route) — dynamic path back to the beach, no snapping.
         const cur = sealPup.position.clone();
         const mid = new THREE.Vector3((cur.x + sealBeachSpot.x) / 2, 0, (cur.z + sealBeachSpot.z) / 2);
-        mid.y = Math.max(getTerrainHeight(mid.x, mid.z) + 0.05, OCEAN_Y + 0.1);
+        mid.y = Math.max(getVisitorHeight(mid.x, mid.z) + 0.05, OCEAN_Y + 0.1);
         S.path = new THREE.CatmullRomCurve3([cur, mid, sealBeachSpot.clone()], false, 'centripetal');
         S.rev = false;
       }
@@ -7140,13 +7140,16 @@ y2kHusky.visible = false;
 scene.add(y2kHusky);
 
 const Y2K_SPOTS = [
-  { name: 'the plaza', x: 12, z: 6 },
+  { name: 'the plaza', x: 18, z: 8 },
   { name: 'the north lawn', x: -14, z: -10 },
   { name: 'the overlook', x: -9, z: 44 },
   { name: 'the valley path', x: 5, z: 58 },
   { name: 'the beach', x: 10, z: 80 },
 ];
-function y2kGround(x, z) { return new THREE.Vector3(x, getTerrainHeight(x, z) + 0.02, z); }
+// getVisitorHeight, not getTerrainHeight (bugfix 2026-07-30): the walkable
+// height knows the stylobate and pool walk exist; the terrain does not.
+// Terrain-grounding is how Y2K and summoned residents fell through the floor.
+function y2kGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
 
 const y2kState = {
   mode: 'off',   // off | move | idle
@@ -7210,7 +7213,7 @@ function animateY2k(t) {
   const p = Math.min(1, (t - S.t0) / S.dur);
   const e = p < 0.1 ? p / 0.1 * p : p;   // soft start
   const pt = new THREE.Vector3().lerpVectors(S.from, S.to, p);
-  pt.y = getTerrainHeight(pt.x, pt.z) + 0.02;
+  pt.y = getVisitorHeight(pt.x, pt.z) + 0.02;   // walkable height — floors count
   // Trot — diagonal legs swing, body bounces, tail wags hard
   const trot = t * 9;
   y2kHusky.userData.legs.forEach((l, i) => {
@@ -7558,7 +7561,7 @@ function summonResident(key, silent) {
   if (key === 'y2k') {
     if (y2kState.mode === 'off') toggleY2k();
     y2kState.from = y2kHusky.position.clone();
-    y2kState.to = new THREE.Vector3(here.x + 1.6, getTerrainHeight(here.x + 1.6, here.z + 1.2) + 0.02, here.z + 1.2);
+    y2kState.to = y2kGround(here.x + 1.6, here.z + 1.2);
     y2kState.spot = -1;   // not a named spot — an audience
     y2kState.dur = Math.max(3, y2kState.from.distanceTo(y2kState.to) / 3.2);  // summoned = eager
     y2kState.t0 = t; y2kState.mode = 'move';
@@ -7573,8 +7576,8 @@ function summonResident(key, silent) {
       new THREE.Vector3(here.x - 1.4, here.y, here.z + 1.0),
     ].map(function (p, i) {
       if (i === 0) return p;
-      const y = Math.max(getTerrainHeight(p.x, p.z) + 0.05, OCEAN_Y + 0.1);
-      return new THREE.Vector3(p.x, i === 2 && here.y > 1 ? here.y : y, p.z);
+      const y = Math.max(getVisitorHeight(p.x, p.z) + 0.05, OCEAN_Y + 0.1);
+      return new THREE.Vector3(p.x, y, p.z);
     }), false, 'centripetal');
     S.rev = false; S.t0 = clock.getElapsedTime(); S.dur = Math.max(4, sealPup.position.distanceTo(here) / 2.2);
     S.mode = 'up';   // travel mode; arrival lands him in 'pool' state = lounging beside you
@@ -7583,7 +7586,10 @@ function summonResident(key, silent) {
     // Trout keeps to the water: nearest point on the river course
     const z = Math.max(-80, Math.min(88, here.z));
     const cx = riverCenterX(z);
-    const wy = Math.max(getTerrainHeight(cx, z), OCEAN_Y - 1) + 0.5;
+    // Over open water: half a unit above the surface. Over the villa: his
+    // usual eye-level float above the WALKABLE floor — never under the slab.
+    const bed = Math.max(getTerrainHeight(cx, z), OCEAN_Y - 1);
+    const wy = Math.max(bed + 0.5, getVisitorHeight(cx, z) + 1.45);
     troutState.summonTarget = new THREE.Vector3(cx, wy, z);
     troutState.summonUntil = clock.getElapsedTime() + 90;
   }
