@@ -556,6 +556,7 @@
 <button class="ui-btn" style="top:14px;right:100px;" onclick="toggleDiatribe()">Graphmap</button>
 <button class="ui-btn" id="orbit-btn" style="top:14px;right:184px;" onclick="toggleOrbit()">Orbit: On</button>
 <button class="ui-btn" id="ted-photo-btn" style="top:14px;right:268px;" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
+<button class="ui-btn" id="visitor-btn" style="top:14px;right:352px;" onclick="toggleVisitor()" title="Visitor mode — click the ground and your avatar walks there; objects still focus on click">⛵ Walk</button>
 
 <div id="nav-bar">
   <button class="nav-btn" id="nav-easel" onclick="navTo('Easel')">Easel</button>
@@ -5932,6 +5933,237 @@ function updateTedTurner(t) {
 }
 
 // ============================================================
+// VISITOR AVATAR — click-to-walk navigation (2026-07-30)
+// The user's stand-in. It is reachable/operable, so per the Veil Rule
+// (§2¾.2) it obeys occlusion normally — if it ever pierces, that is a
+// real bug. Placeholder figure until Sailor rules his own avatar (§7).
+// Ground-click logic is Ted's (same two planes); height uses getVisitorHeight.
+// ============================================================
+function buildVisitorAvatar() {
+  const g = new THREE.Group();
+  const navy  = new THREE.MeshStandardMaterial({ color: 0x2a3b55, roughness: 0.8 });
+  const cream = new THREE.MeshStandardMaterial({ color: 0xd8d2c0, roughness: 0.85 });
+  const skin  = new THREE.MeshStandardMaterial({ color: 0xc9a184, roughness: 0.7 });
+  const dark  = new THREE.MeshStandardMaterial({ color: 0x22242a, roughness: 0.6 });
+
+  // Legs — pivot at the hip so rotation.x swings them (Ted's contract)
+  const legs = [];
+  [-1, 1].forEach(side => {
+    const lg = new THREE.Group();
+    lg.position.set(side * 0.11, 0.78, 0);
+    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.055, 0.74, 8), cream);
+    thigh.position.y = -0.37;
+    lg.add(thigh);
+    const shoe = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 6), dark);
+    shoe.scale.set(0.9, 0.5, 1.5);
+    shoe.position.set(0, -0.76, 0.04);
+    lg.add(shoe);
+    g.add(lg);
+    legs.push({ group: lg });
+  });
+  g.userData.legs = legs;
+
+  // Hips + torso — navy jumper over cream trousers
+  const hips = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), cream);
+  hips.scale.set(1.0, 0.6, 0.75);
+  hips.position.y = 0.82;
+  g.add(hips);
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.17, 0.52, 10), navy);
+  torso.position.y = 1.12;
+  g.add(torso);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.165, 10, 8), navy);
+  chest.scale.set(1.0, 0.65, 0.8);
+  chest.position.y = 1.36;
+  g.add(chest);
+
+  // Arms — pivot at the shoulder
+  const arms = [];
+  [-1, 1].forEach(side => {
+    const ag = new THREE.Group();
+    ag.position.set(side * 0.22, 1.38, 0);
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.56, 8), navy);
+    arm.position.y = -0.28;
+    ag.add(arm);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 5), skin);
+    hand.position.y = -0.58;
+    ag.add(hand);
+    ag.rotation.z = side * -0.06;
+    g.add(ag);
+    arms.push({ group: ag });
+  });
+  g.userData.arms = arms;
+
+  // Neck + head
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.10, 8), skin);
+  neck.position.y = 1.50;
+  g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 10), skin);
+  head.position.y = 1.63;
+  g.add(head);
+  g.userData.head = head;
+
+  // Sailor's cap — navy, short dark brim
+  const capBase = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.13, 0.05, 12), navy);
+  capBase.position.y = 1.72;
+  g.add(capBase);
+  const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.125, 12, 8), navy);
+  capTop.scale.set(1.05, 0.45, 1.05);
+  capTop.position.y = 1.745;
+  g.add(capTop);
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.06, 0.02, 8), dark);
+  brim.scale.set(1.6, 1, 1);
+  brim.position.set(0, 1.705, 0.12);
+  g.add(brim);
+
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+// Visitor ground height. Not getTedHeight: that function returns BUILDING_Y
+// for ANY point in the z band −9…12 (its edge-min zeroes out when z is in
+// band), which floats a walker above the lawn once |x| > 14. Ted's patrol
+// never leaves the slab's vicinity so it never shows for him — his function
+// is left untouched. This one measures true distance to the walkable slabs.
+function getVisitorHeight(x, z) {
+  const onStylobate = Math.abs(x) < 14 && z > -9 && z < 12;
+  const onPoolWalk = Math.abs(x) < 4 && z >= 12 && z < 28;
+  if (onStylobate || onPoolWalk) return BUILDING_Y;
+  const dRect = (hw, zlo, zhi) => {
+    const dx = Math.max(0, Math.abs(x) - hw);
+    const dz = Math.max(zlo - z, z - zhi, 0);
+    return Math.sqrt(dx * dx + dz * dz);
+  };
+  const d = Math.min(dRect(14, -9, 12), dRect(4, 12, 28));
+  if (d < 3) {
+    const blend = d / 3;
+    return BUILDING_Y * (1 - blend) + getTerrainHeight(x, z) * blend;
+  }
+  return getTerrainHeight(x, z);
+}
+
+const visitorAvatar = buildVisitorAvatar();
+visitorAvatar.visible = false;
+// Spawn where visitors arrive (§2.4): the colonnade landing, just off the
+// axis — ahead of where the pool basin begins (z 13), not in the water
+visitorAvatar.position.set(2, getVisitorHeight(2, 11.5), 11.5);
+visitorAvatar.rotation.y = Math.PI; // facing the gallery
+scene.add(visitorAvatar);
+
+// Destination marker — a quiet ring that fades where you asked to go
+const visitorMarker = new THREE.Mesh(
+  new THREE.RingGeometry(0.22, 0.32, 32),
+  new THREE.MeshBasicMaterial({ color: 0xd8d2c0, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false })
+);
+visitorMarker.rotation.x = -Math.PI / 2;
+visitorMarker.visible = false;
+scene.add(visitorMarker);
+
+const visitorNav = {
+  active: false,
+  walking: false,
+  target: new THREE.Vector3(),
+  speed: 2.4,          // units/sec — a stroll, not a sprint
+  yaw: Math.PI,
+  lastT: null,
+};
+
+function visitorClampDestination(pt) {
+  const p = pt.clone();
+  // Stay out of the reflection pool basin — step to the nearest walkway
+  // edge instead (pool is 6 × 14 centred (0, 20)). Ted fords; you don't.
+  if (Math.abs(p.x) < 3.4 && p.z > 13.2 && p.z < 26.8) {
+    p.x = p.x >= 0 ? 3.6 : -3.6;
+  }
+  // Hold the clifftop — the sea is scenery, not floor
+  if (p.z > CLIFF_Z + 1) p.z = CLIFF_Z + 1;
+  return p;
+}
+
+function visitorWalkTo(pt) {
+  const dest = visitorClampDestination(pt);
+  visitorNav.target.set(dest.x, 0, dest.z);
+  visitorNav.walking = true;
+  visitorMarker.position.set(dest.x, getVisitorHeight(dest.x, dest.z) + 0.03, dest.z);
+  visitorMarker.material.opacity = 0.85;
+  visitorMarker.visible = true;
+}
+
+function updateVisitor(t) {
+  if (!visitorAvatar.visible) { visitorNav.lastT = t; return; }
+  const dt = visitorNav.lastT == null ? 0.016 : Math.max(0, Math.min(0.05, t - visitorNav.lastT));
+  visitorNav.lastT = t;
+
+  // Marker fade — slow while walking toward it, quick once arrived
+  if (visitorMarker.visible) {
+    visitorMarker.material.opacity -= dt * (visitorNav.walking ? 0.25 : 0.9);
+    if (visitorMarker.material.opacity <= 0) visitorMarker.visible = false;
+  }
+
+  const p = visitorAvatar.position;
+  if (visitorNav.walking) {
+    const dx = visitorNav.target.x - p.x, dz = visitorNav.target.z - p.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    const desiredYaw = Math.atan2(dx, dz);
+    let dyaw = desiredYaw - visitorNav.yaw;
+    while (dyaw > Math.PI) dyaw -= Math.PI * 2;
+    while (dyaw < -Math.PI) dyaw += Math.PI * 2;
+    visitorNav.yaw += dyaw * Math.min(1, dt * 8);
+    visitorAvatar.rotation.y = visitorNav.yaw;
+    const step = visitorNav.speed * dt;
+    if (dist <= step) {
+      p.x = visitorNav.target.x; p.z = visitorNav.target.z;
+      visitorNav.walking = false;
+    } else {
+      p.x += (dx / dist) * step;
+      p.z += (dz / dist) * step;
+    }
+    p.y = getVisitorHeight(p.x, p.z) + Math.abs(Math.sin(t * 7)) * 0.04;
+    // Stride — legs counter-phase, arms counter-swing
+    const wc = t * 7;
+    visitorAvatar.userData.legs.forEach((leg, i) => {
+      leg.group.rotation.x = Math.sin(wc + (i === 0 ? 0 : Math.PI)) * 0.55;
+    });
+    visitorAvatar.userData.arms.forEach((arm, i) => {
+      arm.group.rotation.x = Math.sin(wc + (i === 0 ? Math.PI : 0)) * 0.35;
+    });
+    if (visitorAvatar.userData.head) visitorAvatar.userData.head.rotation.y = 0;
+  } else {
+    // Idle — limbs settle, a breath, a glance around the room
+    p.y = getVisitorHeight(p.x, p.z) + Math.sin(t * 1.4) * 0.008;
+    visitorAvatar.userData.legs.forEach(leg => {
+      leg.group.rotation.x += (0 - leg.group.rotation.x) * 0.12;
+    });
+    visitorAvatar.userData.arms.forEach(arm => {
+      arm.group.rotation.x += (0 - arm.group.rotation.x) * 0.12;
+    });
+    if (visitorAvatar.userData.head) {
+      visitorAvatar.userData.head.rotation.y = Math.sin(t * 0.4) * 0.35;
+    }
+  }
+}
+
+function toggleVisitor() {
+  visitorNav.active = !visitorNav.active;
+  const b = document.getElementById('visitor-btn');
+  if (visitorNav.active) {
+    // Walking the villa is free navigation — drop focus locks and flights
+    try { if (activeFocus) releaseFocus(); } catch (e) {}
+    approach.active = false;
+    visitorAvatar.visible = true;
+    visitorNav.walking = false;
+    visitorNav.yaw = visitorAvatar.rotation.y;
+    visitorNav.lastT = null;
+    if (b) { b.textContent = '⛵ walking'; b.classList.add('on'); }
+    showNavLabel('click the ground to walk');
+  } else {
+    visitorAvatar.visible = false;
+    visitorNav.walking = false;
+    visitorMarker.visible = false;
+    if (b) { b.textContent = '⛵ Walk'; b.classList.remove('on'); }
+  }
+}
+
+// ============================================================
 // ACACIA TREE (from v5 gallery-exterior.js)
 // ============================================================
 function buildAcaciaTree() {
@@ -6390,6 +6622,13 @@ function updateCamera() {
       autoOrbit = !orbitKilled;
     }
     return;
+  }
+  // Visitor follow — the orbit pivot tends toward your avatar while you
+  // walk. Goes through camTarget + the orbit variables, never the camera
+  // position directly (the animate loop owns that — see 2¾.5 build notes).
+  if (visitorNav.active && !activeFocus) {
+    const vp = visitorAvatar.position;
+    camTarget.lerp(new THREE.Vector3(vp.x, vp.y + 1.1, vp.z), 0.05);
   }
   camTheta += (targetTheta - camTheta) * 0.04;
   camPhi += (targetPhi - camPhi) * 0.04;
@@ -7374,7 +7613,16 @@ container.addEventListener('pointerup', e => {
   }
 
   // If already focused, click empty space to release
-  if (activeFocus) { releaseFocus(); return; }
+  // (in visitor mode the same click also walks — release, then fall through)
+  if (activeFocus) { releaseFocus(); if (!visitorNav.active) return; }
+
+  // ── Visitor mode — a ground click directs your avatar, not the camera ──
+  // Same two-ground hit test as Ted's photo mode: stylobate plane + terrain.
+  if (visitorNav.active) {
+    const g = tedPhotoGroundHit();
+    if (g) visitorWalkTo(g.point);
+    return;
+  }
 
   // Check terrain click for travel
   const terrainHits = raycaster.intersectObject(terrain);
@@ -9778,6 +10026,9 @@ function animate() {
   tedFocus.hitbox.position.copy(tedTurner.position);
   tedFocus.hitbox.position.y += 0.7;
   updateTedDocent(t);
+
+  // Visitor avatar — click-to-walk
+  updateVisitor(t);
   updateNarrationHighlight(t);
 
   // VHS video texture update
