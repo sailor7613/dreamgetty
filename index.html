@@ -101,7 +101,47 @@
   #ted-photo-btn.on { background: rgba(160,128,80,0.35); }
   /* H hides every scrap of chrome for the clean shot */
   body.ted-chrome-hidden .ui-btn, body.ted-chrome-hidden #nav-bar,
+  body.ted-chrome-hidden #nav-menu, body.ted-chrome-hidden #follow-card,
   body.ted-chrome-hidden #ted-photo-hint, body.ted-chrome-hidden #touch-hint { display: none !important; }
+
+  /* 🧭 Nav menu — the growing function list, tucked behind one button */
+  #nav-menu {
+    position: absolute; top: 44px; right: 16px; z-index: 11;
+    display: none; flex-direction: column; gap: 6px; align-items: stretch;
+    background: rgba(12,10,8,0.72); border: 1px solid rgba(245,240,232,0.1);
+    border-radius: 4px; padding: 8px;
+    backdrop-filter: blur(6px);
+  }
+  #nav-menu.open { display: flex; }
+  #nav-menu .ui-btn { position: static; text-align: right; }
+  body.light #nav-menu { background: rgba(245,242,235,0.8); border-color: rgba(20,18,14,0.12); }
+  #navmenu-btn.open { background: rgba(160,128,80,0.3); }
+
+  /* Follow card — resident profile while the camera is locked on */
+  #follow-card {
+    position: absolute; left: 20px; bottom: 80px; z-index: 11;
+    width: 230px; display: none;
+    background: rgba(12,10,8,0.75); border: 1px solid rgba(245,240,232,0.12);
+    border-radius: 4px; padding: 12px 14px;
+    font-family: 'Georgia', serif; color: rgba(245,240,232,0.75);
+    backdrop-filter: blur(6px);
+  }
+  #follow-card.open { display: block; }
+  body.light #follow-card { background: rgba(245,242,235,0.85); color: rgba(20,18,14,0.7); border-color: rgba(20,18,14,0.12); }
+  #fc-head { display: flex; align-items: center; gap: 10px; }
+  #fc-emoji { font-size: 26px; }
+  #fc-titles { flex: 1; }
+  #fc-name { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  #fc-status { font-size: 10px; opacity: 0.65; font-style: italic; margin-top: 2px; }
+  #fc-close { background: none; border: none; color: inherit; opacity: 0.5; font-size: 16px; cursor: pointer; }
+  #fc-close:hover { opacity: 1; }
+  #fc-bio { font-size: 10px; line-height: 1.5; opacity: 0.6; margin-top: 9px; }
+  #fc-feed { margin-top: 10px; border-top: 1px solid rgba(128,120,110,0.25); padding-top: 8px; }
+  #fc-feed-label { font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.45; }
+  #fc-feed-body { font-size: 10px; opacity: 0.4; font-style: italic; margin: 7px 0; }
+  #fc-post { width: 100%; box-sizing: border-box; background: rgba(128,120,110,0.12);
+    border: 1px solid rgba(128,120,110,0.2); border-radius: 3px; padding: 5px 8px;
+    font-family: 'Georgia', serif; font-size: 10px; color: inherit; }
 
   #nav-label {
     position: absolute; bottom: 52px; left: 50%;
@@ -552,11 +592,36 @@
 <div id="scene-container"></div>
 <div id="vignette"></div>
 
-<button class="ui-btn" style="top:14px;right:16px;" onclick="toggleMode()">Skylight</button>
-<button class="ui-btn" style="top:14px;right:100px;" onclick="toggleDiatribe()">Graphmap</button>
-<button class="ui-btn" id="orbit-btn" style="top:14px;right:184px;" onclick="toggleOrbit()">Orbit: On</button>
-<button class="ui-btn" id="ted-photo-btn" style="top:14px;right:268px;" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
-<button class="ui-btn" id="visitor-btn" style="top:14px;right:352px;" onclick="toggleVisitor()" title="Visitor mode — click the ground and your avatar walks there; objects still focus on click">⛵ Walk</button>
+<!-- RULED 2026-07-30: the nav tool is the MENU BAR — one 🧭 gathers the
+     growing list of functions instead of a sprawling button row. -->
+<button class="ui-btn" id="navmenu-btn" style="top:14px;right:16px;" onclick="toggleNavMenu()">🧭 Nav</button>
+<div id="nav-menu">
+  <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
+  <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
+  <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
+  <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
+  <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa as Ted — click the ground and he goes there; objects still focus on click">🐾 Walk</button>
+  <button class="ui-btn" id="trout-btn" onclick="toggleTrout()" title="Trout Fish arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
+  <button class="ui-btn" id="seal-btn" onclick="toggleSeal()" title="Matt Mondanile's Seal — ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
+  <button class="ui-btn" id="y2k-btn" onclick="toggleY2k()" title="Y2K — a Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
+</div>
+
+<!-- Follow card — appears when the camera locks onto a resident. The
+     Activity area is the seed of the profile/chat/posting system (RULED
+     2026-07-30: nothing to code in yet, but the socket is here). -->
+<div id="follow-card">
+  <div id="fc-head">
+    <span id="fc-emoji"></span>
+    <div id="fc-titles"><div id="fc-name"></div><div id="fc-status"></div></div>
+    <button id="fc-close" onclick="stopFollow()" title="release the camera">×</button>
+  </div>
+  <div id="fc-bio"></div>
+  <div id="fc-feed">
+    <div id="fc-feed-label">Activity</div>
+    <div id="fc-feed-body">— their feed will live here —</div>
+    <input id="fc-post" placeholder="post to the villa… (soon)" disabled>
+  </div>
+</div>
 
 <div id="nav-bar">
   <button class="nav-btn" id="nav-easel" onclick="navTo('Easel')">Easel</button>
@@ -3344,6 +3409,30 @@ const BUILDING_X = 0, BUILDING_Z = 0;
 const CLIFF_Z = 40; // where cliff drops to ocean
 const OCEAN_Y = -12; // defined early — terrain references it
 
+// ── THE RIVER (§2½) — course helpers ──
+// Centreline: born in the saddle between the two peaks (x ≈ −4 at z −80),
+// straightening to the villa's axis by the plaza. Uncovered, not invented.
+const RIVER_DEPTH = 1.05;
+const RIVER_HALFW = 3.0;   // wide vs TERRAIN_SEG aliasing (~2.3 u/segment)
+function riverCenterX(z) {
+  if (z >= -45) return 0;
+  const t = Math.min(1, (-45 - z) / 35);
+  const s = t * t * (3 - 2 * t);
+  return -4 * s;
+}
+function riverChannelFactor(x, z) {
+  if (z < -84 || z > 88) return 0;
+  // Estuary (RULED 2026-07-30): past the old cliff line the channel widens
+  // toward the sea — the river mouth.
+  const halfw = RIVER_HALFW + Math.max(0, z - CLIFF_Z) * 0.18;
+  const dx = Math.abs(x - riverCenterX(z));
+  if (dx >= halfw) return 0;
+  let f = 1 - dx / halfw;
+  f = f * f * (3 - 2 * f);
+  if (z < -76) f *= Math.max(0, (z + 84) / 8);  // the spring fades in
+  return f;
+}
+
 function getTerrainHeight(wx, wz) {
   // Flat area around the building — generous radius
   const bx = wx - BUILDING_X, bz = wz - BUILDING_Z;
@@ -3363,10 +3452,27 @@ function getTerrainHeight(wx, wz) {
   if (wz < -20) h += Math.pow(Math.abs(wz + 20) * 0.015, 1.6) * 8;
   h += saddle;
 
-  // Cliff drop toward ocean
+  // RULED 2026-07-30: the final cliff opens into a VALLEY — a fully gentle
+  // estuary (no falls). The river glides down a widening river mouth to a
+  // sand beach at the waterline; steeper bluffs remain far from the river,
+  // so the bay reads as headlands framing the valley.
   if (wz > CLIFF_Z) {
-    const dropDist = (wz - CLIFF_Z) / 8;
-    h -= dropDist * dropDist * 12;
+    const s = wz - CLIFF_Z;                         // seaward of the old cliff line
+    // Valley floor: long smooth glide, crosses the waterline around z≈83
+    let floorH = -4.5 - Math.pow(s / 55, 1.35) * 10.5;
+    floorH += Math.max(0, Math.abs(wx) - 4) * 0.10; // gentle valley side-slopes
+    // Dune texture — suppressed inside the channel so no sandbar dams the mouth
+    floorH += fbm(wx * 0.06 + 9.1, wz * 0.06 + 4.3, 3) * 0.9 * (1 - riverChannelFactor(wx, wz));
+    // Bluffs: the old drop, slightly softened — plunges to sea further out
+    const dropDist = s / 9;
+    const bluffH = h - dropDist * dropDist * 10;
+    // Valley factor: opens wider as it approaches the sea
+    const vw = 14 + s * 0.55;
+    const ax = Math.abs(wx);
+    let vf = 0;
+    if (ax < vw * 0.5) vf = 1;
+    else if (ax < vw) { const t = (ax - vw * 0.5) / (vw * 0.5); vf = 1 - t * t * (3 - 2 * t); }
+    h = bluffH * (1 - vf) + floorH * vf;
     h = Math.max(h, OCEAN_Y - 2);
   }
 
@@ -3401,6 +3507,13 @@ function getTerrainHeight(wx, wz) {
     }
   }
 
+  // ── THE RIVER (§2½) — cut LAST, after every override above, or the
+  // plaza flattening fills the channel back in (per the build note).
+  // Depth-relative: the bed rides ~1 unit under whatever the ground does,
+  // so one edit keeps terrain mesh, walker footing and click targets agreed.
+  const rcf = riverChannelFactor(wx, wz);
+  if (rcf > 0) h -= RIVER_DEPTH * rcf;
+
   return h;
 }
 
@@ -3419,9 +3532,18 @@ for (let i = 0; i < terrainPos.count; i++) {
   const y = terrainPos.getY(i);
   const z = terrainPos.getZ(i);
   let r, g, b;
-  if (z > CLIFF_Z + 5) {
-    // Sandy cliff/beach
-    r = 0.72; g = 0.68; b = 0.55;
+  if (z > CLIFF_Z + 2 && y < OCEAN_Y + 0.6) {
+    // Wet sand at and below the waterline
+    r = 0.34; g = 0.28; b = 0.20;
+  } else if (z > CLIFF_Z + 2 && y < OCEAN_Y + 5.5) {
+    // Dry beach sand — warm tan, saturated enough to survive the wash
+    r = 0.60; g = 0.48; b = 0.28;
+  } else if (z > CLIFF_Z + 2 && y < OCEAN_Y + 14) {
+    // Valley grass — greener than the bluffs, watered by the river
+    r = 0.30; g = 0.42; b = 0.20;
+  } else if (z > CLIFF_Z + 5) {
+    // Bluff faces and headlands — dry sandstone
+    r = 0.46; g = 0.38; b = 0.25;
   } else if (y > 25) {
     // Rocky peak
     r = 0.45; g = 0.42; b = 0.38;
@@ -3434,6 +3556,14 @@ for (let i = 0; i < terrainPos.count; i++) {
     r = 0.22 + grassMix * 0.10;
     g = 0.35 + grassMix * 0.08;
     b = 0.15 + grassMix * 0.04;
+  }
+  // Riverbed — wet stone, darker where the channel cuts deepest
+  const rcx = terrainPos.getX(i);
+  const bedF = riverChannelFactor(rcx, z);
+  if (bedF > 0.12 && z <= 90) {
+    r = r * (1 - bedF) + 0.30 * bedF;
+    g = g * (1 - bedF) + 0.33 * bedF;
+    b = b * (1 - bedF) + 0.35 * bedF;
   }
   // Darken for night mode (handled by lighting, but base color stays)
   terrainColors[i * 3] = r;
@@ -3466,28 +3596,260 @@ ocean.position.set(0, OCEAN_Y, CLIFF_Z + 150); // pushed far forward, past the c
 ocean.receiveShadow = true;
 scene.add(ocean);
 
-// Shore foam — a thin strip along the cliff base
-const foamGeo = new THREE.PlaneGeometry(TERRAIN_SIZE * 0.8, 8, 60, 1);
-foamGeo.rotateX(-Math.PI / 2);
+// Shore foam — a ribbon that TRACES the actual coastline (2026-07-30):
+// for each x, find where the terrain crosses the waterline, and lay the
+// foam band there. It breathes in and out with the swell.
 const foamMat = new THREE.MeshBasicMaterial({
-  color: 0xf0f0f0, transparent: true, opacity: 0.15, fog: true,
+  color: 0xf0f0f0, transparent: true, opacity: 0.22, fog: true,
+  side: THREE.DoubleSide, depthWrite: false,
 });
-const foam = new THREE.Mesh(foamGeo, foamMat);
-foam.position.set(0, OCEAN_Y + 0.5, CLIFF_Z + 20);
-scene.add(foam);
+const foamCoast = [];  // [{x, z}] shoreline samples, reused by the seal & planting
+for (let fx = -120; fx <= 120; fx += 4) {
+  let shoreZ = CLIFF_Z + 4;
+  for (let fz = CLIFF_Z + 2; fz <= 148; fz += 1.5) {
+    if (getTerrainHeight(fx, fz) <= OCEAN_Y) { shoreZ = fz; break; }
+    shoreZ = fz;
+  }
+  foamCoast.push({ x: fx, z: shoreZ });
+}
+const foam = (function buildFoamRibbon() {
+  const pos = [], idx = [];
+  foamCoast.forEach((p, i) => {
+    pos.push(p.x, OCEAN_Y + 0.18, p.z - 2.2, p.x, OCEAN_Y + 0.18, p.z + 3.2);
+    if (i > 0) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setIndex(idx);
+  const m = new THREE.Mesh(geo, foamMat);
+  scene.add(m);
+  return m;
+})();
+
+// ============================================================
+// THE RIVER (§2½) — water surface, the fall, culverts, floor oculus
+// Mountain saddle → plaza → gallery undercroft → beneath the pool →
+// corridor → over CLIFF_Z into the sea. The reflection pool IGNORES the
+// river (the drawn ruling): the river runs, the pool holds — reflection
+// requires stillness. One ribbon mesh, flow is shader-side (uTime only).
+// ============================================================
+const riverMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, side: THREE.DoubleSide,
+  uniforms: { uTime: { value: 0 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: [
+    'varying vec2 vUv; uniform float uTime;',
+    'void main(){',
+    '  float flow = vUv.y - uTime * 0.32;',
+    '  float streak = sin(flow * 22.0 + sin(vUv.x * 11.0) * 1.4) * 0.5 + 0.5;',
+    '  streak = smoothstep(0.70, 1.0, streak) * 0.38;',
+    '  float edge = smoothstep(0.0, 0.20, vUv.x) * smoothstep(1.0, 0.80, vUv.x);',
+    '  vec3 col = mix(vec3(0.15, 0.30, 0.37), vec3(0.62, 0.78, 0.82), streak);',
+    '  col += vec3((1.0 - edge) * 0.22);',       // bank foam
+    '  gl_FragColor = vec4(col, 0.82);',
+    '}'].join('\n')
+});
+
+const riverMesh = (function buildRiverRibbon() {
+  const pos = [], uvs = [], idx = [];
+  let n = 0;
+  // RULED 2026-07-30: no fall — the ribbon rides the valley glide and
+  // broadens into the estuary, sinking to meet the sea surface at the mouth.
+  let prevWy = Infinity;  // water never flows uphill — monotonic to the sea
+  for (let z = -82; z <= 92; z += 1) {
+    const cx = riverCenterX(z);
+    const bed = Math.max(getTerrainHeight(cx, z), OCEAN_Y - 1.2);
+    let wy = bed + 0.55;
+    if (z > CLIFF_Z) wy = Math.max(wy, OCEAN_Y + 0.12);  // never below the sea
+    wy = Math.min(wy, prevWy); prevWy = wy;
+    let w = z < -45 ? 2.3 : 2.7;
+    if (z > CLIFF_Z) w = 2.7 + (z - CLIFF_Z) * 0.16;     // estuary mouth widens
+    pos.push(cx - w / 2, wy, z, cx + w / 2, wy, z);
+    uvs.push(0, z * 0.5, 1, z * 0.5);
+    n++;
+  }
+  for (let i = 0; i < n - 1; i++) {
+    const a = i * 2, b = a + 1, c = a + 2, d = a + 3;
+    idx.push(a, c, b, b, c, d);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, riverMat);
+  m.renderOrder = 1;
+  scene.add(m);
+  return m;
+})();
+
+// Culvert mouths — where the river passes under the stylobate (z ±9).
+// Dark openings: the undercroft made legible from outside.
+[-1, 1].forEach(side => {
+  const mouth = new THREE.Mesh(
+    new THREE.BoxGeometry(3.4, 2.0, 0.5),
+    new THREE.MeshStandardMaterial({ color: 0x0c1016, roughness: 0.95 })
+  );
+  mouth.position.set(0, -0.45, side * 9.2);
+  scene.add(mouth);
+});
+
+// Floor oculus — a grated slot along the axis, so the public pedestal at
+// the origin stands over running water ("the graphmap on a stone over
+// moving water beats the graphmap on a stone").
+const riverGrate = new THREE.Group();
+const grateGlass = new THREE.Mesh(
+  new THREE.BoxGeometry(1.25, 0.03, 16.4),
+  new THREE.MeshStandardMaterial({
+    color: 0x10222c, roughness: 0.25, metalness: 0.3,
+    transparent: true, opacity: 0.55,
+    emissive: 0x1a4a5e, emissiveIntensity: 0.25,
+  })
+);
+grateGlass.position.y = 0;
+riverGrate.add(grateGlass);
+const barMat = new THREE.MeshStandardMaterial({ color: 0x2a2f38, roughness: 0.6, metalness: 0.5 });
+for (let gz = -7.5; gz <= 7.5; gz += 1.5) {
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.045, 0.07), barMat);
+  bar.position.set(0, 0.01, gz);
+  riverGrate.add(bar);
+}
+riverGrate.position.set(0, 1.545, 0); // just above the gallery floor plane
+scene.add(riverGrate);
 
 function animateOcean(t) {
   const pos = oceanGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i), z = pos.getZ(i);
-    const wave1 = Math.sin(x * 0.04 + t * 0.8) * 0.5;
-    const wave2 = Math.sin(z * 0.06 + t * 0.6 + 1.3) * 0.35;
+    // Shore-bound swell (2026-07-30): long rollers travel toward the beach
+    // (−z in the ocean's local frame) and steepen as they arrive.
+    const localZ = z; // ocean plane local z; −150 edge is nearest the shore
+    const shoreT = Math.max(0, Math.min(1, (30 - localZ) / 160)); // 1 at near edge
+    const roller = Math.sin(localZ * 0.09 + t * 1.35) * (0.35 + shoreT * 0.85);
+    const wave1 = Math.sin(x * 0.04 + t * 0.8) * 0.45;
+    const wave2 = Math.sin(z * 0.06 + t * 0.6 + 1.3) * 0.3;
     const wave3 = Math.sin((x + z) * 0.03 + t * 1.1) * 0.2;
-    pos.setY(i, wave1 + wave2 + wave3);
+    pos.setY(i, roller + wave1 + wave2 + wave3);
   }
   pos.needsUpdate = true;
-  // Foam pulse
-  foamMat.opacity = 0.1 + Math.sin(t * 0.5) * 0.06;
+  // Foam breathes with the arriving swell — slides up the sand and back
+  foam.position.z = Math.sin(t * 0.7) * 1.6;
+  foamMat.opacity = 0.16 + (Math.sin(t * 0.7) * 0.5 + 0.5) * 0.14;
+}
+
+// ============================================================
+// COASTAL LIFE (2026-07-30) — brush + trees on the valley slopes
+// ============================================================
+const coastalFlora = new THREE.Group();
+scene.add(coastalFlora);
+(function plantValley() {
+  const bushMat  = new THREE.MeshStandardMaterial({ color: 0x3e5a2a, roughness: 0.85 });
+  const bushMat2 = new THREE.MeshStandardMaterial({ color: 0x57683a, roughness: 0.85 });
+  for (let i = 0; i < 26; i++) {
+    const side = i % 2 === 0 ? 1 : -1;
+    const z = 46 + ((i * 37) % 23) / 23 * 38;
+    const vw = 14 + (z - CLIFF_Z) * 0.55;
+    const x = side * (6 + ((i * 53) % 17) / 17 * (vw * 0.75));
+    const y = getTerrainHeight(x, z);
+    if (y < OCEAN_Y + 1.2) continue;              // not in the surf
+    if (riverChannelFactor(x, z) > 0.05) continue; // not in the river
+    const b = new THREE.Group();
+    const n = 2 + (i % 2);
+    for (let k = 0; k < n; k++) {
+      const r = 0.55 + ((i * 7 + k * 13) % 10) / 10 * 0.5;
+      const blob = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), k % 2 ? bushMat2 : bushMat);
+      blob.position.set((k - (n - 1) / 2) * r * 0.9, r * 0.55, ((i + k) % 3 - 1) * 0.3);
+      blob.castShadow = true;
+      b.add(blob);
+    }
+    b.position.set(x, y - 0.1, z);
+    coastalFlora.add(b);
+  }
+  // Trees — wind-leant coastal pines
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 0.9 });
+  const canopyMat = new THREE.MeshStandardMaterial({ color: 0x35552a, roughness: 0.8 });
+  [{ x: -16, z: 52, s: 1.0, lean: 0.14 }, { x: 22, z: 62, s: 1.25, lean: -0.1 },
+   { x: -30, z: 72, s: 0.85, lean: 0.2 }].forEach(td => {
+    const y = getTerrainHeight(td.x, td.z);
+    if (y < OCEAN_Y + 1) return;
+    const tr = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * td.s, 0.26 * td.s, 3.4 * td.s, 6), trunkMat);
+    trunk.position.y = 1.7 * td.s;
+    tr.add(trunk);
+    [[0, 3.4, 1.5], [0.5, 4.1, 1.1], [-0.4, 4.5, 0.9]].forEach(c => {
+      const can = new THREE.Mesh(new THREE.SphereGeometry(c[2] * td.s, 7, 5), canopyMat);
+      can.scale.y = 0.55;
+      can.position.set(c[0] * td.s, c[1] * td.s, 0);
+      can.castShadow = true;
+      tr.add(can);
+    });
+    tr.rotation.z = td.lean;
+    tr.position.set(td.x, y - 0.1, td.z);
+    coastalFlora.add(tr);
+  });
+})();
+
+// ============================================================
+// SAILBOATS (2026-07-30) — vaguely Star class: low freeboard, tall rig,
+// big main + small jib, sailed heeled. Three of them, slow crossing courses.
+// ============================================================
+function buildStarBoat(sailTint) {
+  const g = new THREE.Group();
+  const hullMat = new THREE.MeshStandardMaterial({ color: 0x25354a, roughness: 0.5 });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0xc9b98a, roughness: 0.7 });
+  const sailMat = new THREE.MeshStandardMaterial({ color: sailTint, roughness: 0.85, side: THREE.DoubleSide });
+  const sparMat = new THREE.MeshStandardMaterial({ color: 0x8a6a45, roughness: 0.6 });
+  const hull = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 4.2), hullMat);
+  hull.position.y = 0.05;
+  g.add(hull);
+  const prow = new THREE.Mesh(new THREE.BoxGeometry(0.71, 0.5, 0.71), hullMat);
+  prow.rotation.y = Math.PI / 4;
+  prow.position.set(0, 0.05, 2.2);
+  g.add(prow);
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 4.0), deckMat);
+  deck.position.y = 0.33;
+  g.add(deck);
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 5.6, 6), sparMat);
+  mast.position.set(0, 3.1, 0.7);
+  g.add(mast);
+  const boom = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.6, 6), sparMat);
+  boom.rotation.x = Math.PI / 2;
+  boom.position.set(0, 0.75, -0.6);
+  g.add(boom);
+  const mainGeo = new THREE.BufferGeometry();
+  mainGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+    0, 0.8, 0.68, 0, 5.8, 0.68, 0, 0.8, -1.9], 3));
+  mainGeo.computeVertexNormals();
+  g.add(new THREE.Mesh(mainGeo, sailMat));
+  const jibGeo = new THREE.BufferGeometry();
+  jibGeo.setAttribute('position', new THREE.Float32BufferAttribute([
+    0, 0.75, 2.1, 0, 4.6, 0.72, 0, 0.75, 0.72], 3));
+  jibGeo.computeVertexNormals();
+  g.add(new THREE.Mesh(jibGeo, sailMat));
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+const sailboats = [];
+[{ cx: -55, cz: 200, rx: 45, rz: 28, ph: 0,   dir: 1,  tint: 0xf5f2e8 },
+ { cx: 30,  cz: 235, rx: 60, rz: 35, ph: 2.1, dir: -1, tint: 0xefe8d5 },
+ { cx: 80,  cz: 175, rx: 38, rz: 24, ph: 4.4, dir: 1,  tint: 0xf5eede }].forEach(c => {
+  const b = buildStarBoat(c.tint);
+  scene.add(b);
+  sailboats.push(Object.assign({ mesh: b }, c));
+});
+
+function animateBoats(t) {
+  sailboats.forEach(b => {
+    const a = b.ph + t * 0.045 * b.dir;
+    const x = b.cx + Math.cos(a) * b.rx;
+    const z = b.cz + Math.sin(a) * b.rz;
+    b.mesh.position.set(x, OCEAN_Y + 0.32 + Math.sin(t * 1.1 + b.ph) * 0.22, z);
+    const vx = -Math.sin(a) * b.rx * b.dir, vz = Math.cos(a) * b.rz * b.dir;
+    b.mesh.rotation.y = Math.atan2(vx, vz);
+    b.mesh.rotation.z = 0.16 * b.dir + Math.sin(t * 0.9 + b.ph) * 0.05; // heel
+    b.mesh.rotation.x = Math.sin(t * 1.3 + b.ph * 2) * 0.04;            // pitch
+  });
 }
 
 // ============================================================
@@ -5896,6 +6258,7 @@ function updateTedTurner(t) {
   const p = tedPatrol;
   if (p.state === 'docent') return; // frozen during story mode
   if (p.state === 'photo') return;  // photo mode — Ted holds his mark and his gaze
+  if (p.state === 'player') return; // Sailor has the wheel (🐾 Walk mode)
   const curr = p.waypoints[p.currentWP], next = p.waypoints[p.nextWP];
   if (p.state === 'pausing') {
     p.pauseTimer -= 0.016;
@@ -6061,6 +6424,7 @@ scene.add(visitorMarker);
 const visitorNav = {
   active: false,
   walking: false,
+  subject: null,       // which avatar the wheel drives — Ted, for Sailor
   target: new THREE.Vector3(),
   speed: 2.4,          // units/sec — a stroll, not a sprint
   yaw: Math.PI,
@@ -6089,9 +6453,12 @@ function visitorWalkTo(pt) {
 }
 
 function updateVisitor(t) {
-  if (!visitorAvatar.visible) { visitorNav.lastT = t; return; }
+  if (!visitorNav.active) { visitorNav.lastT = t; return; }
+  const A = visitorNav.subject || visitorAvatar;
+  if (tedPatrol.state === 'photo' && A === tedTurner) return; // photo holds him
   const dt = visitorNav.lastT == null ? 0.016 : Math.max(0, Math.min(0.05, t - visitorNav.lastT));
   visitorNav.lastT = t;
+  const quadruped = A.userData.legs && A.userData.legs.length === 4;
 
   // Marker fade — slow while walking toward it, quick once arrived
   if (visitorMarker.visible) {
@@ -6099,7 +6466,7 @@ function updateVisitor(t) {
     if (visitorMarker.material.opacity <= 0) visitorMarker.visible = false;
   }
 
-  const p = visitorAvatar.position;
+  const p = A.position;
   if (visitorNav.walking) {
     const dx = visitorNav.target.x - p.x, dz = visitorNav.target.z - p.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
@@ -6108,7 +6475,7 @@ function updateVisitor(t) {
     while (dyaw > Math.PI) dyaw -= Math.PI * 2;
     while (dyaw < -Math.PI) dyaw += Math.PI * 2;
     visitorNav.yaw += dyaw * Math.min(1, dt * 8);
-    visitorAvatar.rotation.y = visitorNav.yaw;
+    A.rotation.y = visitorNav.yaw;
     const step = visitorNav.speed * dt;
     if (dist <= step) {
       p.x = visitorNav.target.x; p.z = visitorNav.target.z;
@@ -6117,50 +6484,772 @@ function updateVisitor(t) {
       p.x += (dx / dist) * step;
       p.z += (dz / dist) * step;
     }
-    p.y = getVisitorHeight(p.x, p.z) + Math.abs(Math.sin(t * 7)) * 0.04;
-    // Stride — legs counter-phase, arms counter-swing
-    const wc = t * 7;
-    visitorAvatar.userData.legs.forEach((leg, i) => {
-      leg.group.rotation.x = Math.sin(wc + (i === 0 ? 0 : Math.PI)) * 0.55;
+    p.y = getVisitorHeight(p.x, p.z) + Math.abs(Math.sin(t * 7)) * (quadruped ? 0.03 : 0.04);
+    const wc = t * (quadruped ? 5 : 7);
+    if (A.userData.legs) A.userData.legs.forEach((leg, i) => {
+      if (quadruped) {
+        // Ted's own gait formula, from the patrol
+        const phase = i < 2 ? 0 : Math.PI;
+        const side = i % 2 === 0 ? 0 : Math.PI;
+        leg.group.rotation.x = Math.sin(wc + phase + side) * 0.2;
+      } else {
+        leg.group.rotation.x = Math.sin(wc + (i === 0 ? 0 : Math.PI)) * 0.55;
+      }
     });
-    visitorAvatar.userData.arms.forEach((arm, i) => {
+    if (A.userData.arms) A.userData.arms.forEach((arm, i) => {
       arm.group.rotation.x = Math.sin(wc + (i === 0 ? Math.PI : 0)) * 0.35;
     });
-    if (visitorAvatar.userData.head) visitorAvatar.userData.head.rotation.y = 0;
+    if (A.userData.head) A.userData.head.rotation.y = 0;
   } else {
     // Idle — limbs settle, a breath, a glance around the room
     p.y = getVisitorHeight(p.x, p.z) + Math.sin(t * 1.4) * 0.008;
-    visitorAvatar.userData.legs.forEach(leg => {
+    if (A.userData.legs) A.userData.legs.forEach(leg => {
       leg.group.rotation.x += (0 - leg.group.rotation.x) * 0.12;
     });
-    visitorAvatar.userData.arms.forEach(arm => {
+    if (A.userData.arms) A.userData.arms.forEach(arm => {
       arm.group.rotation.x += (0 - arm.group.rotation.x) * 0.12;
     });
-    if (visitorAvatar.userData.head) {
-      visitorAvatar.userData.head.rotation.y = Math.sin(t * 0.4) * 0.35;
+    if (A.userData.head) {
+      A.userData.head.rotation.y = Math.sin(t * 0.4) * 0.35;
     }
   }
 }
 
 function toggleVisitor() {
+  // RULED 2026-07-30: Ted is Sailor's avatar. Walk mode takes the wheel of
+  // Ted himself; the patrol is simply what Ted does when Sailor is away.
+  // The capped sailor figure stays in the registry as the default guest.
   visitorNav.active = !visitorNav.active;
   const b = document.getElementById('visitor-btn');
   if (visitorNav.active) {
+    if (tedPhoto.active) toggleTedPhoto();
+    if (tedDocent.active) deactivateTedDocent();
     // Walking the villa is free navigation — drop focus locks and flights
     try { if (activeFocus) releaseFocus(); } catch (e) {}
     approach.active = false;
-    visitorAvatar.visible = true;
+    visitorNav.subject = tedTurner;
+    tedPatrol.state = 'player';
     visitorNav.walking = false;
-    visitorNav.yaw = visitorAvatar.rotation.y;
+    visitorNav.yaw = tedTurner.rotation.y;
     visitorNav.lastT = null;
-    if (b) { b.textContent = '⛵ walking'; b.classList.add('on'); }
-    showNavLabel('click the ground to walk');
+    if (b) { b.textContent = '🐾 walking'; b.classList.add('on'); }
+    showNavLabel('click the ground — ted goes');
   } else {
-    visitorAvatar.visible = false;
     visitorNav.walking = false;
     visitorMarker.visible = false;
-    if (b) { b.textContent = '⛵ Walk'; b.classList.remove('on'); }
+    // Hand Ted back to the patrol at the nearest waypoint (photo-exit logic)
+    let ni = 0, nd = Infinity;
+    tedPatrol.waypoints.forEach((w, i) => {
+      const d = (w.x - tedTurner.position.x) * (w.x - tedTurner.position.x) + (w.z - tedTurner.position.z) * (w.z - tedTurner.position.z);
+      if (d < nd) { nd = d; ni = i; }
+    });
+    tedPatrol.currentWP = ni; tedPatrol.nextWP = (ni + 1) % tedPatrol.waypoints.length;
+    tedPatrol.progress = 0; tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5;
+    if (b) { b.textContent = '🐾 Walk'; b.classList.remove('on'); }
   }
+}
+
+// ============================================================
+// TROUT FISH — friend avatar (ruled 2026-07-30)
+// Person-scale. Not limited to the river — but he ARRIVES by it:
+// in from the sea, up the fall, along the channel, one leap up into
+// the reflection pool (the waters stay separate; the fish connects
+// them), across the pool, then out of the water entirely — floating
+// at eye level with everyone else, existing naturally.
+// ============================================================
+function buildTroutFish() {
+  const g = new THREE.Group();
+  // RULED 2026-07-30: palette sampled from Trout's twitter pfp — vivid
+  // watercolor rainbow. Dark teal-green back, coral-red rainbow stripe,
+  // golden belly, red-orange gill cheeks, amber fins, gold-ringed eye.
+  // Touch of emissive on the warm parts so he pops in the dusk light.
+  // Channels kept deliberately low in g/b — the villa's bright ambient
+  // multiplies all channels, so saturated bases survive the pastel wash.
+  const olive = new THREE.MeshStandardMaterial({ color: 0x2e6014, roughness: 0.45, metalness: 0.2 });
+  const backM = new THREE.MeshStandardMaterial({ color: 0x0c2a1e, roughness: 0.5, metalness: 0.25 });
+  const pink  = new THREE.MeshStandardMaterial({ color: 0xd42812, roughness: 0.4, metalness: 0.1, emissive: 0xd42812, emissiveIntensity: 0.25 });
+  const belly = new THREE.MeshStandardMaterial({ color: 0xdd9906, roughness: 0.5, emissive: 0xdd9906, emissiveIntensity: 0.15 });
+  const gillM = new THREE.MeshStandardMaterial({ color: 0xcc2f05, roughness: 0.45, emissive: 0xcc2f05, emissiveIntensity: 0.35 });
+  const finM  = new THREE.MeshStandardMaterial({ color: 0xb87e10, roughness: 0.55, transparent: true, opacity: 0.9, side: THREE.DoubleSide, emissive: 0xb87e10, emissiveIntensity: 0.1 });
+  const spotM = new THREE.MeshStandardMaterial({ color: 0x14201a, roughness: 0.7 });
+
+  // Body — fusiform, ~1.7 long, nose at +z
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 12), olive);
+  body.scale.set(0.42, 0.52, 1.7);
+  g.add(body);
+  // Dark speckled back — dorsal ridge cap, like the pfp's teal-black top
+  const back = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), backM);
+  back.scale.set(0.36, 0.34, 1.6);
+  back.position.y = 0.14;
+  g.add(back);
+  // Lateral stripe — the rainbow band
+  [-1, 1].forEach(side => {
+    const stripe = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), pink);
+    stripe.scale.set(0.10, 0.20, 1.55);
+    stripe.position.set(side * 0.175, -0.01, 0);
+    g.add(stripe);
+  });
+  // Gill cheeks — the pfp's red-orange blaze
+  [-1, 1].forEach(side => {
+    const gill = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), gillM);
+    gill.scale.set(0.55, 1.0, 1.15);
+    gill.position.set(side * 0.185, -0.02, 0.42);
+    g.add(gill);
+  });
+  // Belly
+  const bl = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), belly);
+  bl.scale.set(0.34, 0.30, 1.5);
+  bl.position.y = -0.12;
+  g.add(bl);
+  // Eyes — gold iris ring around a black pupil, like the pfp
+  [-1, 1].forEach(side => {
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0xd8a828, roughness: 0.35, metalness: 0.4, emissive: 0xd8a828, emissiveIntensity: 0.15 }));
+    iris.position.set(side * 0.150, 0.06, 0.62);
+    g.add(iris);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x14140f, roughness: 0.2, metalness: 0.3 }));
+    eye.position.set(side * 0.168, 0.065, 0.635);
+    g.add(eye);
+  });
+  // Jaw line — pale underslung mouth
+  const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 6), belly);
+  jaw.scale.set(1.1, 0.5, 1.4);
+  jaw.position.set(0, -0.08, 0.72);
+  g.add(jaw);
+  // Tail — pivot group so it sways
+  const tail = new THREE.Group();
+  tail.position.set(0, 0, -0.78);
+  const tailFin = new THREE.Mesh(new THREE.SphereGeometry(0.30, 10, 8), finM);
+  tailFin.scale.set(0.08, 0.75, 0.75);
+  tailFin.position.set(0, 0, -0.18);
+  tail.add(tailFin);
+  g.add(tail);
+  g.userData.tail = tail;
+  // Dorsal fin
+  const dorsal = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), finM);
+  dorsal.scale.set(0.09, 0.85, 0.95);
+  dorsal.position.set(0, 0.26, -0.05);
+  g.add(dorsal);
+  // Adipose fin — the trout signature
+  const adipose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), finM);
+  adipose.scale.set(0.5, 0.9, 0.9);
+  adipose.position.set(0, 0.22, -0.55);
+  g.add(adipose);
+  // Pectoral fins — pivots for a gentle hover-scull
+  const pecs = [];
+  [-1, 1].forEach(side => {
+    const pg = new THREE.Group();
+    pg.position.set(side * 0.19, -0.08, 0.30);
+    const fin = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), finM);
+    fin.scale.set(0.12, 0.5, 1.0);
+    fin.position.set(side * 0.09, -0.04, -0.05);
+    fin.rotation.z = side * 0.7;
+    pg.add(fin);
+    g.add(pg);
+    pecs.push({ group: pg });
+  });
+  g.userData.pecs = pecs;
+  // Spots — deterministic scatter along the upper flanks
+  for (let i = 0; i < 16; i++) {
+    const sz = ((i * 37) % 13) / 13;
+    const side = i % 2 === 0 ? 1 : -1;
+    const spot = new THREE.Mesh(new THREE.SphereGeometry(0.018 + sz * 0.012, 5, 4), spotM);
+    const zz = -0.62 + ((i * 53) % 17) / 17 * 1.15;
+    const yy = 0.05 + ((i * 29) % 11) / 11 * 0.17;
+    const xr = Math.sqrt(Math.max(0.02, 1 - Math.pow(zz / 0.85, 2)));
+    spot.position.set(side * (0.16 + yy * 0.2) * xr, yy, zz);
+    g.add(spot);
+  }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+
+const troutFish = buildTroutFish();
+troutFish.visible = false;
+scene.add(troutFish);
+
+// The arrival — sampled off the actual carved channel so the swim and the
+// water always agree (single source: getTerrainHeight).
+const troutPath = (function () {
+  const pts = [];
+  // RULED 2026-07-30: gentle estuary — the arrival is a calm upstream swim
+  // through the river mouth, no fall to climb.
+  pts.push(new THREE.Vector3(2.0, OCEAN_Y + 0.4, 100));       // out in the bay
+  pts.push(new THREE.Vector3(-1.2, OCEAN_Y + 0.35, 88));      // into the mouth
+  for (let z = 78; z >= 44; z -= 10) {
+    pts.push(new THREE.Vector3(riverCenterX(z) + (z % 20 < 10 ? 0.8 : -0.8),
+      Math.max(getTerrainHeight(riverCenterX(z), z), OCEAN_Y - 1) + 0.45, z));
+  }
+  for (let z = 37; z >= 29; z -= 4) {
+    pts.push(new THREE.Vector3(riverCenterX(z), getTerrainHeight(riverCenterX(z), z) + 0.55, z));
+  }
+  pts.push(new THREE.Vector3(0, getTerrainHeight(0, 27.6) + 0.5, 27.6)); // gathers under the pool lip
+  pts.push(new THREE.Vector3(0, 2.6, 26.4));                  // THE LEAP — channel to pool
+  pts.push(new THREE.Vector3(0.9, 1.72, 24));                 // glides in the pool
+  pts.push(new THREE.Vector3(-0.9, 1.70, 20));
+  pts.push(new THREE.Vector3(0.7, 1.72, 16.5));
+  pts.push(new THREE.Vector3(0, 1.95, 13.6));                 // pool head
+  pts.push(new THREE.Vector3(1.4, 2.9, 11.4));                // rises out of the water
+  pts.push(new THREE.Vector3(2.6, 3.05, 9.8));                // eye level. Existing naturally.
+  return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+})();
+
+const troutState = {
+  mode: 'off',            // off | entering | resident
+  t0: 0,
+  duration: 40,           // seconds — longer now the swim starts out in the bay
+  anchor: new THREE.Vector3(2.6, 0, 9.8),
+  _prev: new THREE.Vector3(),
+};
+
+function toggleTrout() {
+  const b = document.getElementById('trout-btn');
+  if (troutState.mode === 'off') {
+    troutState.mode = 'entering';
+    troutState.t0 = clock.getElapsedTime();
+    troutFish.visible = true;
+    troutFish.position.copy(troutPath.getPointAt(0));
+    if (b) { b.textContent = '🐟 arriving'; b.classList.add('on'); }
+    showNavLabel('trout fish is coming up the river');
+  } else {
+    troutState.mode = 'off';
+    troutFish.visible = false;
+    if (b) { b.textContent = '🐟 Trout'; b.classList.remove('on'); }
+  }
+}
+
+function updateTrout(t) {
+  if (troutState.mode === 'off') return;
+  const tailSway = Math.sin(t * 6) * 0.45;
+  troutFish.userData.tail.rotation.y = tailSway;
+  troutFish.userData.pecs.forEach((p, i) => {
+    p.group.rotation.z = Math.sin(t * 2.2 + i * Math.PI) * 0.25;
+  });
+
+  if (troutState.mode === 'entering') {
+    const u = Math.min(1, (t - troutState.t0) / troutState.duration);
+    // Ease the whole journey slightly — labouring upstream, easing at the end
+    const ue = u < 0.5 ? u * (0.9 + 0.2 * u) : u;
+    const p = troutPath.getPointAt(Math.min(1, ue));
+    troutState._prev.copy(troutFish.position);
+    troutFish.position.copy(p);
+    const v = new THREE.Vector3().subVectors(p, troutState._prev);
+    if (v.lengthSq() > 1e-6) {
+      const targetYaw = Math.atan2(v.x, v.z);
+      const targetPitch = Math.atan2(v.y, Math.sqrt(v.x * v.x + v.z * v.z));
+      let dy = targetYaw - troutFish.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      troutFish.rotation.y += dy * 0.15;
+      troutFish.rotation.x += (-targetPitch - troutFish.rotation.x) * 0.12;
+    }
+    if (u >= 1) {
+      troutState.mode = 'resident';
+      troutState.anchor.set(2.6, 0, 9.8);
+      const b = document.getElementById('trout-btn');
+      if (b) b.textContent = '🐟 here';
+      showNavLabel('trout fish exists naturally now');
+    }
+    return;
+  }
+
+  // Resident — a slow loiter around the colonnade and pool walk, always
+  // at eye level with whoever stands on the local ground.
+  const a = troutState.anchor;
+  const lx = a.x + Math.sin(t * 0.11) * 4.2;
+  const lz = a.z + Math.cos(t * 0.07) * 3.4;
+  const ly = getVisitorHeight(lx, lz) + 1.55 + Math.sin(t * 0.9) * 0.12;
+  const target = new THREE.Vector3(lx, ly, lz);
+  troutFish.position.lerp(target, 0.02);
+  const vel = new THREE.Vector3().subVectors(target, troutFish.position);
+  if (vel.lengthSq() > 1e-4) {
+    const targetYaw = Math.atan2(vel.x, vel.z);
+    let dy = targetYaw - troutFish.rotation.y;
+    while (dy > Math.PI) dy -= Math.PI * 2;
+    while (dy < -Math.PI) dy += Math.PI * 2;
+    troutFish.rotation.y += dy * 0.02;
+  }
+  troutFish.rotation.x += (0 - troutFish.rotation.x) * 0.04;
+}
+
+// ============================================================
+// AVATAR REGISTRY — the villa's cast (2026-07-30 rulings)
+//   ted    — Sailor himself. 🐾 Walk drives Ted; the patrol is what he
+//            does when Sailor is away. (Overturns §7's "staff, not visitor".)
+//   trout  — Trout Fish. Arrives by river, floats at eye level. Above.
+//   guest  — the capped sailor figure: default for tokenless visitors.
+//   pending: kantbot (Diddy Kong — needs an original-homage design pass),
+//            matt-mondanile (seal + headphones + Walkman),
+//            y2k (his call — circle back), edburg (his call — ask him).
+// ============================================================
+const AVATARS = {
+  ted:   () => tedTurner,
+  trout: () => troutFish,
+  seal:  () => sealPup,
+  y2k:   () => y2kHusky,
+  guest: () => visitorAvatar,
+};
+
+// ============================================================
+// MATT MONDANILE'S SEAL (2026-07-30) — third resident. Comes ashore from
+// the surf alongside Trout, lounges on the beach at the river mouth, and
+// every so often gallumphs up the valley to the pool edge and back.
+// RULED: he ROAMS between both.
+// ============================================================
+function buildSeal() {
+  const g = new THREE.Group();
+  // Dark values — the villa's bright ambient bleaches anything mid-gray
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5e5244, roughness: 0.65 });
+  const paleMat = new THREE.MeshStandardMaterial({ color: 0x8d7f6a, roughness: 0.7 });
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x241e16, roughness: 0.8 });
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 10), bodyMat);
+  body.scale.set(0.62, 0.58, 1.55);
+  body.position.y = 0.28;
+  g.add(body);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 8), paleMat);
+  chest.scale.set(0.52, 0.44, 1.3);
+  chest.position.set(0, 0.16, 0.1);
+  g.add(chest);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 8), bodyMat);
+  head.position.set(0, 0.72, 0.72);
+  g.add(head);
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), paleMat);
+  snout.scale.set(0.9, 0.7, 1.0);
+  snout.position.set(0, 0.66, 0.94);
+  g.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), darkMat);
+  nose.position.set(0, 0.70, 1.03);
+  g.add(nose);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), darkMat);
+    eye.position.set(s * 0.11, 0.80, 0.90);
+    g.add(eye);
+    const fl = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), bodyMat);
+    fl.scale.set(0.45, 0.25, 1.0);
+    fl.position.set(s * 0.30, 0.10, 0.35);
+    fl.rotation.y = s * 0.5;
+    g.add(fl);
+    const rf = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), bodyMat);
+    rf.scale.set(0.55, 0.18, 1.1);
+    rf.position.set(s * 0.12, 0.16, -0.86);
+    rf.rotation.y = s * 0.35;
+    g.add(rf);
+  });
+  for (let i = 0; i < 8; i++) {
+    const sp = new THREE.Mesh(new THREE.SphereGeometry(0.05 + (i % 3) * 0.015, 5, 4), darkMat);
+    const zz = -0.5 + ((i * 47) % 13) / 13 * 1.0;
+    sp.position.set((i % 2 ? 1 : -1) * (0.10 + ((i * 31) % 7) / 7 * 0.10),
+      0.42 + ((i * 19) % 5) / 5 * 0.08, zz);
+    g.add(sp);
+  }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return g;
+}
+const sealPup = buildSeal();
+sealPup.visible = false;
+scene.add(sealPup);
+
+// Seal geography — beach spot found from the actual coastline
+const sealBeachZ = (function () {
+  for (const p of foamCoast) if (p.x === 8) return p.z - 6;
+  return 78;
+})();
+const sealBeachSpot = new THREE.Vector3(8, getTerrainHeight(8, sealBeachZ) + 0.05, sealBeachZ);
+function sealGroundPt(x, z) { return new THREE.Vector3(x, getTerrainHeight(x, z) + 0.05, z); }
+const sealPathUp = new THREE.CatmullRomCurve3([
+  sealBeachSpot.clone(),
+  sealGroundPt(5.5, 64), sealGroundPt(4.8, 50), sealGroundPt(4.5, 40), sealGroundPt(4.5, 32),
+  new THREE.Vector3(3.6, 2.05, 26.5), new THREE.Vector3(3.4, 2.05, 20),
+], false, 'centripetal');
+const sealArrival = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(14, OCEAN_Y + 0.2, sealBeachZ + 22),
+  new THREE.Vector3(10, OCEAN_Y + 0.2, sealBeachZ + 10),
+  sealBeachSpot.clone(),
+], false, 'centripetal');
+
+const sealState = { mode: 'off', t0: 0, dur: 0, path: null, rev: false, nextMove: 0, _prev: new THREE.Vector3() };
+function sealRand(seed) { const v = Math.sin(seed * 12.9898) * 43758.5453; return v - Math.floor(v); }
+
+function toggleSeal() {
+  const b = document.getElementById('seal-btn');
+  if (sealState.mode === 'off') {
+    sealState.mode = 'arriving';
+    sealState.t0 = -1; sealState.dur = 14; sealState.path = sealArrival; sealState.rev = false;
+    sealPup.visible = true;
+    if (b) { b.textContent = '🦭 ashore'; b.classList.add('active'); }
+  } else {
+    sealState.mode = 'off';
+    sealPup.visible = false;
+    if (b) { b.textContent = '🦭 Seal'; b.classList.remove('active'); }
+  }
+}
+
+function animateSeal(t) {
+  const S = sealState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) S.t0 = t;
+
+  if (S.mode === 'beach' || S.mode === 'pool') {
+    // Lounging — slow breathing, an occasional roll of the head
+    sealPup.scale.y = 1 + Math.sin(t * 1.4) * 0.03;
+    sealPup.rotation.z = Math.sin(t * 0.35) * 0.08;
+    if (t > S.nextMove) {
+      const up = S.mode === 'beach';
+      S.mode = up ? 'up' : 'down';
+      S.path = sealPathUp; S.rev = !up;
+      S.t0 = t; S.dur = 26;
+      const b = document.getElementById('seal-btn');
+      if (b) b.textContent = up ? '🦭 to the pool' : '🦭 to the beach';
+    }
+    return;
+  }
+
+  // Traveling: arriving | up | down — gallumph along the path
+  const p = Math.min(1, (t - S.t0) / S.dur);
+  const u = S.rev ? 1 - p : p;
+  const pt = S.path.getPointAt(u);
+  // Gallumph — the whole body bounds; head-over-heels energy without the mess
+  const bounce = Math.abs(Math.sin(p * Math.PI * (S.mode === 'arriving' ? 8 : 14)));
+  pt.y += bounce * 0.22;
+  S._prev.copy(sealPup.position);
+  sealPup.position.copy(pt);
+  const vel = new THREE.Vector3().subVectors(pt, S._prev);
+  if (vel.lengthSq() > 1e-6) {
+    const targetYaw = Math.atan2(vel.x, vel.z);
+    let dy = targetYaw - sealPup.rotation.y;
+    while (dy > Math.PI) dy -= 2 * Math.PI;
+    while (dy < -Math.PI) dy += 2 * Math.PI;
+    sealPup.rotation.y += dy * 0.12;
+  }
+  sealPup.rotation.x = -bounce * 0.18;  // nose dips into each bound
+  sealPup.rotation.z = 0;
+  sealPup.scale.y = 1;
+
+  if (p >= 1) {
+    const b = document.getElementById('seal-btn');
+    if (S.mode === 'up') {
+      S.mode = 'pool';
+      S.nextMove = t + 40 + sealRand(t) * 40;
+      if (b) b.textContent = '🦭 poolside';
+    } else { // arriving or down → beach
+      S.mode = 'beach';
+      S.nextMove = t + 45 + sealRand(t) * 45;
+      if (b) b.textContent = '🦭 on the beach';
+    }
+  }
+}
+
+// RULED 2026-07-30: Trout is RESIDENT — the villa has a second inhabitant.
+// He makes his river arrival shortly after every load; the 🐟 button
+// dismisses him or runs the arrival again. The Seal follows him ashore
+// a few seconds later (RULED same day: they come from the beach together).
+setTimeout(function () { if (troutState.mode === 'off') toggleTrout(); }, 6000);
+setTimeout(function () { if (sealState.mode === 'off') toggleSeal(); }, 9500);
+
+// ============================================================
+// Y2K (2026-07-30) — RULED: Y2K wants to be a Siberian husky, a liiitle
+// bigger than Ted. So he is one. Patrols the grounds — plaza, lawn,
+// overlook, valley path, beach — trotting between spots and hanging out.
+// ============================================================
+function buildHusky() {
+  const g = new THREE.Group();
+  const backFur = new THREE.MeshStandardMaterial({ color: 0x2e3238, roughness: 0.88 });
+  const flankFur = new THREE.MeshStandardMaterial({ color: 0x6a707a, roughness: 0.85 });
+  const whiteFur = new THREE.MeshStandardMaterial({ color: 0xd8d5ce, roughness: 0.82 });
+  const darkTrim = new THREE.MeshStandardMaterial({ color: 0x16181c, roughness: 0.8 });
+
+  // Body — chunkier than the coyote, shoulder ~1.15
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 10), flankFur);
+  body.scale.set(0.68, 0.62, 1.5);
+  body.position.set(0, 1.05, 0);
+  g.add(body);
+  // Dark dorsal saddle
+  const saddle = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 8), backFur);
+  saddle.scale.set(0.58, 0.45, 1.42);
+  saddle.position.set(0, 1.22, -0.02);
+  g.add(saddle);
+  // White chest + belly
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), whiteFur);
+  chest.scale.set(0.62, 0.78, 0.85);
+  chest.position.set(0, 0.95, 0.42);
+  g.add(chest);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.20, 8, 6), whiteFur);
+  belly.scale.set(0.5, 0.3, 1.15);
+  belly.position.set(0, 0.80, 0.0);
+  g.add(belly);
+  // Neck + head — mask face: dark cap, white cheeks/muzzle
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.18, 0.32, 8), flankFur);
+  neck.rotation.x = 0.5;
+  neck.position.set(0, 1.28, 0.42);
+  g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 9), flankFur);
+  head.scale.set(0.88, 0.92, 1.0);
+  head.position.set(0, 1.48, 0.58);
+  g.add(head);
+  g.userData.head = head;
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 7), backFur);
+  cap.scale.set(0.86, 0.68, 0.95);
+  cap.position.set(0, 1.56, 0.55);
+  g.add(cap);
+  [-1, 1].forEach(side => {
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 6), whiteFur);
+    cheek.scale.set(0.8, 0.9, 1.0);
+    cheek.position.set(side * 0.13, 1.42, 0.66);
+    g.add(cheek);
+  });
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 6), whiteFur);
+  muzzle.scale.set(0.8, 0.7, 1.5);
+  muzzle.position.set(0, 1.42, 0.78);
+  g.add(muzzle);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 5), darkTrim);
+  nose.position.set(0, 1.44, 0.92);
+  g.add(nose);
+  // Husky blue eyes
+  [-1, 1].forEach(side => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 6),
+      new THREE.MeshStandardMaterial({ color: 0x3f86c8, roughness: 0.3, emissive: 0x3f86c8, emissiveIntensity: 0.3 }));
+    eye.position.set(side * 0.095, 1.52, 0.74);
+    g.add(eye);
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 4), darkTrim);
+    pupil.position.set(side * 0.098, 1.52, 0.765);
+    g.add(pupil);
+    // Ears — tall, erect, dark-backed with white inner
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.26, 6), backFur);
+    ear.position.set(side * 0.12, 1.74, 0.50);
+    ear.rotation.z = side * -0.14;
+    g.add(ear);
+    const inner = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.16, 5), whiteFur);
+    inner.position.set(side * 0.115, 1.72, 0.525);
+    inner.rotation.z = side * -0.14;
+    g.add(inner);
+  });
+  // Legs — white, sturdier than the coyote's
+  const legs = [];
+  [{ x: 0.17, z: 0.32 }, { x: -0.17, z: 0.32 }, { x: 0.17, z: -0.34 }, { x: -0.17, z: -0.34 }].forEach(lp => {
+    const lg = new THREE.Group();
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.058, 0.046, 0.55, 8), flankFur);
+    upper.position.y = 0.55;
+    lg.add(upper);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.034, 0.45, 8), whiteFur);
+    lower.position.y = 0.22;
+    lg.add(lower);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 4), whiteFur);
+    paw.scale.set(0.8, 0.5, 1.2);
+    paw.position.y = 0.03;
+    lg.add(paw);
+    lg.position.set(lp.x, 0, lp.z);
+    g.add(lg);
+    legs.push({ group: lg });
+  });
+  g.userData.legs = legs;
+  // Tail — the husky signature: a plume curled up over the back.
+  // Grouped at a rear pivot so it wags.
+  const tail = new THREE.Group();
+  tail.position.set(0, 1.10, -0.55);
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, -0.05, -0.05),
+    new THREE.Vector3(0, 0.18, -0.14),
+    new THREE.Vector3(0, 0.36, -0.02),
+    new THREE.Vector3(0.02, 0.42, 0.14),
+  ]);
+  tail.add(new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 10, 0.075, 6, false), backFur));
+  tail.add(new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 8, 0.105, 5, false),
+    new THREE.MeshStandardMaterial({ color: 0x8a9098, roughness: 0.92, transparent: true, opacity: 0.4 })));
+  const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 5), whiteFur);
+  tailTip.position.set(0.02, 0.42, 0.14);
+  tail.add(tailTip);
+  g.add(tail);
+  g.userData.tail = tail;
+  g.traverse(c => { if (c.isMesh) c.castShadow = true; });
+  return g;
+}
+const y2kHusky = buildHusky();
+y2kHusky.visible = false;
+scene.add(y2kHusky);
+
+const Y2K_SPOTS = [
+  { name: 'the plaza', x: 12, z: 6 },
+  { name: 'the north lawn', x: -14, z: -10 },
+  { name: 'the overlook', x: -9, z: 44 },
+  { name: 'the valley path', x: 5, z: 58 },
+  { name: 'the beach', x: 10, z: 80 },
+];
+function y2kGround(x, z) { return new THREE.Vector3(x, getTerrainHeight(x, z) + 0.02, z); }
+
+const y2kState = {
+  mode: 'off',   // off | move | idle
+  from: null, to: null, spot: 0, t0: -1, dur: 0, nextMove: 0,
+  _prev: new THREE.Vector3(),
+};
+function y2kRand(seed) { const v = Math.sin(seed * 78.233) * 43758.5453; return v - Math.floor(v); }
+
+function y2kGoTo(spotIdx, t) {
+  const s = Y2K_SPOTS[spotIdx];
+  y2kState.from = y2kHusky.position.clone();
+  y2kState.to = y2kGround(s.x, s.z);
+  y2kState.spot = spotIdx;
+  y2kState.dur = Math.max(3, y2kState.from.distanceTo(y2kState.to) / 2.4);
+  y2kState.t0 = t;
+  y2kState.mode = 'move';
+  const b = document.getElementById('y2k-btn');
+  if (b) b.textContent = '🐕 to ' + s.name.replace('the ', '');
+}
+
+function toggleY2k() {
+  const b = document.getElementById('y2k-btn');
+  if (y2kState.mode === 'off') {
+    // Arrives up from the beach, like the others came from the sea
+    y2kHusky.position.copy(y2kGround(10, 80));
+    y2kHusky.visible = true;
+    y2kState.mode = 'move';
+    y2kState.t0 = -1;   // stamped on first animate frame
+    y2kState.from = y2kHusky.position.clone();
+    y2kState.to = y2kGround(12, 6);
+    y2kState.spot = 0;
+    y2kState.dur = 30;
+    if (b) { b.classList.add('active'); b.textContent = '🐕 arriving'; }
+  } else {
+    y2kState.mode = 'off';
+    y2kHusky.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐕 Y2K'; }
+  }
+}
+
+function animateY2k(t) {
+  const S = y2kState;
+  if (S.mode === 'off') return;
+  const tail = y2kHusky.userData.tail;
+
+  if (S.mode === 'idle') {
+    // Hanging out — slow wag, breathing, the occasional look around
+    tail.rotation.y = Math.sin(t * 2.2) * 0.35;
+    y2kHusky.scale.y = 1 + Math.sin(t * 1.6) * 0.015;
+    y2kHusky.userData.head.position.x = Math.sin(t * 0.4) * 0.05;
+    if (t > S.nextMove) {
+      let next = Math.floor(y2kRand(t) * Y2K_SPOTS.length);
+      if (next === S.spot) next = (next + 1) % Y2K_SPOTS.length;
+      y2kGoTo(next, t);
+    }
+    return;
+  }
+
+  // move
+  if (S.t0 < 0) S.t0 = t;
+  const p = Math.min(1, (t - S.t0) / S.dur);
+  const e = p < 0.1 ? p / 0.1 * p : p;   // soft start
+  const pt = new THREE.Vector3().lerpVectors(S.from, S.to, p);
+  pt.y = getTerrainHeight(pt.x, pt.z) + 0.02;
+  // Trot — diagonal legs swing, body bounces, tail wags hard
+  const trot = t * 9;
+  y2kHusky.userData.legs.forEach((l, i) => {
+    const ph = (i === 0 || i === 3) ? 0 : Math.PI;   // diagonal pairs
+    l.group.rotation.x = Math.sin(trot + ph) * 0.55;
+  });
+  pt.y += Math.abs(Math.sin(trot)) * 0.05;
+  tail.rotation.y = Math.sin(t * 6) * 0.3;
+  S._prev.copy(y2kHusky.position);
+  y2kHusky.position.copy(pt);
+  const vel = new THREE.Vector3().subVectors(pt, S._prev);
+  if (vel.lengthSq() > 1e-6) {
+    const targetYaw = Math.atan2(vel.x, vel.z);
+    let dy = targetYaw - y2kHusky.rotation.y;
+    while (dy > Math.PI) dy -= 2 * Math.PI;
+    while (dy < -Math.PI) dy += 2 * Math.PI;
+    y2kHusky.rotation.y += dy * 0.1;
+  }
+  if (p >= 1) {
+    S.mode = 'idle';
+    S.nextMove = t + 18 + y2kRand(t + 1) * 30;
+    y2kHusky.userData.legs.forEach(l => { l.group.rotation.x = 0; });
+    const b = document.getElementById('y2k-btn');
+    if (b) b.textContent = '🐕 at ' + Y2K_SPOTS[S.spot].name.replace('the ', '');
+  }
+}
+
+// Y2K is a resident too — arrives on load with the rest of the household
+setTimeout(function () { if (y2kState.mode === 'off') toggleY2k(); }, 13000);
+
+// ============================================================
+// FOLLOW-CAM + PROFILES (2026-07-30) — click any resident and the camera
+// locks on and travels with them. The follow card is each resident's
+// profile; its Activity area is the socket for the coming chat/posting.
+// ============================================================
+const followAnimal = { key: null };
+
+const PROFILES = {
+  trout: {
+    emoji: '🐟', name: 'Trout Fish',
+    bio: 'Second resident of the villa. Arrives from the bay each morning, swims the whole river, and holds court at eye level beside the pool.',
+    status: function () {
+      const m = troutState.mode;
+      if (m === 'entering') return 'swimming in from the bay';
+      return 'floating at eye level';
+    },
+  },
+  seal: {
+    emoji: '🦭', name: "Matt Mondanile's Seal",
+    bio: 'Third resident. Came ashore with Trout and never left. Splits his time between the beach at the river mouth and the pool deck.',
+    status: function () {
+      return ({ arriving: 'coming ashore through the surf', beach: 'lounging on the beach',
+        up: 'gallumphing up the valley', pool: 'poolside at the villa',
+        down: 'heading back to the beach' })[sealState.mode] || 'somewhere on the coast';
+    },
+  },
+  y2k: {
+    emoji: '🐕', name: 'Y2K',
+    bio: 'Wanted to be a Siberian husky, so now he is one — a liiitle bigger than Ted. Patrols the grounds from the plaza to the beach on his own schedule.',
+    status: function () {
+      const S = y2kState;
+      if (S.mode === 'move') {
+        const s = Y2K_SPOTS[S.spot];
+        return 'trotting to ' + (s ? s.name : 'somewhere');
+      }
+      if (S.mode === 'idle') {
+        const s = Y2K_SPOTS[S.spot];
+        return 'hanging out at ' + (s ? s.name : 'the villa');
+      }
+      return 'off roaming';
+    },
+  },
+  ted: {
+    emoji: '🐾', name: 'Ted Turner',
+    bio: "Sailor's avatar and the villa's docent. Walks where you point, faces who's watching.",
+    status: function () {
+      if (typeof tedPhoto !== 'undefined' && tedPhoto.active) return 'holding a pose';
+      if (typeof visitorNav !== 'undefined' && visitorNav.active) return 'out for a walk';
+      return 'about the villa';
+    },
+  },
+};
+
+function startFollow(key) {
+  followAnimal.key = key;
+  // A follow outranks any asset focus flight
+  if (typeof approach !== 'undefined') { approach.active = false; approach.released = true; }
+  if (typeof activeFocus !== 'undefined') activeFocus = null;
+  updateFollowCard();
+  document.getElementById('follow-card').classList.add('open');
+}
+function stopFollow() {
+  followAnimal.key = null;
+  document.getElementById('follow-card').classList.remove('open');
+}
+function updateFollowCard() {
+  const p = PROFILES[followAnimal.key];
+  if (!p) return;
+  document.getElementById('fc-emoji').textContent = p.emoji;
+  document.getElementById('fc-name').textContent = p.name;
+  document.getElementById('fc-status').textContent = p.status();
+  document.getElementById('fc-bio').textContent = p.bio;
+}
+setInterval(function () { if (followAnimal.key) updateFollowCard(); }, 700);
+
+function toggleNavMenu() {
+  const m = document.getElementById('nav-menu');
+  const b = document.getElementById('navmenu-btn');
+  m.classList.toggle('open');
+  b.classList.toggle('open', m.classList.contains('open'));
 }
 
 // ============================================================
@@ -6585,6 +7674,28 @@ function updateCamera() {
     camera.lookAt(camTarget);
     return;
   }
+  // Animal follow-cam (2026-07-30) — the camera locks on and travels with
+  // whichever resident was clicked. Drag still orbits AROUND them, wheel
+  // still zooms; auto-orbit becomes a slow cinematic circle.
+  if (followAnimal.key && !approach.active) {
+    const m = AVATARS[followAnimal.key] && AVATARS[followAnimal.key]();
+    if (m && m.visible) {
+      const tp = m.position;
+      const lift = followAnimal.key === 'ted' ? 0.5 : 0.35;
+      camTarget.lerp(new THREE.Vector3(tp.x, tp.y + lift, tp.z), 0.08);
+      camTheta += (targetTheta - camTheta) * 0.045;
+      camPhi += (targetPhi - camPhi) * 0.045;
+      camRadius += (targetRadius - camRadius) * 0.045;
+      camPhi = Math.max(0.08, Math.min(Math.PI - 0.08, camPhi));
+      camRadius = Math.max(2.2, Math.min(80, camRadius));
+      camera.position.x = camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
+      camera.position.y = camTarget.y + camRadius * Math.cos(camPhi);
+      camera.position.z = camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
+      camera.lookAt(camTarget);
+      return;
+    }
+    stopFollow();  // their mesh went invisible (dismissed) — release
+  }
   // Dynamic follow — orbit around Ted while he's the active focus
   if (activeFocus && activeFocus.dynamic && tedTurner && !approach.active) {
     const tp = tedTurner.position;
@@ -6627,8 +7738,10 @@ function updateCamera() {
   // walk. Goes through camTarget + the orbit variables, never the camera
   // position directly (the animate loop owns that — see 2¾.5 build notes).
   if (visitorNav.active && !activeFocus) {
-    const vp = visitorAvatar.position;
-    camTarget.lerp(new THREE.Vector3(vp.x, vp.y + 1.1, vp.z), 0.05);
+    const subj = visitorNav.subject || visitorAvatar;
+    const vp = subj.position;
+    const lift = subj === tedTurner ? 0.9 : 1.1;
+    camTarget.lerp(new THREE.Vector3(vp.x, vp.y + lift, vp.z), 0.05);
   }
   camTheta += (targetTheta - camTheta) * 0.04;
   camPhi += (targetPhi - camPhi) * 0.04;
@@ -6830,6 +7943,7 @@ function toggleTedPhoto() {
   const b = document.getElementById('ted-photo-btn');
   if (!tedPhoto.active) {
     tedPhoto.active = true;
+    if (visitorNav.active) toggleVisitor();   // photo mode takes the wheel back
     if (tedDocent.active) deactivateTedDocent();
     // A photo walk is free navigation: drop any focus lock (the camera stops
     // following/orbiting a target object) and cancel a mid-flight approach.
@@ -6857,6 +7971,7 @@ function toggleTedPhoto() {
   }
 }
 window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && followAnimal.key && !tedPhoto.active) { stopFollow(); return; }
   if (!tedPhoto.active) return;
   if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('ted-chrome-hidden');
   if (e.key === 'Escape') toggleTedPhoto();
@@ -7341,9 +8456,10 @@ container.addEventListener('pointermove', e => {
   }
 
   if (isDragging) {
-    // Photo mode: ⇧drag PANS the camera target — free navigation for framing
-    // (plain drag still orbits, wheel still zooms, ground click places Ted).
-    if (typeof tedPhoto !== 'undefined' && tedPhoto.active && e.shiftKey) {
+    // ⇧drag PANS the camera target — free navigation, unanchored from assets.
+    // RULED 2026-07-30: was photo-mode-only; Sailor expects it everywhere.
+    // (Plain drag still orbits, wheel still zooms.)
+    if (e.shiftKey) {
       const pdx = e.clientX - prevX, pdy = e.clientY - prevY;
       prevX = e.clientX; prevY = e.clientY;
       const s = camRadius * 0.0016;
@@ -7471,6 +8587,22 @@ container.addEventListener('pointerup', e => {
     const g = tedPhotoGroundHit();
     if (g) tedPhotoPlace(g.point);
     return;
+  }
+
+  // ── Animal follow (2026-07-30) — click a resident to lock the camera ──
+  {
+    const critters = [];
+    if (troutFish.visible) critters.push({ key: 'trout', mesh: troutFish });
+    if (sealPup.visible) critters.push({ key: 'seal', mesh: sealPup });
+    if (y2kHusky.visible) critters.push({ key: 'y2k', mesh: y2kHusky });
+    if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
+    for (const c of critters) {
+      if (raycaster.intersectObject(c.mesh, true).length > 0) {
+        if (followAnimal.key === c.key) stopFollow();
+        else startFollow(c.key);
+        return;
+      }
+    }
   }
 
   // ── Parchment UV click — when focused on easel, check parchment first ──
@@ -7914,7 +9046,7 @@ let modeTransition = null;
 function toggleMode() {
   isDarkMode = !isDarkMode;
   document.body.classList.toggle('light', !isDarkMode);
-  document.querySelector('.ui-btn').textContent = isDarkMode ? 'Skylight' : 'Gallery';
+  document.getElementById('skylight-btn').textContent = isDarkMode ? 'Skylight' : 'Gallery';
 
   // Repaint sky
   paintSky(isDarkMode);
@@ -10027,8 +11159,17 @@ function animate() {
   tedFocus.hitbox.position.y += 0.7;
   updateTedDocent(t);
 
-  // Visitor avatar — click-to-walk
+  // Walk mode (Ted under Sailor's wheel) — click-to-walk
   updateVisitor(t);
+
+  // Trout Fish — arrival swim / resident float
+  updateTrout(t);
+  animateSeal(t);
+  animateY2k(t);
+  animateBoats(t);
+
+  // The river flows (shader-side; one uniform is the whole per-frame cost)
+  riverMat.uniforms.uTime.value = t;
   updateNarrationHighlight(t);
 
   // VHS video texture update
