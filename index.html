@@ -655,6 +655,7 @@
   <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
   <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa as Ted — click the ground and he goes there; objects still focus on click">🐾 Walk</button>
   <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
+  <button class="ui-btn" id="austin-btn" onclick="tapResident('austin')" title="Austin \u2014 tap to lock the camera on him. A brown pelican working the coast; glides low over the swell and goes in bill first">🦢 Austin</button>
   <div class="nav-menu-label">Go</div>
   <button class="ui-btn" onclick="goToPlace('gallery')">The Gallery</button>
   <button class="ui-btn" onclick="goToPlace('court')">The West Court</button>
@@ -6922,6 +6923,7 @@ const AVATARS = {
   julia: () => heronJulia,
   emilia: () => stoatEmilia,
   adlib: () => catAdlib,
+  austin: () => pelicanAustin,
   guest: () => visitorAvatar,
 };
 
@@ -7574,15 +7576,17 @@ function animateOtter(t) {
     target = new THREE.Vector3(lx, otterWaterY(lx, lz), lz);
   }
 
-  // ── THE MOVEMENT RULE (RULED 2026-07-31, Sailor — corrected) ──
-  // It is not about being summoned. It is about whether she is SWIMMING.
-  //   at her leisure → on her back, sculling with her tail, and the scull
-  //     pushes her BACKWARDS through the water. Slow. Urchins out.
-  //   actively swimming → belly down, head up, going forwards, because
-  //     that is the only way to cover water at speed.
-  // So the discriminator is distance still to run, not who asked.
-  const reach = otterPrincess.position.distanceTo(target);
-  travelling = travelling || reach > 6;
+  // ── THE MOVEMENT RULE (RULED 2026-08-01, Sailor — final) ──────
+  // ON HER BACK IS HER DEFAULT. Left alone she is always supine, sculling
+  // with her tail, which pushes her BACKWARDS through the water, slowly,
+  // urchins out. That is not a resting state she returns to — it is what
+  // she does.
+  //   She goes belly-down, head up, forwards ONLY when she has somewhere
+  //   to be: arriving from the open sea, or called to a meeting.
+  // An earlier version flipped her prone whenever her drift target got
+  // more than six units ahead of her, which meant her ordinary patrol —
+  // the whole point of her — spent most of its time swimming rather than
+  // rafting. Distance is not purpose.
   const supine = rafting && !travelling;
   const wantRoll = supine ? Math.PI : 0;
   let dr = wantRoll - otterPrincess.rotation.z;
@@ -8242,6 +8246,7 @@ setTimeout(function () { if (alrikState.mode === 'off') toggleAlrik(); }, 30000)
 setTimeout(function () { if (juliaState.mode === 'off') toggleJulia(); }, 33500);
 setTimeout(function () { if (emiliaState.mode === 'off') toggleEmilia(); }, 37000);
 setTimeout(function () { if (adlibState.mode === 'off') toggleAdlib(); }, 40500);
+setTimeout(function () { if (austinState.mode === 'off') toggleAustin(); }, 44000);
 
 
 // ============================================================
@@ -8481,6 +8486,14 @@ const PROFILES = {
       if (adlibState.mode === 'walk') return 'sauntering to ' + s.name;
       if (adlibState.mode === 'groom') return 'washing, on ' + s.name;
       return 'sat on ' + (s.name || 'something you were using');
+    },
+  },
+  austin: {
+    emoji: '🦢', name: 'Austin',
+    bio: 'A brown pelican. Works the coast between the river mouth, the break and the beach, and comes up as far as the reflection pool when the mood takes him. Glides low over the swell on stiff wings and hardly ever flaps \u2014 and then, without warning, climbs and falls out of the sky bill first.',
+    status: function () {
+      return ({ glide: 'gliding the swell', plunge: 'coming down bill first',
+        float: 'sitting the swell', perch: 'hunched on the coast' })[austinState.mode] || 'somewhere on the coast';
     },
   },
   ted: {
@@ -9612,6 +9625,245 @@ function animateCat(t) {
   }
 }
 
+// ============================================================
+// 10. AUSTIN — a brown pelican. He works the coast, and he is the only
+// resident who dives INTO anything. Julia stands and strikes at what is
+// already in front of her; Austin falls out of the sky onto it.
+// ============================================================
+function buildPelican() {
+  const g = new THREE.Group();
+  const coat = new THREE.MeshStandardMaterial({ color: 0x453f36, roughness: 0.8 });
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0x332e28, roughness: 0.82 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0x8e8676, roughness: 0.76 });
+  const crown = new THREE.MeshStandardMaterial({ color: 0x8a7434, roughness: 0.7 });
+  const billMat = new THREE.MeshStandardMaterial({ color: 0x7d6c42, roughness: 0.55 });
+  const pouchMat = new THREE.MeshStandardMaterial({ color: 0x5e4a2c, roughness: 0.6 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x100e0b, roughness: 0.7 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.30, 12, 9), coat);
+  body.scale.set(0.86, 0.88, 1.85);
+  body.position.set(0, 0.42, -0.05);
+  body.castShadow = true;
+  g.add(body);
+  const breast = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 8), coat);
+  breast.scale.set(0.9, 1.0, 0.9);
+  breast.position.set(0, 0.40, 0.28);
+  g.add(breast);
+
+  // Neck on a pivot — folded onto the shoulders in flight, S-curved at rest
+  const neck = new THREE.Group();
+  neck.position.set(0, 0.58, 0.22);
+  g.add(neck);
+  g.userData.neck = neck;
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.10, 0.44, 7), pale);
+  col.position.set(0, 0.20, 0.02);
+  neck.add(col);
+
+  // Head, and the bill — which is most of the animal
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.42, 0.04);
+  neck.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), pale);
+  headGroup.add(head);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.095, 10, 7), crown);
+  cap.scale.set(1, 0.62, 1);
+  cap.position.set(0, 0.045, -0.01);
+  headGroup.add(cap);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.02, 5, 4), dark);
+    eye.position.set(s * 0.07, 0.03, 0.05);
+    headGroup.add(eye);
+  });
+  // Upper mandible — long, straight, hooked at the tip
+  const bill = new THREE.Mesh(new THREE.CylinderGeometry(0.030, 0.048, 0.62, 6), billMat);
+  bill.rotation.x = Math.PI / 2;
+  bill.position.set(0, -0.005, 0.33);
+  headGroup.add(bill);
+  const hook = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.09, 5), billMat);
+  hook.rotation.x = Math.PI / 2 + 0.5;
+  hook.position.set(0, -0.03, 0.65);
+  headGroup.add(hook);
+  // The pouch — the thing that makes him unmistakable
+  const pouch = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 7), pouchMat);
+  pouch.scale.set(0.85, 0.9, 2.7);
+  pouch.position.set(0, -0.075, 0.26);
+  headGroup.add(pouch);
+  g.userData.pouch = pouch;
+
+  // Wings on pivots — long, and they do the whole job of reading as flight
+  const wings = [];
+  [-1, 1].forEach(s => {
+    const w = new THREE.Group();
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6), wingMat);
+    inner.scale.set(2.0, 0.14, 0.72);
+    inner.position.set(s * 0.42, 0, 0.02);
+    w.add(inner);
+    const outer = new THREE.Mesh(new THREE.ConeGeometry(0.16, 1.05, 4), wingMat);
+    outer.scale.set(1, 1, 0.28);
+    outer.rotation.z = s * Math.PI / 2;
+    outer.rotation.y = -s * 0.18;
+    outer.position.set(s * 1.32, 0, -0.10);
+    w.add(outer);
+    w.position.set(0, 0.52, -0.02);
+    g.add(w); wings.push(w);
+  });
+  g.userData.wings = wings;
+
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.42, 5), wingMat);
+  tail.scale.set(1, 1, 0.32);
+  tail.rotation.x = -Math.PI / 2 - 0.2;
+  tail.position.set(0, 0.44, -0.62);
+  g.add(tail);
+
+  const legs = [];
+  [-1, 1].forEach(s => {
+    const leg = new THREE.Group();
+    const shank = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.22, 5), billMat);
+    shank.position.y = -0.11;
+    leg.add(shank);
+    const web = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.014, 0.17), billMat);
+    web.position.set(0, -0.22, 0.04);
+    leg.add(web);
+    leg.position.set(s * 0.09, 0.26, -0.06);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  g.scale.set(1.15, 1.15, 1.15);
+  return g;
+}
+
+const pelicanAustin = buildPelican();
+pelicanAustin.visible = false;
+scene.add(pelicanAustin);
+
+// The coast, and one inland perch — pelicans do come up the river
+const AUSTIN_SPOTS = [
+  { name: 'the river mouth', x: 3.5, z: 87 },
+  { name: 'the break', x: -9, z: 95 },
+  { name: 'the beach', x: 11, z: 81 },
+  { name: 'the pool', x: 3.6, z: 26 },
+];
+const austinState = { mode: 'off', t0: -1, spot: 0, from: null, to: null, dur: 0, until: 0, summonUntil: 0 };
+function austinSeaY(x, z) {
+  return sharkInWater(x, z) ? OCEAN_Y + 0.06 : getVisitorHeight(x, z) + 0.02;
+}
+function austinGround(x, z) { return new THREE.Vector3(x, austinSeaY(x, z), z); }
+
+function toggleAustin() {
+  const b = document.getElementById('austin-btn');
+  if (austinState.mode === 'off') {
+    pelicanAustin.position.copy(austinGround(AUSTIN_SPOTS[0].x, AUSTIN_SPOTS[0].z));
+    pelicanAustin.visible = true;
+    austinState.mode = 'perch';
+    austinState.t0 = -1; austinState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🦢 on the coast'; }
+  } else {
+    austinState.mode = 'off';
+    pelicanAustin.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦢 Austin'; }
+  }
+}
+
+function animateAustin(t) {
+  const S = austinState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 10; }
+  const W = pelicanAustin.userData;
+
+  if (S.mode === 'glide') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const p = S.from.clone().lerp(S.to, u);
+    // Low over the swell, in ground effect — his height follows whatever is
+    // beneath him rather than the higher of his two endpoints, so crossing
+    // the cliff he drops down the face with it instead of sailing out at
+    // twenty units like a gull. Measured at 22 before this; now under 4.
+    p.y = austinSeaY(p.x, p.z) + 1.7 + Math.sin(u * Math.PI) * 1.5;
+    pelicanAustin.position.copy(p);
+    // Wings held out stiff. A pelican glides far more than it flaps.
+    const flap = Math.max(0, Math.sin(t * 1.9)) * 0.35;
+    W.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * (0.10 + flap); });
+    W.neck.rotation.x = 0.85;                 // head drawn back onto the shoulders
+    W.legs.forEach(l => { l.rotation.x = 1.4; });
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) pelicanAustin.rotation.y = Math.atan2(v.x, v.z);
+    pelicanAustin.rotation.z = Math.sin(t * 0.7) * 0.10;
+    if (u >= 1) {
+      // Every so often the glide ends in a dive instead of a landing
+      if (Math.abs(Math.sin(t * 37.1)) > 0.55 && sharkInWater(S.to.x, S.to.z)) {
+        S.mode = 'plunge'; S.t0 = t;
+        S.from = pelicanAustin.position.clone();
+        S.to = austinGround(S.to.x + Math.sin(t) * 2.5, S.to.z + Math.cos(t) * 2.5);
+      } else {
+        S.mode = 'perch'; S.t0 = t; S.until = t + 12 + Math.abs(Math.sin(t * 9.3)) * 22;
+        pelicanAustin.position.copy(S.to);
+        pelicanAustin.rotation.z = 0;
+      }
+    }
+    return;
+  }
+
+  if (S.mode === 'plunge') {
+    // Up, over, and straight down on a folded wing. The whole point of him.
+    const u = Math.min(1, (t - S.t0) / 2.4);
+    const p = S.from.clone().lerp(S.to, u);
+    const climb = Math.sin(Math.min(1, u / 0.42) * Math.PI * 0.5) * 7.0;
+    const fall = u < 0.42 ? 0 : Math.pow((u - 0.42) / 0.58, 2) * 8.6;
+    p.y = S.from.y + climb - fall;
+    pelicanAustin.position.copy(p);
+    const diving = u > 0.42;
+    W.wings.forEach((w, i) => {
+      w.rotation.z = (i ? -1 : 1) * (diving ? 1.35 : 0.15);   // swept right back
+      w.rotation.y = (i ? -1 : 1) * (diving ? 0.9 : 0);
+    });
+    W.neck.rotation.x = diving ? -0.55 : 0.6;                 // bill first
+    pelicanAustin.rotation.x = diving ? -1.15 : 0.25;
+    if (u >= 1) {
+      S.mode = 'float'; S.t0 = t; S.until = t + 5 + Math.abs(Math.sin(t * 11.7)) * 6;
+      pelicanAustin.position.copy(S.to);
+      pelicanAustin.rotation.x = 0;
+      W.wings.forEach((w, i) => { w.rotation.y = 0; });
+      showNavLabel('Austin goes in bill first');
+    }
+    return;
+  }
+
+  if (S.mode === 'float') {
+    // Sitting the swell, working down whatever he caught
+    pelicanAustin.position.y = austinSeaY(pelicanAustin.position.x, pelicanAustin.position.z) + Math.sin(t * 1.2) * 0.05;
+    W.wings.forEach((w, i) => { w.rotation.z += ((i ? -0.08 : 0.08) - w.rotation.z) * 0.1; });
+    const gulp = Math.max(0, Math.sin(t * 1.4) - 0.7) * 3;
+    W.neck.rotation.x += ((0.25 - gulp * 0.5) - W.neck.rotation.x) * 0.12;
+    W.pouch.scale.set(0.85 + gulp * 0.5, 0.9 + gulp * 0.6, 2.7);
+    W.legs.forEach(l => { l.rotation.x *= 0.9; });
+    if (t > S.until) austinDepart(t);
+    return;
+  }
+
+  // Perched — hunched, bill resting on the breast, occasionally preening
+  pelicanAustin.position.y = austinSeaY(pelicanAustin.position.x, pelicanAustin.position.z);
+  W.wings.forEach((w, i) => { w.rotation.z += ((i ? -0.06 : 0.06) - w.rotation.z) * 0.08; });
+  W.legs.forEach(l => { l.rotation.x *= 0.9; });
+  const preen = Math.max(0, Math.sin(t * 0.31) - 0.93) * 14;
+  W.neck.rotation.x += ((0.55 + preen * 0.5) - W.neck.rotation.x) * 0.06;
+  W.headGroup.rotation.y = Math.sin(t * 0.4) * 0.4;
+  W.pouch.scale.set(0.85, 0.9, 2.7);
+  if (t > S.until) austinDepart(t);
+}
+
+function austinDepart(t) {
+  const S = austinState;
+  let next = Math.floor(Math.abs(Math.sin(t * 47.9)) * AUSTIN_SPOTS.length) % AUSTIN_SPOTS.length;
+  if (next === S.spot) next = (next + 1) % AUSTIN_SPOTS.length;
+  S.spot = next;
+  S.from = pelicanAustin.position.clone();
+  S.to = austinGround(AUSTIN_SPOTS[next].x, AUSTIN_SPOTS[next].z);
+  S.dur = Math.max(4, S.from.distanceTo(S.to) / 7);
+  S.t0 = t;
+  S.mode = 'glide';
+}
+
 // ── GOING PLACES (Sailor, 2026-08-01) ───────────────────────
 // Orbiting a 3D scene with a scroll wheel is a bad way to get anywhere,
 // and the villa is now 76 units across with residents at the top of a
@@ -9678,6 +9930,7 @@ const RESIDENTS = {
   julia: { state: function () { return juliaState; }, toggle: toggleJulia },
   emilia:{ state: function () { return emiliaState; }, toggle: toggleEmilia },
   adlib: { state: function () { return adlibState; }, toggle: toggleAdlib },
+  austin:{ state: function () { return austinState; }, toggle: toggleAustin },
 };
 
 function tapResident(key) {
@@ -9943,6 +10196,14 @@ function summonResident(key, silent, at) {
     emiliaState.t0 = t; emiliaState.mode = 'dart';
     stoatEmilia.rotation.x = 0;
     emiliaState.summonUntil = t + 90;
+  } else if (key === 'austin') {
+    if (austinState.mode === 'off') toggleAustin();
+    austinState.from = pelicanAustin.position.clone();
+    austinState.to = austinGround(here.x - 1.4, here.z + 1.2);
+    austinState.dur = Math.max(4, austinState.from.distanceTo(austinState.to) / 7);
+    austinState.t0 = t; austinState.mode = 'glide';
+    austinState.summonUntil = t + austinState.dur + 90;
+    austinState.until = austinState.summonUntil;
   } else if (key === 'adlib') {
     if (adlibState.mode === 'off') toggleAdlib();
     // He comes. He does not hurry, and he stops being interested the moment
@@ -11980,6 +12241,7 @@ container.addEventListener('pointerup', e => {
     if (heronJulia.visible) critters.push({ key: 'julia', mesh: heronJulia });
     if (stoatEmilia.visible) critters.push({ key: 'emilia', mesh: stoatEmilia });
     if (catAdlib.visible) critters.push({ key: 'adlib', mesh: catAdlib });
+    if (pelicanAustin.visible) critters.push({ key: 'austin', mesh: pelicanAustin });
     if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
     for (const c of critters) {
       if (raycaster.intersectObject(c.mesh, true).length > 0) {
@@ -14621,6 +14883,7 @@ function animate() {
   animateHeron(t);
   animateStoat(t);
   animateCat(t);
+  animateAustin(t);
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)
