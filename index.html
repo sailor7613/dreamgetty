@@ -114,6 +114,20 @@
   }
   #nav-menu.open { display: flex; }
   #nav-menu { max-height: 78vh; overflow-y: auto; overscroll-behavior: contain; }
+  #meet-panel { position: absolute; top: 54px; right: 14px; width: 268px; max-height: 76vh;
+    display: none; flex-direction: column; gap: 4px; padding: 10px;
+    background: rgba(14,13,11,0.9); border: 1px solid rgba(232,224,208,0.14);
+    border-radius: 4px; overflow-y: auto; overscroll-behavior: contain; z-index: 40; }
+  #meet-panel.open { display: flex; }
+  #meet-head { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    font: 11px Georgia, serif; letter-spacing: 0.08em; color: rgba(232,224,208,0.8);
+    padding: 2px 2px 8px; border-bottom: 1px solid rgba(232,224,208,0.12); margin-bottom: 4px; }
+  #meet-head .ui-btn { position: static; padding: 2px 8px; }
+  #meet-panel .meet-row { position: static; text-align: left; display: flex;
+    flex-direction: column; align-items: flex-start; gap: 1px; }
+  .meet-sub { font-size: 9px; letter-spacing: 0.04em; opacity: 0.5; text-transform: none; font-style: italic; }
+  body.light #meet-panel { background: rgba(245,242,235,0.92); border-color: rgba(20,18,14,0.14); }
+  body.light #meet-head { color: rgba(20,18,14,0.7); }
   #nav-menu .ui-btn { position: static; text-align: right; }
   body.light #nav-menu { background: rgba(245,242,235,0.8); border-color: rgba(20,18,14,0.12); }
   #navmenu-btn.open { background: rgba(160,128,80,0.3); }
@@ -630,12 +644,31 @@
 <!-- RULED 2026-07-30: the nav tool is the MENU BAR — one 🧭 gathers the
      growing list of functions instead of a sprawling button row. -->
 <button class="ui-btn" id="navmenu-btn" style="top:14px;right:16px;" onclick="toggleNavMenu()">🧭 Nav</button>
+<div id="meet-panel">
+  <div id="meet-head"><span id="meet-title">Meet who?</span><button class="ui-btn" onclick="closeMeet()">×</button></div>
+  <div id="meet-list"></div>
+</div>
 <div id="nav-menu">
   <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
   <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
   <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
   <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
   <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa as Ted — click the ground and he goes there; objects still focus on click">🐾 Walk</button>
+  <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
+  <div class="nav-menu-label">Go</div>
+  <button class="ui-btn" onclick="goToPlace('gallery')">The Gallery</button>
+  <button class="ui-btn" onclick="goToPlace('court')">The West Court</button>
+  <button class="ui-btn" onclick="goToPlace('library')">The Library</button>
+  <button class="ui-btn" onclick="goToPlace('annex')">The Annex</button>
+  <button class="ui-btn" onclick="goToPlace('pool')">The Pool</button>
+  <button class="ui-btn" onclick="goToPlace('overlook')">The Overlook</button>
+  <button class="ui-btn" onclick="goToPlace('valley')">The Valley</button>
+  <button class="ui-btn" onclick="goToPlace('beach')">The Beach</button>
+  <button class="ui-btn" onclick="goToPlace('break')">The Break</button>
+  <button class="ui-btn" onclick="goToPlace('kelp')">The Kelp Bed</button>
+  <button class="ui-btn" onclick="goToPlace('deep')">The Deep</button>
+  <button class="ui-btn" onclick="goToPlace('mountain')">The Mountain</button>
+  <div class="nav-menu-label">Who's here</div>
   <button class="ui-btn" id="trout-btn" onclick="tapResident('trout')" title="Trout Fish — tap to lock the camera on him. Arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
   <button class="ui-btn" id="seal-btn" onclick="tapResident('seal')" title="Matt Mondanile's Seal — tap to lock the camera on him. ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
   <button class="ui-btn" id="y2k-btn" onclick="tapResident('y2k')" title="Y2K — tap to lock the camera on him. A Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
@@ -648,18 +681,6 @@
   <button class="ui-btn" id="julia-btn" onclick="tapResident('julia')" title="Julia \u2014 tap to lock the camera on her. A great blue heron working the pool and the river shallows; the only resident who flies">🪶 Julia</button>
   <button class="ui-btn" id="emilia-btn" onclick="tapResident('emilia')" title="Emilia \u2014 tap to lock the camera on her. A snow stoat: dart, freeze, dart">🐁 Emilia</button>
   <button class="ui-btn" id="adlib-btn" onclick="tapResident('adlib')" title="Adlib \u2014 tap to lock the camera on him. A house cat, and he sits on the pedestal, the easel and the G4 in rotation">🐈 Adlib</button>
-  <div class="nav-menu-label">Engage</div>
-  <button class="ui-btn" onclick="summonResident('trout')" title="Trout comes to the nearest water to you">🐟 summon Trout</button>
-  <button class="ui-btn" onclick="summonResident('seal')" title="The Seal gallumphs to you">🦭 summon Seal</button>
-  <button class="ui-btn" onclick="summonResident('y2k')" title="Y2K trots to you">🐕 summon Y2K</button>
-  <button class="ui-btn" onclick="summonResident('otter')" title="The Princess swims to the nearest water to you">🦦 summon Princess</button>
-  <button class="ui-btn" onclick="summonResident('petra')" title="Petra comes as close as deep water allows — she cannot come ashore">🦈 summon Petra</button>
-  <button class="ui-btn" onclick="summonResident('kyle')" title="Kyle comes to the nearest water to you">🐬 summon Kyle</button>
-  <button class="ui-btn" onclick="summonResident('diddy')" title="Diddy Kong comes down off the mountain">🐒 summon Diddy</button>
-  <button class="ui-btn" onclick="summonResident('alrik')" title="Alrik walks down off the range">🧙 summon Alrik</button>
-  <button class="ui-btn" onclick="summonResident('julia')" title="Julia flies over and lands beside you">🪶 summon Julia</button>
-  <button class="ui-btn" onclick="summonResident('emilia')" title="Emilia bolts to you">🐁 summon Emilia</button>
-  <button class="ui-btn" onclick="summonResident('adlib')" title="Adlib comes over, eventually, on his own terms">🐈 summon Adlib</button>
   <div class="nav-menu-label">You</div>
   <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
 </div>
@@ -894,7 +915,7 @@ const PrismGraphmap = (function () {
 
   function buildRenderer() {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));   // 2 quadruples fragment work on Retina for no visible gain here
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 0.95;
@@ -3433,7 +3454,7 @@ scene.background = new THREE.Color(C.nightBg);
 const camera = new THREE.PerspectiveCamera(36, container.clientWidth / container.clientHeight, 0.1, 600);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));   // 2 quadruples fragment work on Retina for no visible gain here
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.9;
@@ -7553,13 +7574,15 @@ function animateOtter(t) {
     target = new THREE.Vector3(lx, otterWaterY(lx, lz), lz);
   }
 
-  // ── POSTURE (RULED 2026-07-31, Sailor) ──────────────────────
-  // Two postures, and the discriminator is whether she is GOING somewhere:
-  //   drifting, at her leisure → SUPINE. On her back at the surface, head
-  //     clear of the water, urchins on her chest. What an otter does.
-  //   travelling, or called to you → PRONE. Rolled belly-down and head
-  //     lifted, because you cannot see where you are going on your back.
-  // On the villa's stone she is prone by the medium rule either way.
+  // ── THE MOVEMENT RULE (RULED 2026-07-31, Sailor — corrected) ──
+  // It is not about being summoned. It is about whether she is SWIMMING.
+  //   at her leisure → on her back, sculling with her tail, and the scull
+  //     pushes her BACKWARDS through the water. Slow. Urchins out.
+  //   actively swimming → belly down, head up, going forwards, because
+  //     that is the only way to cover water at speed.
+  // So the discriminator is distance still to run, not who asked.
+  const reach = otterPrincess.position.distanceTo(target);
+  travelling = travelling || reach > 6;
   const supine = rafting && !travelling;
   const wantRoll = supine ? Math.PI : 0;
   let dr = wantRoll - otterPrincess.rotation.z;
@@ -7586,17 +7609,19 @@ function animateOtter(t) {
   hg.rotation.y = supine ? Math.sin(t * 0.35) * 0.18 : 0;   // idle looking about
 
   S._prev.copy(otterPrincess.position);
-  otterPrincess.position.lerp(target, S.mode === 'entering' ? 0.08 : 0.02);
+  otterPrincess.position.lerp(target, S.mode === 'entering' ? 0.08 : (supine ? 0.012 : 0.05));
   // Prone on stone, her feet want the floor; supine she rides on her spine.
   if (!rafting) otterPrincess.position.y += (target.y + 0.09 - otterPrincess.position.y) * 0.1;
 
   const v = new THREE.Vector3().subVectors(otterPrincess.position, S._prev);
   if (v.lengthSq() > 1e-7) {
-    const yaw = Math.atan2(v.x, v.z);
+    // Sculling on her back drives her backwards, so supine she faces AWAY
+    // from the way she is going. Swimming, she faces where she is headed.
+    const yaw = supine ? Math.atan2(-v.x, -v.z) : Math.atan2(v.x, v.z);
     let dy = yaw - otterPrincess.rotation.y;
     while (dy > Math.PI) dy -= Math.PI * 2;
     while (dy < -Math.PI) dy += Math.PI * 2;
-    otterPrincess.rotation.y += dy * 0.08;
+    otterPrincess.rotation.y += dy * (supine ? 0.03 : 0.08);
   }
 
   const bob = rafting ? Math.sin(t * 1.1) * 0.05 : 0;
@@ -7614,10 +7639,14 @@ function animateOtter(t) {
     }
   });
   otterPrincess.userData.feet.forEach((f, i) => {
-    f.rotation.x = supine ? Math.sin(t * 1.3 + i) * 0.25
+    f.rotation.x = supine ? Math.sin(t * 1.3 + i) * 0.22
       : (travelling ? Math.sin(t * 4.5 + i * Math.PI) * 0.5 : Math.sin(t * 5 + i * Math.PI) * 0.4);
   });
-  otterPrincess.userData.tail.rotation.z = travelling ? Math.sin(t * 3.6) * 0.22 : Math.sin(t * 0.9) * 0.08;
+  // On her back the tail is the engine — a slow scull, and it is the only
+  // thing moving. Swimming, it beats with the rest of her.
+  const tl = otterPrincess.userData.tail;
+  tl.rotation.x = Math.PI / 2 + 0.15 + (supine ? Math.sin(t * 1.5) * 0.30 : Math.sin(t * 4.2) * 0.14);
+  tl.rotation.z = supine ? Math.sin(t * 1.5 + 0.9) * 0.16 : Math.sin(t * 3.6) * 0.22;
 }
 
 // ============================================================
@@ -7914,6 +7943,10 @@ scene.add(dolphinKyle);
 
 // The break — where the swell stands up before it spills. He works this line.
 const KYLE_Z = 97, KYLE_RUN = 22;
+// Same shape as Petra's: water if there is water, ground if there is not.
+function dolphinY(x, z) {
+  return sharkInWater(x, z) ? OCEAN_Y - 0.15 : getVisitorHeight(x, z) + 0.32;
+}
 const kyleState = { mode: 'off', t0: -1, dir: 1, nextLeap: 0, leapT0: -1, leapFrom: null, leapTo: null, summonTarget: null, summonUntil: 0, _prev: new THREE.Vector3() };
 
 function toggleKyle() {
@@ -7937,8 +7970,9 @@ function animateDolphin(t) {
   if (S.t0 < 0) { S.t0 = t; S.nextLeap = t + 9; }
 
   // Flukes beat vertically — that is the whole difference from Petra
-  const beat = Math.sin(t * 3.1);
-  dolphinKyle.userData.tail.rotation.x = beat * 0.36;
+  const slack = !sharkInWater(dolphinKyle.position.x, dolphinKyle.position.z);
+  const beat = Math.sin(t * (slack ? 0.9 : 3.1));
+  dolphinKyle.userData.tail.rotation.x = beat * (slack ? 0.14 : 0.36);
 
   if (S.mode === 'leap') {
     const u = Math.min(1, (t - S.leapT0) / 2.2);
@@ -7958,8 +7992,10 @@ function animateDolphin(t) {
   }
 
   let target;
+  const beached = !sharkInWater(dolphinKyle.position.x, dolphinKyle.position.z);
   if (S.summonTarget && t < S.summonUntil) {
     target = S.summonTarget.clone();
+    target.y = dolphinY(target.x, target.z);
   } else {
     S.summonTarget = null;
     // Working the line, turning at each end
@@ -7971,7 +8007,9 @@ function animateDolphin(t) {
 
   S._prev.copy(dolphinKyle.position);
   dolphinKyle.position.lerp(target, 0.06);
-  dolphinKyle.rotation.x += (Math.sin(t * 0.9) * 0.12 - dolphinKyle.rotation.x) * 0.08;
+  // Out of the water he lies over on one side and the flukes go slack
+  dolphinKyle.rotation.z += ((beached ? 0.55 : 0) - dolphinKyle.rotation.z) * 0.06;
+  dolphinKyle.rotation.x += ((beached ? 0 : Math.sin(t * 0.9) * 0.12) - dolphinKyle.rotation.x) * 0.08;
 
   const v = new THREE.Vector3().subVectors(dolphinKyle.position, S._prev);
   if (v.lengthSq() > 1e-7) {
@@ -7982,7 +8020,7 @@ function animateDolphin(t) {
     dolphinKyle.rotation.y += dy * 0.09;
   }
 
-  if (t > S.nextLeap && !S.summonTarget) {
+  if (t > S.nextLeap && !S.summonTarget && !beached) {
     S.mode = 'leap';
     S.leapT0 = t;
     S.leapFrom = dolphinKyle.position.clone();
@@ -8293,7 +8331,7 @@ function postStatement(text, toKey, replyTo) {
     text: text.slice(0, 400),
     t: new Date().toISOString(),
     pos: [+pos.x.toFixed(1), +pos.y.toFixed(1), +pos.z.toFixed(1)],
-    place: nearestPlace(pos),
+    place: meetState.label || nearestPlace(pos),   // a meeting names its own place
     replyTo: replyTo || null,
   };
   feedState.entries.unshift(entry);            // optimistic
@@ -8373,7 +8411,9 @@ const PROFILES = {
     status: function () {
       if (otterState.mode === 'entering') return 'coming in from the open sea';
       if (otterState.summonTarget && clock.getElapsedTime() < otterState.summonUntil) return 'swimming over to you';
-      return otterPrincess.position.z > 92 ? 'rafting in the kelp' : 'swimming the lower river';
+      const sup = Math.abs(otterPrincess.rotation.z) > 1.6;
+      if (!sup) return 'swimming the river, head up';
+      return otterPrincess.position.z > 92 ? 'rafting in the kelp, sculling backwards' : 'on her back, drifting the river';
     },
   },
   petra: {
@@ -9572,6 +9612,52 @@ function animateCat(t) {
   }
 }
 
+// ── GOING PLACES (Sailor, 2026-08-01) ───────────────────────
+// Orbiting a 3D scene with a scroll wheel is a bad way to get anywhere,
+// and the villa is now 76 units across with residents at the top of a
+// mountain and out past the surf. So: named places, and the camera flies.
+// Each entry is a look-at point and the offset to view it from; the
+// existing approach rig does the travel, so it is one shared mechanism
+// with focusing on an object.
+const PLACES = [
+  { key: 'gallery',  label: 'The Gallery',    look: [0, 2.6, 0],      off: [7, 6, 20] },
+  { key: 'court',    label: 'The West Court', look: [-13.5, 3.4, 3],  off: [7, 5, 15] },
+  { key: 'library',  label: 'The Library',    look: [-26, 3.2, 0],    off: [11, 6, 18] },
+  { key: 'annex',    label: 'The Annex',      look: [26, 3.2, 0],     off: [-11, 6, 18] },
+  { key: 'pool',     label: 'The Pool',       look: [0, 1.8, 20],     off: [9, 7, 17] },
+  { key: 'overlook', label: 'The Overlook',   look: [-9, 0.6, 44],    off: [5, 7, -13] },
+  { key: 'valley',   label: 'The Valley',     look: [0, -3, 60],      off: [8, 10, -18] },
+  { key: 'beach',    label: 'The Beach',      look: [7, -10.5, 84],   off: [3, 9, -16] },
+  { key: 'break',    label: 'The Break',      look: [0, -11.4, 97],   off: [1, 7, -14] },
+  { key: 'kelp',     label: 'The Kelp Bed',   look: [8, -11.6, 102],  off: [2, 6, -12] },
+  { key: 'deep',     label: 'The Deep',       look: [2, -12, 126],    off: [1, 9, -20] },
+  { key: 'mountain', label: 'The Mountain',   look: [-4, 44, -76],    off: [12, 15, 30] },
+];
+
+function goToPlace(key) {
+  const pl = PLACES.find(p => p.key === key);
+  if (!pl) return;
+  // A place is not a thing, so this releases any object focus and any
+  // resident you were following — you are going somewhere, not looking
+  // at someone.
+  if (typeof activeFocus !== 'undefined' && activeFocus) releaseFocus();
+  stopFollow();
+  approach.active = true;
+  approach.progress = 0;
+  approach.startTime = -1;
+  approach.released = false;
+  approach.duration = 2.0;
+  approach.startPos.copy(camera.position);
+  approach.startLook.copy(camTarget);
+  approach.endLook.set(pl.look[0], pl.look[1], pl.look[2]);
+  approach.endPos.set(pl.look[0] + pl.off[0], pl.look[1] + pl.off[1], pl.look[2] + pl.off[2]);
+  autoOrbit = false;
+  if (typeof meetState !== 'undefined') meetState.label = null;
+  showNavLabel(pl.label);
+  toggleNavMenu();
+  updateNavBar();
+}
+
 // ── THE MENU IS A ROSTER, NOT A SWITCHBOARD (Sailor, 2026-07-31) ──
 // Tap a resident in the 🧭 menu and the camera locks onto them; tap again
 // and it lets go. If they have not arrived yet the tap brings them in and
@@ -9608,6 +9694,143 @@ function tapResident(key) {
   toggleNavMenu();
 }
 
+// ============================================================
+// MEET — one verb (RULED 2026-08-01, Sailor)
+// Summon is retired into this. You pick WHO and you pick WHERE, and the
+// two of you converge there:
+//   where = where they already are   → you visited them
+//   where = where you are            → you called them over
+//   where = a place, an instrument,
+//           an artwork, or another
+//           resident                 → you convened about something
+// One gesture covering three, and because the ledger already stamps every
+// statement with a location, the stamp now inherits the meaning: write at
+// a photograph and the entry — and the stone that stands for it — lands
+// at that photograph.
+// ============================================================
+
+const meetState = { step: 0, who: null, label: null };
+
+function meetPanel() { return document.getElementById('meet-panel'); }
+function meetList() { return document.getElementById('meet-list'); }
+
+function closeMeet() {
+  meetState.step = 0; meetState.who = null;
+  const p = meetPanel();
+  if (p) p.classList.remove('open');
+}
+
+function meetRow(text, sub, fn) {
+  const b = document.createElement('button');
+  b.className = 'ui-btn meet-row';
+  b.innerHTML = sub ? (text + '<span class="meet-sub">' + sub + '</span>') : text;
+  b.onclick = fn;
+  meetList().appendChild(b);
+}
+
+function openMeet() {
+  meetState.step = 1; meetState.who = null;
+  const p = meetPanel();
+  if (!p) return;
+  p.classList.add('open');
+  document.getElementById('meet-title').textContent = 'Meet who?';
+  meetList().innerHTML = '';
+  Object.keys(RESIDENTS).forEach(key => {
+    const prof = PROFILES[key];
+    if (!prof) return;
+    meetRow(prof.emoji + '  ' + prof.name, prof.status(), function () { meetPickWho(key); });
+  });
+  if (typeof toggleNavMenu === 'function' && document.getElementById('nav-menu').classList.contains('open')) toggleNavMenu();
+}
+
+function meetPickWho(key) {
+  meetState.who = key;
+  meetState.step = 2;
+  const prof = PROFILES[key];
+  document.getElementById('meet-title').textContent = 'Meet ' + prof.name + ' where?';
+  meetList().innerHTML = '';
+
+  // Where they already are — this is the visit
+  meetRow('↦  Where they are', 'go to ' + prof.name, function () {
+    const m = AVATARS[key] && AVATARS[key]();
+    if (m) meetGo(prof.name + "'s spot", m.position.clone(), true);
+  });
+  // Where you are — this is the call
+  meetRow('↤  Where I am', 'call ' + prof.name + ' over', function () {
+    meetGo(nearestPlace(summonerPoint()), summonerPoint(), false);
+  });
+
+  const head = function (t) {
+    const d = document.createElement('div');
+    d.className = 'nav-menu-label'; d.textContent = t;
+    meetList().appendChild(d);
+  };
+
+  head('Instruments');
+  [['The graphmap pedestal', 0, 0], ['The easel', 5, 1], ['The G4', -5, 2.5]].forEach(function (i) {
+    meetRow(i[0], null, function () { meetGo(i[0], new THREE.Vector3(i[1], getVisitorHeight(i[1], i[2]), i[2]), false); });
+  });
+
+  head('Places');
+  PLACES.forEach(function (pl) {
+    meetRow(pl.label, null, function () {
+      meetGo(pl.label, new THREE.Vector3(pl.look[0], pl.look[1], pl.look[2]), false);
+    });
+  });
+
+  if (holdingState.hung.length) {
+    head('In the library');
+    holdingState.hung.forEach(function (hd) {
+      meetRow('“' + hd.label + '”', null, function () {
+        // Stand off the wall a little, so you are looking AT the work
+        const at = hd.pos.clone().addScaledVector(hd.normal, 2.2);
+        at.y = getVisitorHeight(at.x, at.z);
+        meetGo(hd.label, at, false);
+      });
+    });
+  }
+
+  // Another resident as the destination (Sailor: several people converging
+  // on one of them is a funny thing to be able to do, and it is a
+  // destination that moves)
+  const others = Object.keys(RESIDENTS).filter(function (k) { return k !== key && PROFILES[k]; });
+  if (others.length) {
+    head('At another resident');
+    others.forEach(function (k2) {
+      const p2 = PROFILES[k2];
+      meetRow(p2.emoji + '  At ' + p2.name, null, function () {
+        const m = AVATARS[k2] && AVATARS[k2]();
+        if (!m) return;
+        const at = m.position.clone();
+        at.x += 1.6;
+        meetGo('with ' + p2.name, at, false);
+      });
+    });
+  }
+}
+
+// Send them, take the camera, and remember where this is so the ledger
+// stamps the statement with the meeting place rather than the nearest
+// coarse landmark.
+function meetGo(label, point, theyStayPut) {
+  const key = meetState.who;
+  if (!key) return;
+  meetState.label = label;
+  if (!theyStayPut && key !== 'raven') {
+    summonResident(key, true, point);
+  }
+  // No separate camera flight here: startFollow cancels any approach by
+  // design ("a follow outranks an asset focus flight"), and following them
+  // is the better camera for a meeting anyway — you travel with them and
+  // arrive when they do, at whatever you agreed to meet at.
+  startFollow(key);
+  closeMeet();
+  showNavLabel('meeting ' + (PROFILES[key] || {}).name + ' at ' + label);
+  const input = document.getElementById('fc-post');
+  if (input) setTimeout(function () { try { input.focus(); } catch (e) {} }, 1200);
+}
+
+
 // ── ENGAGE: summon a resident to your position ──
 // Your position = Ted if you're walking/posing him, else the camera's target.
 function summonerPoint() {
@@ -9618,8 +9841,10 @@ function summonerPoint() {
   return camTarget.clone();
 }
 
-function summonResident(key, silent) {
-  const here = summonerPoint();
+function summonResident(key, silent, at) {
+  // `at` lets Meet send a resident anywhere; with no `at` this is the old
+  // behaviour — they come to you.
+  const here = at ? at.clone() : summonerPoint();
   const t = clock.getElapsedTime();
   if (key === 'y2k') {
     if (y2kState.mode === 'off') toggleY2k();
@@ -9668,10 +9893,13 @@ function summonResident(key, silent) {
     if (!sharkInWater(here.x, here.z)) showNavLabel('Petra is hauling out');
   } else if (key === 'kyle') {
     if (kyleState.mode === 'off') toggleKyle();
-    const kz = Math.max(SEA_DEEP_Z - 6, here.z);
-    kyleState.summonTarget = new THREE.Vector3(here.x * 0.6, OCEAN_Y - 0.15, kz);
+    // He was clamped to deep water — the same fence Petra had, which
+    // survived her fix because it lived in his branch. Caught when a meeting
+    // at a photograph in the LIBRARY sent him out to sea instead. He goes
+    // where he is called (RULED 2026-07-31); ashore he lies on his side.
+    kyleState.summonTarget = new THREE.Vector3(here.x, dolphinY(here.x, here.z), here.z);
     kyleState.summonUntil = t + 100;
-    if (here.z < SEA_DEEP_Z - 6) showNavLabel('Kyle is coming to the nearest water');
+    if (!sharkInWater(here.x, here.z)) showNavLabel('Kyle is coming out of the water');
   } else if (key === 'diddy') {
     if (diddyState.mode === 'off') toggleDiddy();
     // Down off the mountain — a long way, and he takes his time about it
@@ -11608,8 +11836,11 @@ container.addEventListener('pointermove', e => {
       camTarget.addScaledVector(right, -pdx * s).addScaledVector(up, pdy * s);
       return;
     }
-    targetTheta -= (e.clientX - prevX) * 0.004;
-    targetPhi += (e.clientY - prevY) * 0.004;
+    // Sensitivity scales mildly with distance: fine control when you are in
+    // close on a picture, still able to swing the whole villa from far out.
+    const sens = 0.0022 + Math.min(camRadius, 90) * 0.000034;
+    targetTheta -= (e.clientX - prevX) * sens;
+    targetPhi += (e.clientY - prevY) * sens;
     prevX = e.clientX; prevY = e.clientY;
     return;
   }
@@ -11672,7 +11903,13 @@ container.addEventListener('wheel', e => {
     }
   }
 
-  targetRadius += e.deltaY * 0.008;
+  // PROPORTIONAL ZOOM (2026-08-01). It was a flat 0.008 per unit of wheel,
+  // which means one notch moves you 0.8 units whether you are three units
+  // from the pedestal or ninety out over the sea — a jump up close and
+  // nothing at all far off. Scaling the step by the current distance makes
+  // one notch mean the same FRACTION of the way in, everywhere.
+  targetRadius *= Math.exp(e.deltaY * 0.0011);
+  targetRadius += Math.sign(e.deltaY) * 0.06;   // still moves at the near clamp
   // Clamp the TARGET, not just the camera (2026-07-27): unclamped, a few
   // trackpad flicks past the limit left targetRadius stranded far outside
   // [2.5, 100] and zoom felt dead in both directions until it clawed back.
@@ -11920,30 +12157,44 @@ container.addEventListener('pointerup', e => {
     return;
   }
 
-  // Check terrain click for travel
-  const terrainHits = raycaster.intersectObject(terrain);
-  if (terrainHits.length > 0) {
-    const pt = terrainHits[0].point;
+  // ── CLICK THE GROUND AND GO THERE (2026-08-01) ──────────────
+  // Three things were wrong with this. It only tested the terrain mesh, so
+  // clicking the villa's own floor did nothing. It snapped to the nearest
+  // named landmark within THIRTY units, so on a site 76 units across almost
+  // every click went somewhere you had not clicked. And the arrival used a
+  // fixed offset, so every click threw away your framing.
+  // Now: both grounds, a 9-unit snap, and the camera keeps its own height
+  // and bearing — it slides over rather than jumping.
+  const g = (typeof tedPhotoGroundHit === 'function') ? tedPhotoGroundHit() : null;
+  const pt = g ? g.point : (function () {
+    const hits = raycaster.intersectObject(terrain);
+    return hits.length ? hits[0].point : null;
+  })();
+  if (pt) {
     let closest = null, minDist = Infinity;
     travelTargets.forEach(tt => {
       const d = pt.distanceTo(tt.look);
       if (d < minDist) { minDist = d; closest = tt; }
     });
-    if (closest && minDist < 30) {
+    if (closest && minDist < 9) {
       travelTo(closest.name);
       showNavLabel(closest.name);
     } else {
-      const lookAt = pt.clone();
-      const camPos = pt.clone().add(new THREE.Vector3(0, 8, 12));
+      const dir = new THREE.Vector3().subVectors(camera.position, camTarget);
+      const rise = Math.max(2.5, dir.y);
+      dir.y = 0;
+      const back = Math.max(6, Math.min(dir.length(), 40));
+      if (dir.lengthSq() < 0.01) dir.set(0, 0, 1);
+      dir.normalize();
       approach.active = true;
       approach.progress = 0;
       approach.startTime = -1;
       approach.released = false;
-      approach.duration = 2;
+      approach.duration = 1.5;
       approach.startPos.copy(camera.position);
       approach.startLook.copy(camTarget);
-      approach.endPos.copy(camPos);
-      approach.endLook.copy(lookAt);
+      approach.endLook.copy(pt);
+      approach.endPos.copy(pt).addScaledVector(dir, back).add(new THREE.Vector3(0, rise, 0));
       autoOrbit = false;
     }
   }
@@ -14217,6 +14468,37 @@ function handleG4ScreenClick(region) {
 // ============================================================
 // ANIMATION
 // ============================================================
+// ── THE SHADOW BUDGET (2026-08-01) ──────────────────────────
+// Measured before touching anything: 5 shadow-casting lights and 480
+// casters, which means every frame re-rendered 480 objects into five
+// separate depth maps. That was the single largest cost in the villa, and
+// most of it was invisible — cover tiles, dentils, column beading, kelp
+// blades and a cat's whiskers all casting shadows nobody could ever see.
+(function shadowBudget() {
+  scene.updateMatrixWorld(true);
+  // One sun and one moon. Nothing else needs to cast.
+  let stopped = 0;
+  scene.traverse(function (o) {
+    if (!o.isLight || !o.castShadow) return;
+    if (o === lights.sun || o === lights.moonBeam) return;
+    o.castShadow = false; stopped++;
+  });
+  // A rule, not a list: anything too small to throw a readable shadow does
+  // not cast one. Written this way so everything added later inherits it.
+  const v = new THREE.Vector3();
+  let pruned = 0, kept = 0;
+  scene.traverse(function (o) {
+    if ((!o.isMesh && !o.isInstancedMesh) || !o.castShadow) return;
+    if (!o.geometry) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    const s = o.getWorldScale(v);
+    const r = o.geometry.boundingSphere.radius * Math.max(s.x, s.y, s.z);
+    if (r < 0.38) { o.castShadow = false; pruned++; } else kept++;
+  });
+  console.log('[Getty] shadow budget — ' + stopped + ' lights stopped casting, ' +
+    pruned + ' small casters pruned, ' + kept + ' kept');
+})();
+
 function animate() {
   requestAnimationFrame(animate);
   animate._fc = (animate._fc || 0) + 1;
