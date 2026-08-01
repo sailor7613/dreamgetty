@@ -638,10 +638,16 @@
   <button class="ui-btn" id="trout-btn" onclick="toggleTrout()" title="Trout Fish arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
   <button class="ui-btn" id="seal-btn" onclick="toggleSeal()" title="Matt Mondanile's Seal — ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
   <button class="ui-btn" id="y2k-btn" onclick="toggleY2k()" title="Y2K — a Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
+  <button class="ui-btn" id="otter-btn" onclick="toggleOtter()" title="The Sea Otter Princess — in from the open sea to the kelp bed, then swimming the lower river on her back, crowned">🦦 Princess</button>
+  <button class="ui-btn" id="grey-btn" onclick="toggleGrey()" title="The Greyhound — flat gallop the length of the terrace, then flat out for a very long time">🦮 Greyhound</button>
+  <button class="ui-btn" id="diddy-btn" onclick="toggleDiddy()" title="Diddy Kong — lives up on the back range, crossing the saddle and both peaks. Comes down when summoned">🐒 Diddy Kong</button>
   <div class="nav-menu-label">Engage</div>
   <button class="ui-btn" onclick="summonResident('trout')" title="Trout comes to the nearest water to you">🐟 summon Trout</button>
   <button class="ui-btn" onclick="summonResident('seal')" title="The Seal gallumphs to you">🦭 summon Seal</button>
   <button class="ui-btn" onclick="summonResident('y2k')" title="Y2K trots to you">🐕 summon Y2K</button>
+  <button class="ui-btn" onclick="summonResident('otter')" title="The Princess swims to the nearest water to you">🦦 summon Princess</button>
+  <button class="ui-btn" onclick="summonResident('grey')" title="The Greyhound sprints to you">🦮 summon Greyhound</button>
+  <button class="ui-btn" onclick="summonResident('diddy')" title="Diddy Kong comes down off the mountain">🐒 summon Diddy</button>
   <div class="nav-menu-label">You</div>
   <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
 </div>
@@ -6258,11 +6264,10 @@ tedTurner.userData.jawRestY = 1.11;
 // Ted Turner patrol system — walks through the Getty and around the grounds
 // Height-aware: uses BUILDING_Y on the stylobate, getTerrainHeight outside
 function getTedHeight(x, z) {
-  // Building footprint check — stylobate extends ~14 x ~13 from center
-  const onStylobate = Math.abs(x) < 14 && z > -9 && z < 12;
-  // Pool walkway
-  const onPoolWalk = Math.abs(x) < 4 && z >= 12 && z < 28;
-  if (onStylobate || onPoolWalk) return BUILDING_Y;
+  // One predicate for the whole terrace (2026-07-30). This used to be a
+  // second hand-copy of the stylobate test, which meant the wings would
+  // have been invisible to Ted's footing.
+  if (onVillaStone(x, z)) return BUILDING_Y;
   // Smooth transition at edges
   const bx = Math.abs(x), bz = z;
   const edgeDist = Math.min(
@@ -6438,10 +6443,20 @@ function buildVisitorAvatar() {
 // band), which floats a walker above the lawn once |x| > 14. Ted's patrol
 // never leaves the slab's vicinity so it never shows for him — his function
 // is left untouched. This one measures true distance to the walkable slabs.
-function getVisitorHeight(x, z) {
+// The villa's walkable stone — the stylobate and the pool walk. One
+// predicate, because more than one rule now depends on knowing whether a
+// thing is standing on the house or standing in the world (see updateTrout).
+function onVillaStone(x, z) {
   const onStylobate = Math.abs(x) < 14 && z > -9 && z < 12;
   const onPoolWalk = Math.abs(x) < 4 && z >= 12 && z < 28;
-  if (onStylobate || onPoolWalk) return BUILDING_Y;
+  // The wings and their courts (2026-07-30) — one continuous terrace from
+  // x −38 to 38. Anything that stands must know about it, or residents and
+  // statement stones float over the new floor or sink through it.
+  const onWings = Math.abs(x) >= 11 && Math.abs(x) < 38 && z > -11 && z < 11;
+  return onStylobate || onPoolWalk || onWings;
+}
+function getVisitorHeight(x, z) {
+  if (onVillaStone(x, z)) return BUILDING_Y;
   const dRect = (hw, zlo, zhi) => {
     const dx = Math.max(0, Math.abs(x) - hw);
     const dz = Math.max(zlo - z, z - zhi, 0);
@@ -6816,10 +6831,26 @@ function updateTrout(t) {
     troutFish.position.lerp(target, 0.035);
   } else {
     troutState.summonTarget = null;
+    // ── THE MEDIUM RULE (RULED 2026-07-30) ──
+    // Both things Sailor wanted are true, and the discriminator is the
+    // villa's own stone:
+    //   off the stone, in the world → he keeps to the water (the ruling)
+    //   on the stone, under the house → he holds at eye level, in air
+    // The house is where things are DISPLAYED rather than governed, which
+    // is the same claim pierce-in makes from the other direction. The
+    // summon branch below already worked this way; patrol now agrees.
+    // Decides every future aquatic resident without another ruling.
     const a = troutState.anchor;
-    const lx = a.x + Math.sin(t * 0.11) * 4.2;
+    let lx = a.x + Math.sin(t * 0.11) * 4.2;
     const lz = a.z + Math.cos(t * 0.07) * 3.4;
-    const ly = getVisitorHeight(lx, lz) + 1.55 + Math.sin(t * 0.9) * 0.12;
+    let ly;
+    if (onVillaStone(lx, lz)) {
+      ly = getVisitorHeight(lx, lz) + 1.55 + Math.sin(t * 0.9) * 0.12;
+    } else {
+      lx = riverCenterX(lz) + Math.sin(t * 0.31) * 0.6;
+      const bed = Math.max(getTerrainHeight(lx, lz), OCEAN_Y - 1);
+      ly = bed + 0.55 + Math.sin(t * 0.9) * 0.08;
+    }
     target = new THREE.Vector3(lx, ly, lz);
     troutFish.position.lerp(target, 0.02);
   }
@@ -6849,6 +6880,9 @@ const AVATARS = {
   trout: () => troutFish,
   seal:  () => sealPup,
   y2k:   () => y2kHusky,
+  otter: () => otterPrincess,
+  grey:  () => greyhound,
+  diddy: () => diddyKong,
   guest: () => visitorAvatar,
 };
 
@@ -7246,6 +7280,599 @@ function animateY2k(t) {
 setTimeout(function () { if (y2kState.mode === 'off') toggleY2k(); }, 13000);
 
 // ============================================================
+// RESIDENTS III — Sea Otter Princess, the Greyhound, Diddy Kong
+// 2026-07-30, built to the Residents Pipeline checklist.
+//
+// THE MEDIUM RULE GENERALISES (first real test): the medium decides
+// WHERE a resident may be, the species decides POSTURE there. Trout is
+// water-bound and floats at eye level on the stone because a fish cannot
+// walk. The Princess is water-bound by the same rule and WALKS on the
+// stone, because an otter can. One rule, two readings, no new ruling.
+// ============================================================
+
+// ── The kelp bed (Sailor's call) — her raft, offshore of the river mouth ──
+const KELP_X = 8, KELP_Z = 102;
+const kelpBed = new THREE.Group();
+(function buildKelpBed() {
+  const stipeMat = new THREE.MeshStandardMaterial({ color: 0x1e2711, roughness: 0.92 });
+  const bladeMat = new THREE.MeshStandardMaterial({
+    color: 0x2b3811, roughness: 0.88, side: THREE.DoubleSide,
+    transparent: true, opacity: 0.88,
+  });
+  const bulbMat = new THREE.MeshStandardMaterial({ color: 0x4a3a10, roughness: 0.72, emissive: 0x120d03, emissiveIntensity: 0.25 });
+  for (let i = 0; i < 16; i++) {
+    const a = i * 2.399963, r = 1.2 + 1.5 * Math.sqrt(i);
+    const x = Math.cos(a) * r, z = Math.sin(a) * r * 0.8;
+    const holdfast = OCEAN_Y - 1.6;
+    const h = OCEAN_Y + 0.05 - holdfast;
+    const stipe = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, h, 5), stipeMat);
+    stipe.position.set(x, holdfast + h / 2, z);
+    kelpBed.add(stipe);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 5), bulbMat);
+    bulb.position.set(x, OCEAN_Y + 0.02, z);
+    kelpBed.add(bulb);
+    // Blades lying out across the surface — the canopy an otter rafts in
+    for (let b = 0; b < 3; b++) {
+      const ang = a + b * 2.1;
+      const blade = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 1.5 + (i % 3) * 0.4), bladeMat);
+      blade.rotation.x = -Math.PI / 2;
+      blade.rotation.z = ang;
+      blade.position.set(x + Math.cos(ang) * 0.7, OCEAN_Y + 0.06, z + Math.sin(ang) * 0.7);
+      kelpBed.add(blade);
+    }
+  }
+  kelpBed.position.set(KELP_X, 0, KELP_Z);
+  scene.add(kelpBed);
+})();
+
+// ============================================================
+// 1. SEA OTTER PRINCESS
+// ============================================================
+function buildOtter() {
+  const g = new THREE.Group();
+  // The wash bleaches mid-tones, so the pelt goes DARK (§2.4 palette note)
+  const pelt = new THREE.MeshStandardMaterial({ color: 0x2e1d12, roughness: 0.9 });
+  const grizzle = new THREE.MeshStandardMaterial({ color: 0x7d6a52, roughness: 0.88 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x140d08, roughness: 0.8 });
+  const gilt = new THREE.MeshStandardMaterial({ color: 0xd8b45c, metalness: 0.75, roughness: 0.28, emissive: 0x4a3810, emissiveIntensity: 0.55 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), pelt);
+  body.scale.set(0.78, 0.72, 1.55);
+  body.position.set(0, 0.42, 0);
+  g.add(body);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), grizzle);
+  belly.scale.set(0.72, 0.5, 1.25);
+  belly.position.set(0, 0.28, 0.04);
+  g.add(belly);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 9), grizzle);
+  head.scale.set(0.95, 0.9, 0.95);
+  head.position.set(0, 0.62, 0.52);
+  g.add(head);
+  g.userData.head = head;
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), grizzle);
+  muzzle.scale.set(1.05, 0.75, 0.95);
+  muzzle.position.set(0, 0.55, 0.68);
+  g.add(muzzle);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 5), dark);
+  nose.position.set(0, 0.58, 0.77);
+  g.add(nose);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), dark);
+    eye.position.set(s * 0.09, 0.67, 0.65);
+    g.add(eye);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 5), pelt);
+    ear.scale.set(1, 0.7, 0.5);
+    ear.position.set(s * 0.15, 0.74, 0.46);
+    g.add(ear);
+  });
+
+  // THE TIARA (Sailor's call) — she is a princess, and it should read
+  // from across the water, so: gilt, with a faint emissive like the
+  // columns' bead-and-reel.
+  const tiara = new THREE.Group();
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.016, 6, 18), gilt);
+  band.rotation.x = Math.PI / 2 - 0.25;
+  tiara.add(band);
+  [-0.75, -0.25, 0.25, 0.75].forEach((u, i) => {
+    const tall = (i === 1 || i === 2) ? 0.14 : 0.09;
+    const pt = new THREE.Mesh(new THREE.ConeGeometry(0.028, tall, 5), gilt);
+    pt.position.set(Math.sin(u) * 0.14, tall / 2 + 0.01, Math.cos(u) * 0.14 - 0.02);
+    tiara.add(pt);
+  });
+  const jewel = new THREE.Mesh(new THREE.OctahedronGeometry(0.035),
+    new THREE.MeshStandardMaterial({ color: 0x2f6f8a, roughness: 0.2, metalness: 0.4, emissive: 0x0d2a38, emissiveIntensity: 0.7 }));
+  jewel.position.set(0, 0.13, 0.12);
+  tiara.add(jewel);
+  tiara.position.set(0, 0.74, 0.50);
+  g.add(tiara);
+  g.userData.tiara = tiara;
+
+  // Forepaws — she holds them on her chest when rafting
+  const paws = [];
+  [-1, 1].forEach(s => {
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), pelt);
+    paw.scale.set(0.8, 0.7, 1.1);
+    paw.position.set(s * 0.15, 0.46, 0.34);
+    g.add(paw); paws.push(paw);
+  });
+  g.userData.paws = paws;
+
+  // Hind feet — webbed, flat
+  const feet = [];
+  [-1, 1].forEach(s => {
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 5), pelt);
+    foot.scale.set(0.9, 0.35, 1.5);
+    foot.position.set(s * 0.16, 0.30, -0.52);
+    g.add(foot); feet.push(foot);
+  });
+  g.userData.feet = feet;
+
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.045, 0.62, 7), pelt);
+  tail.rotation.x = Math.PI / 2 + 0.15;
+  tail.position.set(0, 0.36, -0.72);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(0.7, 0.7, 0.7);   // smaller than Ted
+  return g;
+}
+
+const otterPrincess = buildOtter();
+otterPrincess.visible = false;
+scene.add(otterPrincess);
+
+const otterState = { mode: 'off', t0: 0, dur: 0, summonTarget: null, summonUntil: 0, _prev: new THREE.Vector3() };
+
+// Her water surface anywhere: the sea offshore, the river through the land
+function otterWaterY(x, z) {
+  const bed = Math.max(getTerrainHeight(x, z), OCEAN_Y - 1);
+  return Math.max(bed + 0.30, OCEAN_Y + 0.12);
+}
+
+function toggleOtter() {
+  const b = document.getElementById('otter-btn');
+  if (otterState.mode === 'off') {
+    otterPrincess.position.set(KELP_X + 3, otterWaterY(KELP_X + 3, KELP_Z + 14), KELP_Z + 14);
+    otterPrincess.visible = true;
+    otterState.mode = 'entering';
+    otterState.t0 = -1;
+    otterState.dur = 26;
+    if (b) { b.classList.add('active'); b.textContent = '🦦 arriving'; }
+  } else {
+    otterState.mode = 'off';
+    otterPrincess.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦦 Princess'; }
+  }
+}
+
+function animateOtter(t) {
+  const S = otterState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) S.t0 = t;
+
+  let target;
+  let rafting = true;
+
+  if (S.mode === 'entering') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const z = KELP_Z + 14 - u * 14;
+    const x = KELP_X + 3 - u * 3;
+    target = new THREE.Vector3(x, otterWaterY(x, z), z);
+    if (u >= 1) {
+      S.mode = 'resident';
+      const b = document.getElementById('otter-btn');
+      if (b) b.textContent = '🦦 in the kelp';
+      showNavLabel('the Sea Otter Princess is rafting in the kelp');
+    }
+  } else if (S.summonTarget && t < S.summonUntil) {
+    target = S.summonTarget.clone();
+    rafting = !onVillaStone(target.x, target.z);
+  } else {
+    S.summonTarget = null;
+    // She swims the lower river, out to the kelp bed and back — the whole
+    // reach below the villa. Never onto the stone unless summoned.
+    const lz = 68 + Math.sin(t * 0.030) * 36;          // 32 … 104
+    const drift = Math.sin(t * 0.21) * 0.8;
+    const lx = (lz > 92 ? KELP_X : riverCenterX(lz)) + drift;
+    target = new THREE.Vector3(lx, otterWaterY(lx, lz), lz);
+  }
+
+  S._prev.copy(otterPrincess.position);
+  otterPrincess.position.lerp(target, S.mode === 'entering' ? 0.08 : 0.02);
+
+  const v = new THREE.Vector3().subVectors(otterPrincess.position, S._prev);
+  if (v.lengthSq() > 1e-7) {
+    const yaw = Math.atan2(v.x, v.z);
+    let dy = yaw - otterPrincess.rotation.y;
+    while (dy > Math.PI) dy -= Math.PI * 2;
+    while (dy < -Math.PI) dy += Math.PI * 2;
+    otterPrincess.rotation.y += dy * 0.08;
+  }
+
+  // POSTURE — the medium decides. Afloat she rolls onto her back, paws on
+  // her chest, riding the swell. On the villa's stone she stands up and
+  // walks like any other resident.
+  const wantRoll = rafting ? Math.PI * 0.92 : 0;
+  otterPrincess.rotation.z += (wantRoll - otterPrincess.rotation.z) * 0.05;
+  const bob = rafting ? Math.sin(t * 1.1) * 0.06 : 0;
+  otterPrincess.position.y += bob;
+  otterPrincess.userData.paws.forEach((p, i) => {
+    p.position.y = 0.46 + (rafting ? Math.sin(t * 1.6 + i * 2) * 0.02 : 0);
+  });
+  otterPrincess.userData.feet.forEach((f, i) => {
+    f.rotation.x = rafting ? Math.sin(t * 1.3 + i) * 0.25 : Math.sin(t * 5 + i * Math.PI) * 0.4;
+  });
+}
+
+// ============================================================
+// 2. THE GREYHOUND — sprint and flop (Sailor's call)
+// ============================================================
+function buildGreyhound() {
+  const g = new THREE.Group();
+  const coat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.72 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0x8a7a62, roughness: 0.7 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x141010, roughness: 0.78 });
+
+  // Deep chest, hard tuck — the whole silhouette of the breed
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 10), coat);
+  chest.scale.set(0.62, 1.05, 1.05);
+  chest.position.set(0, 1.10, 0.34);
+  g.add(chest);
+  const loin = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), coat);
+  loin.scale.set(0.62, 0.62, 1.15);
+  loin.position.set(0, 1.14, -0.30);
+  g.add(loin);
+  const waist = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), coat);
+  waist.scale.set(0.72, 0.62, 1.1);
+  waist.position.set(0, 1.12, 0.02);
+  g.add(waist);
+  const bib = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), pale);
+  bib.scale.set(0.7, 1.0, 0.5);
+  bib.position.set(0, 1.02, 0.62);
+  g.add(bib);
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.13, 0.52, 8), coat);
+  neck.rotation.x = 0.62;
+  neck.position.set(0, 1.42, 0.55);
+  g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), coat);
+  head.scale.set(0.85, 0.85, 1.5);
+  head.position.set(0, 1.64, 0.80);
+  g.add(head);
+  g.userData.head = head;
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 5), dark);
+  nose.position.set(0, 1.60, 0.99);
+  g.add(nose);
+  [-1, 1].forEach(s => {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 5), coat);
+    ear.scale.set(0.4, 0.8, 0.7);
+    ear.position.set(s * 0.075, 1.71, 0.68);
+    ear.rotation.z = s * 0.4;
+    g.add(ear);
+  });
+
+  // Long thin legs, front pair and back pair
+  const legs = [];
+  [[-1, 0.40], [1, 0.40], [-1, -0.34], [1, -0.34]].forEach(([s, z]) => {
+    const leg = new THREE.Group();
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.032, 0.58, 6), coat);
+    upper.position.y = -0.29;
+    leg.add(upper);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), coat);
+    paw.scale.set(0.8, 0.55, 1.2);
+    paw.position.y = -0.58;
+    leg.add(paw);
+    leg.position.set(s * 0.14, 1.02, z);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.012, 0.78, 6), coat);
+  tail.position.set(0, 1.06, -0.66);
+  tail.rotation.x = 1.15;
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(1.05, 1.05, 1.05);   // taller than Ted, and much finer
+  return g;
+}
+
+const greyhound = buildGreyhound();
+greyhound.visible = false;
+scene.add(greyhound);
+
+// The terrace run: z ≈ 10 clears both wings (they stop at z 8), so there
+// is one straight 68-unit gallop from the library end to the annex end.
+const GREY_RUN_Z = 10.2, GREY_RUN_X = 34;
+const GREY_FLOPS = [
+  { name: 'the west court', x: -13.5, z: 8.0 },
+  { name: 'the pool walk', x: 2.6, z: 16 },
+  { name: 'the annex steps', x: 17, z: 9.5 },
+  { name: 'the gallery', x: -6, z: 2 },
+];
+const greyState = { mode: 'off', t0: -1, dur: 0, from: null, to: null, until: 0, flop: 0, dir: 1 };
+function greyGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+
+function toggleGrey() {
+  const b = document.getElementById('grey-btn');
+  if (greyState.mode === 'off') {
+    greyhound.position.copy(greyGround(GREY_RUN_X, GREY_RUN_Z));
+    greyhound.visible = true;
+    greyState.mode = 'sprint';
+    greyState.t0 = -1;
+    greyState.from = greyhound.position.clone();
+    greyState.to = greyGround(-GREY_RUN_X + 6, GREY_RUN_Z);
+    greyState.dur = 9;
+    if (b) { b.classList.add('active'); b.textContent = '🦮 arriving'; }
+  } else {
+    greyState.mode = 'off';
+    greyhound.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦮 Greyhound'; }
+  }
+}
+
+function animateGrey(t) {
+  const S = greyState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 6; }
+
+  if (S.mode === 'sprint') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    // Fast out, fast in — a greyhound accelerates hard and does not coast
+    const e = u < 0.15 ? (u / 0.15) * (u / 0.15) * 0.15 : u;
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + Math.abs(Math.sin(t * 9)) * 0.11;   // double-suspension bound
+    greyhound.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    greyhound.rotation.y = Math.atan2(v.x, v.z);
+    greyhound.rotation.x = -0.13;
+    // Legs reach fore and aft together, not diagonally — that is the gallop
+    S.dur > 0 && greyhound.userData.legs.forEach((leg, i) => {
+      const front = i < 2;
+      leg.rotation.x = Math.sin(t * 9 + (front ? 0 : Math.PI)) * (front ? 0.95 : 0.8);
+    });
+    greyhound.userData.tail.rotation.x = 1.15 - 0.5;
+    if (u >= 1) {
+      S.mode = 'flop';
+      S.t0 = t;
+      S.until = t + 22 + (Math.abs(Math.sin(t * 43.7)) * 26);   // a long, long lie-down
+      S.flop = Math.floor(Math.abs(Math.sin(t * 17.3)) * GREY_FLOPS.length) % GREY_FLOPS.length;
+      const f = GREY_FLOPS[S.flop];
+      S.from = greyhound.position.clone();
+      S.to = greyGround(f.x, f.z);
+      S.dur = 3.2;
+      S.mode = 'settle';
+    }
+    return;
+  }
+
+  if (S.mode === 'settle') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const p = S.from.clone().lerp(S.to, u * u * (3 - 2 * u));
+    p.y = getVisitorHeight(p.x, p.z) + 0.02;
+    greyhound.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) greyhound.rotation.y = Math.atan2(v.x, v.z);
+    greyhound.rotation.x += (0 - greyhound.rotation.x) * 0.08;
+    greyhound.userData.legs.forEach((leg, i) => {
+      leg.rotation.x = Math.sin(t * 3.4 + i * 1.6) * 0.32;
+    });
+    if (u >= 1) { S.mode = 'flop'; S.t0 = t; }
+    return;
+  }
+
+  if (S.mode === 'flop') {
+    // Down on one side, dead to the world, ribs moving
+    greyhound.rotation.z += (Math.PI * 0.42 - greyhound.rotation.z) * 0.05;
+    greyhound.position.y += (getVisitorHeight(greyhound.position.x, greyhound.position.z) - 0.12 - greyhound.position.y) * 0.05;
+    greyhound.userData.legs.forEach((leg, i) => { leg.rotation.x += (0.9 - leg.rotation.x) * 0.05; });
+    greyhound.userData.tail.rotation.x += (1.5 - greyhound.userData.tail.rotation.x) * 0.04;
+    if (t > S.until) {
+      greyhound.rotation.z = 0;
+      S.dir = -S.dir;
+      S.mode = 'sprint';
+      S.t0 = t;
+      S.dur = 8 + Math.abs(Math.sin(t * 11.1)) * 3;
+      S.from = greyhound.position.clone();
+      S.to = greyGround(S.dir * (GREY_RUN_X - 2), GREY_RUN_Z);
+      greyhound.userData.legs.forEach(l => { l.rotation.x = 0; });
+    }
+  }
+}
+
+// ============================================================
+// 3. DIDDY KONG — up on the mountain (Sailor's call)
+// ============================================================
+function buildDiddy() {
+  const g = new THREE.Group();
+  const fur = new THREE.MeshStandardMaterial({ color: 0x4a2c15, roughness: 0.88 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0x9a7448, roughness: 0.8 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x140d06, roughness: 0.8 });
+  const red = new THREE.MeshStandardMaterial({ color: 0x9e1410, roughness: 0.6, emissive: 0x2c0503, emissiveIntensity: 0.35 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), fur);
+  body.scale.set(0.82, 1.05, 0.72);
+  body.position.set(0, 0.72, 0);
+  g.add(body);
+  const tum = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 6), skin);
+  tum.scale.set(0.85, 0.95, 0.6);
+  tum.position.set(0, 0.68, 0.16);
+  g.add(tum);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 12, 9), fur);
+  head.position.set(0, 1.08, 0.04);
+  g.add(head);
+  g.userData.head = head;
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), skin);
+  face.scale.set(0.92, 0.85, 0.6);
+  face.position.set(0, 1.04, 0.17);
+  g.add(face);
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 6), skin);
+  snout.scale.set(1.1, 0.75, 0.9);
+  snout.position.set(0, 0.99, 0.24);
+  g.add(snout);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 5), dark);
+    eye.position.set(s * 0.07, 1.11, 0.24);
+    g.add(eye);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 6), fur);
+    ear.scale.set(0.35, 1, 1);
+    ear.position.set(s * 0.23, 1.09, 0.02);
+    g.add(ear);
+  });
+
+  // The cap — red, backwards, which is the whole read
+  const cap = new THREE.Group();
+  const crown = new THREE.Mesh(new THREE.SphereGeometry(0.215, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), red);
+  crown.scale.set(1, 0.78, 1);
+  cap.add(crown);
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.028, 12, 1, false, 0, Math.PI), red);
+  brim.position.set(0, 0.01, -0.18);
+  brim.rotation.y = Math.PI;
+  cap.add(brim);
+  const stud = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), red);
+  stud.position.y = 0.17;
+  cap.add(stud);
+  cap.position.set(0, 1.16, 0.02);
+  g.add(cap);
+
+  const arms = [];
+  [-1, 1].forEach(s => {
+    const arm = new THREE.Group();
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.042, 0.42, 6), fur);
+    upper.position.y = -0.21;
+    arm.add(upper);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 6, 5), skin);
+    hand.position.y = -0.44;
+    arm.add(hand);
+    arm.position.set(s * 0.24, 0.90, 0);
+    arm.rotation.z = s * 0.25;
+    g.add(arm); arms.push(arm);
+  });
+  g.userData.arms = arms;
+
+  const legs = [];
+  [-1, 1].forEach(s => {
+    const leg = new THREE.Group();
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.048, 0.36, 6), fur);
+    upper.position.y = -0.18;
+    leg.add(upper);
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 5), skin);
+    foot.scale.set(0.9, 0.6, 1.3);
+    foot.position.set(0, -0.38, 0.04);
+    leg.add(foot);
+    leg.position.set(s * 0.13, 0.52, 0);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  // The tail — curled, and it never stops moving
+  const tailCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0.62, -0.18), new THREE.Vector3(0, 0.50, -0.48),
+    new THREE.Vector3(0.16, 0.62, -0.68), new THREE.Vector3(0.30, 0.88, -0.56),
+    new THREE.Vector3(0.20, 1.00, -0.30),
+  ]);
+  const tail = new THREE.Mesh(new THREE.TubeGeometry(tailCurve, 14, 0.042, 5, false), fur);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(0.62, 0.62, 0.62);
+  return g;
+}
+
+const diddyKong = buildDiddy();
+diddyKong.visible = false;
+scene.add(diddyKong);
+
+// His range: the ridge. The saddle is the river's source, and the two
+// gaussians that make the back range peak at x +20 and x −25 near z −80.
+const DIDDY_SPOTS = [
+  { name: 'the saddle', x: -4, z: -78 },
+  { name: 'the east peak', x: 18, z: -74 },
+  { name: 'the west peak', x: -23, z: -76 },
+  { name: 'the high river', x: -2, z: -58 },
+  { name: 'the treeline', x: 9, z: -46 },
+];
+const diddyState = { mode: 'off', from: null, to: null, t0: -1, dur: 0, spot: 0, nextMove: 0, summonUntil: 0 };
+function diddyGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+
+function toggleDiddy() {
+  const b = document.getElementById('diddy-btn');
+  if (diddyState.mode === 'off') {
+    diddyKong.position.copy(diddyGround(DIDDY_SPOTS[0].x, DIDDY_SPOTS[0].z));
+    diddyKong.visible = true;
+    diddyState.mode = 'move';
+    diddyState.t0 = -1;
+    diddyState.from = diddyKong.position.clone();
+    diddyState.to = diddyGround(DIDDY_SPOTS[1].x, DIDDY_SPOTS[1].z);
+    diddyState.spot = 1;
+    diddyState.dur = 14;
+    if (b) { b.classList.add('active'); b.textContent = '🐒 on the ridge'; }
+  } else {
+    diddyState.mode = 'off';
+    diddyKong.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐒 Diddy Kong'; }
+  }
+}
+
+function animateDiddy(t) {
+  const S = diddyState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.nextMove = t + 10; }
+
+  // He hops rather than walks — high frequency, and the tail counterweights
+  const hop = Math.abs(Math.sin(t * 4.2));
+  diddyKong.userData.tail.rotation.x = Math.sin(t * 2.1) * 0.16;
+  diddyKong.userData.arms.forEach((a, i) => { a.rotation.x = Math.sin(t * 4.2 + i * Math.PI) * 0.55; });
+  diddyKong.userData.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 4.2 + i * Math.PI) * 0.45; });
+
+  if (S.mode === 'move') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const e = u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + hop * 0.22;
+    diddyKong.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - diddyKong.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      diddyKong.rotation.y += dy * 0.12;
+    }
+    // A summoned Diddy must STAY. Without this the arrival branch overwrites
+    // the summon's hold with its own 8–22s wander timer and he walks straight
+    // back up the mountain — the same bug class Y2K's 1e9 guard exists for.
+    if (u >= 1) {
+      S.mode = 'idle'; S.t0 = t;
+      S.nextMove = Math.max(t + 8 + Math.abs(Math.sin(t * 13.7)) * 14, S.summonUntil || 0);
+    }
+    return;
+  }
+
+  // idle — sits on the ridge, scanning
+  diddyKong.position.y = getVisitorHeight(diddyKong.position.x, diddyKong.position.z) + 0.02 + hop * 0.05;
+  diddyKong.userData.head.rotation.y = Math.sin(t * 0.5) * 0.6;
+  if (t > S.nextMove) {
+    let next = Math.floor(Math.abs(Math.sin(t * 29.3)) * DIDDY_SPOTS.length) % DIDDY_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % DIDDY_SPOTS.length;
+    S.spot = next;
+    S.from = diddyKong.position.clone();
+    S.to = diddyGround(DIDDY_SPOTS[next].x, DIDDY_SPOTS[next].z);
+    S.dur = Math.max(6, S.from.distanceTo(S.to) / 3.4);
+    S.t0 = t;
+    S.mode = 'move';
+  }
+}
+
+// ── Arrivals, continuing the staggered cadence (6 / 9.5 / 13 s) ──
+setTimeout(function () { if (otterState.mode === 'off') toggleOtter(); }, 16500);
+setTimeout(function () { if (greyState.mode === 'off') toggleGrey(); }, 20000);
+setTimeout(function () { if (diddyState.mode === 'off') toggleDiddy(); }, 23500);
+
+
+// ============================================================
 // THE FEED (2026-07-30) — the guestbook rulings, made social. One file per
 // utterance in feed/, manifest.json for one-GET cold load, writes via the
 // GitHub contents API with a per-device key. RULED tonight: residents patrol
@@ -7288,6 +7915,7 @@ function loadFeed() {
       feedState.entries = (m.entries || []).sort((a, b) => (a.t < b.t ? 1 : -1));
       feedState.loaded = true;
       if (followAnimal.key) renderFeedInto(followAnimal.key);
+      if (typeof renderStatementField === 'function') renderStatementField();
     })
     .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; });
 }
@@ -7335,6 +7963,7 @@ function postStatement(text, toKey, replyTo) {
   };
   feedState.entries.unshift(entry);            // optimistic
   renderFeedInto(followAnimal.key || id.avatar);
+  if (typeof renderStatementField === 'function') renderStatementField();
   const commitMsg = 'feed: ' + entry.author + (entry.to ? ' → ' + entry.to : '') + ' @ ' + entry.place;
   return ghPut('feed/' + entry.id + '.json', entry, commitMsg, id.token)
     .then(() => ghGetSha('feed/manifest.json', id.token))
@@ -7345,6 +7974,7 @@ function postStatement(text, toKey, replyTo) {
     .catch(err => {
       feedState.entries = feedState.entries.filter(e => e.id !== entry.id);   // revert optimism
       renderFeedInto(followAnimal.key || id.avatar);
+      if (typeof renderStatementField === 'function') renderStatementField();
       feedState.lastError = err.message;
       const fb = document.getElementById('fc-feed-body');
       if (fb) fb.textContent = 'the villa could not remember that — ' + err.message;
@@ -7400,6 +8030,33 @@ const PROFILES = {
         return 'hanging out at ' + (s ? s.name : 'the villa');
       }
       return 'off roaming';
+    },
+  },
+  otter: {
+    emoji: '🦦', name: 'Sea Otter Princess',
+    bio: 'Fifth resident, and the only one who wears a crown. Rafts in the kelp bed off the river mouth and swims the whole lower river. Water is her medium — she comes onto the stone only when called.',
+    status: function () {
+      if (otterState.mode === 'entering') return 'coming in from the open sea';
+      if (otterState.summonTarget && clock.getElapsedTime() < otterState.summonUntil) return 'swimming over to you';
+      return otterPrincess.position.z > 92 ? 'rafting in the kelp' : 'swimming the lower river';
+    },
+  },
+  grey: {
+    emoji: '🦮', name: 'The Greyhound',
+    bio: 'Sixth resident. Runs the full length of the terrace — library end to annex end, sixty-eight units — at a flat gallop, then lies down somewhere warm and does not move for a very long time.',
+    status: function () {
+      return ({ sprint: 'at a flat gallop down the terrace', settle: 'walking it off',
+        flop: 'flat out, dead to the world' })[greyState.mode] || 'somewhere on the terrace';
+    },
+  },
+  diddy: {
+    emoji: '🐒', name: 'Diddy Kong',
+    bio: "Seventh resident, and the only one who does not live at the villa. Keeps to the back range — the saddle where the river rises, and both peaks. Comes down when called, and only when called.",
+    status: function () {
+      const s = DIDDY_SPOTS[diddyState.spot];
+      if (diddyState.mode === 'move') return 'crossing the ridge to ' + (s ? s.name : 'somewhere');
+      if (clock.getElapsedTime() < diddyState.summonUntil) return 'down off the mountain, with you';
+      return 'up at ' + (s ? s.name : 'the mountain');
     },
   },
   ted: {
@@ -7545,6 +8202,209 @@ document.getElementById('ip-token').addEventListener('keydown', function (e) { e
   if (id && b) b.textContent = '⚿ ' + (PROFILES[id.avatar] || { name: 'identity' }).name;
 })();
 
+// ============================================================
+// THE STATEMENT FIELD (§6.1) — 2026-07-30
+// The dual ledger, rendered. Every statement in the feed already carries
+// WHERE and WHEN (§10); this stands each one up as a stone at the spot it
+// was said. "Aggregate user data logged as material artifacts, not database
+// views" — the March ontology's demand, met with a different content type.
+//
+// RULED with this build:
+//  · Form is a stele: plinth + tablet, the villa's own dark marble.
+//  · A statement faces the gallery. A reply faces the stele it answers —
+//    so a conversation is legible as geometry before it is read as text.
+//  · Steles obey occlusion. They are reachable (you click one to read it),
+//    and per §2¾.2 reachable things do not pierce. If one starts piercing,
+//    that is a real bug.
+//  · Statements said in the same spot spiral out around it rather than
+//    stack — the ground near the pool will get crowded, and that crowding
+//    is the point.
+// ============================================================
+
+const STELE_STONE = 0x1a1814;          // the pedestal's marble — low channels LOW
+const steleField = new THREE.Group();
+steleField.name = 'statementField';
+scene.add(steleField);
+const steleState = { byId: new Map() };
+
+function steleFace(entry) {
+  // The tablet face — statement in Georgia, place and date incised below.
+  const cvs = document.createElement('canvas');
+  cvs.width = 512; cvs.height = 700;
+  const ctx = cvs.getContext('2d');
+
+  ctx.fillStyle = '#221f1a';
+  ctx.fillRect(0, 0, 512, 700);
+
+  // Incised border, two rules — a Getty label, not a sign
+  ctx.strokeStyle = 'rgba(232,224,208,0.30)';
+  ctx.lineWidth = 3; ctx.strokeRect(26, 26, 460, 648);
+  ctx.lineWidth = 1; ctx.strokeRect(36, 36, 440, 628);
+
+  // Speaker
+  const prof = (typeof PROFILES !== 'undefined' && PROFILES[entry.author]) || null;
+  const who = prof ? prof.name : entry.author;
+  const toProf = entry.to ? ((typeof PROFILES !== 'undefined' && PROFILES[entry.to]) || null) : null;
+  ctx.fillStyle = 'rgba(226,214,190,0.92)';
+  ctx.font = '26px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText(who + (toProf ? '  →  ' + toProf.name : ''), 256, 92);
+
+  ctx.strokeStyle = 'rgba(232,224,208,0.22)';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(110, 116); ctx.lineTo(402, 116); ctx.stroke();
+
+  // The statement — wrapped, and it steps down a size rather than truncate.
+  // 400 chars is the cap on the way in (postStatement), so two passes cover it.
+  ctx.fillStyle = 'rgba(240,234,222,0.95)';
+  const words = String(entry.text || '').split(/\s+/);
+  function wrapAt(px) {
+    ctx.font = px + 'px Georgia';
+    const out = [];
+    let line = '';
+    for (const w of words) {
+      const trial = line ? line + ' ' + w : w;
+      if (ctx.measureText(trial).width > 400 && line) { out.push(line); line = w; }
+      else line = trial;
+    }
+    if (line) out.push(line);
+    return out;
+  }
+  let size = 30, lines = wrapAt(size);
+  if (lines.length > 9) { size = 23; lines = wrapAt(size); }
+  if (lines.length > 14) { lines = lines.slice(0, 14); lines[13] = lines[13].slice(0, 30) + '…'; }
+  ctx.font = size + 'px Georgia';
+  const lead = size * 1.34;
+  const blockTop = 350 - (lines.length - 1) * (lead / 2);
+  lines.forEach((ln, i) => ctx.fillText(ln, 256, blockTop + i * lead));
+
+  // The stamp — where and when, small caps at the foot
+  const when = (function () {
+    try {
+      const d = new Date(entry.t);
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase() +
+             ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }).toUpperCase();
+    } catch (e) { return ''; }
+  })();
+  ctx.fillStyle = 'rgba(214,200,176,0.62)';
+  ctx.font = '20px Georgia';
+  ctx.fillText(String(entry.place || '').toUpperCase(), 256, 604);
+  ctx.fillText(when, 256, 636);
+
+  const tex = new THREE.CanvasTexture(cvs);
+  tex.anisotropy = 4;
+  return tex;
+}
+
+function buildStatementStele(entry) {
+  const g = new THREE.Group();
+  const stone = new THREE.MeshStandardMaterial({ color: STELE_STONE, roughness: 0.52, metalness: 0.06 });
+
+  // Plinth — the same broad base grammar as the public pedestal
+  const plinth = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.10, 0.44), stone.clone());
+  plinth.position.y = 0.05;
+  plinth.castShadow = true; plinth.receiveShadow = true;
+  g.add(plinth);
+  const sill = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.06, 0.36), stone.clone());
+  sill.position.y = 0.13; sill.castShadow = true;
+  g.add(sill);
+
+  // Tablet — the face carries the statement, the back stays stone
+  const faceMat = new THREE.MeshStandardMaterial({
+    map: steleFace(entry), roughness: 0.62, metalness: 0.04,
+    emissive: new THREE.Color(0x141210), emissiveIntensity: 0.22,
+  });
+  const mats = [stone.clone(), stone.clone(), stone.clone(), stone.clone(), faceMat, stone.clone()];
+  const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.98, 0.07), mats);
+  tablet.position.y = 0.16 + 0.49;
+  tablet.castShadow = true; tablet.receiveShadow = true;
+  g.add(tablet);
+
+  // Cap — a thin cornice so it reads as built, not planted
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.80, 0.05, 0.13), stone.clone());
+  cap.position.y = 0.16 + 0.98 + 0.02;
+  cap.castShadow = true;
+  g.add(cap);
+
+  g.userData.entryId = entry.id;
+  g.userData.isStele = true;
+  return g;
+}
+
+// Where a statement stands. Same spot said twice spirals out rather than
+// stacking — grounded with getVisitorHeight, never getTerrainHeight, or it
+// sinks through the stylobate (the bug class from the residents pipeline).
+function stelePlacement(entry, ordinal) {
+  const p = entry.pos || [0, 0, 0];
+  let x = +p[0] || 0, z = +p[2] || 0;
+  if (ordinal > 0) {
+    const a = ordinal * 2.399963;            // golden angle — no rosettes
+    const r = 0.85 + 0.30 * Math.sqrt(ordinal);
+    x += Math.cos(a) * r; z += Math.sin(a) * r;
+  }
+  // Past the cliff the ground is seabed — a statement said in the surf would
+  // stand 12 units under the water. Hold it at the waterline instead, the
+  // same clamp the river mesh already uses (never below the sea).
+  let y = getVisitorHeight(x, z);
+  if (z > CLIFF_Z && y < OCEAN_Y + 0.1) y = OCEAN_Y + 0.1;
+  return { x: x, y: y, z: z };
+}
+
+function renderStatementField() {
+  const entries = (feedState.entries || []).filter(e => e && e.id && e.pos);
+  const seen = new Set();
+  const spots = new Map();     // rounded spot → how many already stand there
+  const placed = new Map();    // entry id → world position, for reply aiming
+
+  // Oldest first, so the spiral order is the order things were said
+  const ordered = entries.slice().sort((a, b) => (a.t < b.t ? -1 : 1));
+
+  ordered.forEach(entry => {
+    seen.add(entry.id);
+    const p = entry.pos;
+    const spotKey = Math.round((+p[0] || 0) / 1.2) + ':' + Math.round((+p[2] || 0) / 1.2);
+    const ordinal = spots.get(spotKey) || 0;
+    spots.set(spotKey, ordinal + 1);
+    const at = stelePlacement(entry, ordinal);
+    placed.set(entry.id, at);
+
+    let g = steleState.byId.get(entry.id);
+    if (!g) {
+      g = buildStatementStele(entry);
+      steleField.add(g);
+      steleState.byId.set(entry.id, g);
+    }
+    g.position.set(at.x, at.y, at.z);
+
+    // Facing: a reply turns to the stele it answers, everything else
+    // addresses the gallery.
+    const target = (entry.replyTo && placed.get(entry.replyTo)) || { x: 0, z: 0 };
+    const dx = target.x - at.x, dz = target.z - at.z;
+    g.rotation.y = (dx * dx + dz * dz) > 1e-4 ? Math.atan2(dx, dz) : 0;
+  });
+
+  // Statements can only be added, never edited (§5) — but an optimistic post
+  // that failed to commit gets reverted, so drop anything no longer in state.
+  steleState.byId.forEach((g, id) => {
+    if (seen.has(id)) return;
+    steleField.remove(g);
+    g.traverse(c => {
+      if (c.geometry) c.geometry.dispose();
+      if (!c.material) return;
+      const ms = Array.isArray(c.material) ? c.material : [c.material];
+      ms.forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+    });
+    steleState.byId.delete(id);
+  });
+}
+
+function steleEntryFor(object) {
+  let o = object;
+  while (o && !o.userData.isStele) o = o.parent;
+  if (!o) return null;
+  return (feedState.entries || []).find(e => e.id === o.userData.entryId) || null;
+}
+
 // ── ENGAGE: summon a resident to your position ──
 // Your position = Ted if you're walking/posing him, else the camera's target.
 function summonerPoint() {
@@ -7581,6 +8441,39 @@ function summonResident(key, silent) {
     }), false, 'centripetal');
     S.rev = false; S.t0 = clock.getElapsedTime(); S.dur = Math.max(4, sealPup.position.distanceTo(here) / 2.2);
     S.mode = 'up';   // travel mode; arrival lands him in 'pool' state = lounging beside you
+  } else if (key === 'otter') {
+    if (otterState.mode === 'off') toggleOtter();
+    // Water is her medium too, but she can come ashore: if you are standing
+    // on the villa's stone she hauls out to you; otherwise she swims to the
+    // nearest point of the river and waits there.
+    const onStone = onVillaStone(here.x, here.z);
+    if (onStone) {
+      otterState.summonTarget = new THREE.Vector3(here.x - 1.1, getVisitorHeight(here.x - 1.1, here.z + 0.9) + 0.02, here.z + 0.9);
+    } else {
+      const z = Math.max(-40, Math.min(108, here.z));
+      const cx = z > 92 ? KELP_X : riverCenterX(z);
+      otterState.summonTarget = new THREE.Vector3(cx, otterWaterY(cx, z), z);
+    }
+    otterState.summonUntil = t + 90;
+  } else if (key === 'grey') {
+    if (greyState.mode === 'off') toggleGrey();
+    // He does not amble over. He runs at you and then falls over.
+    greyState.from = greyhound.position.clone();
+    greyState.to = greyGround(here.x + 1.8, here.z - 1.2);
+    greyState.dur = Math.max(2.2, greyState.from.distanceTo(greyState.to) / 13);
+    greyState.t0 = t;
+    greyhound.rotation.z = 0;
+    greyState.mode = 'sprint';
+  } else if (key === 'diddy') {
+    if (diddyState.mode === 'off') toggleDiddy();
+    // Down off the mountain — a long way, and he takes his time about it
+    diddyState.from = diddyKong.position.clone();
+    diddyState.to = diddyGround(here.x - 1.5, here.z + 1.5);
+    diddyState.dur = Math.max(8, diddyState.from.distanceTo(diddyState.to) / 5.5);
+    diddyState.t0 = t;
+    diddyState.mode = 'move';
+    diddyState.summonUntil = t + diddyState.dur + 90;
+    diddyState.nextMove = t + diddyState.dur + 90;
   } else if (key === 'trout') {
     if (troutState.mode === 'off') toggleTrout();
     // Trout keeps to the water: nearest point on the river course
@@ -7651,9 +8544,628 @@ function buildAcaciaTree() {
   return tree;
 }
 
+// ============================================================
+// THE WINGS (§2.2, resited 2026-07-30) — LIBRARY west, ANNEX east
+// Ruled this session, on probed terrain rather than on the drawing:
+//   · Each wing is 20 × 16 — the pavilion's own ROOM_W — at x 16…36.
+//     Three rooms of twenty on one axis, spanning x −36…36.
+//   · A five-unit COURT between each wing and the house (x 11…16). The
+//     west court is the acacia's ground: its trunk stands between the
+//     Getty and the library, and since grounds assets pierce, its crown
+//     claims both roofs. The court is what the west veil is seen through.
+//   · The plaza is dead flat to x 32 and within a third of a unit at 36.
+//     At 38 the ground swings a full unit across the footprint — which is
+//     why the wings stop at 36 and the two spare units became the court.
+//   · A PLAINER ORDER for the wings: no gilt bead-and-reel, fewer flutes.
+//     Hierarchy of orders — the rich order belongs to the pavilion, and
+//     it costs a third of the geometry per column.
+//   · Colonnade + veil face the court; the other three sides are solid
+//     wall, because the library's holdings need something to hang on.
+// ============================================================
+
+const WING_INNER = 16, WING_OUTER = 36;
+const WING_CX = (WING_INNER + WING_OUTER) / 2;   // 26
+const WING_HW = (WING_OUTER - WING_INNER) / 2;   // 10 — matches WW
+const WING_HD = 8;                               // matches WD
+const WING_H = 5.6;                              // subordinate to ROOM_H 9
+const COURT_INNER = 11, COURT_OUTER = WING_INNER;
+
+const wingsGroup = new THREE.Group();
+wingsGroup.name = 'wings';
+scene.add(wingsGroup);
+
+// ── The plainer order ──────────────────────────────────────
+function buildWingColumn(x, z, h, parent) {
+  const colMat = new THREE.MeshStandardMaterial({ color: 0x1a1814, roughness: 0.45, metalness: 0.08 });
+  const g = new THREE.Group();
+  const BY = BUILDING_Y;
+
+  g.add(mk(new THREE.CylinderGeometry(0.30, 0.34, 0.06, 20), colMat, x, BY + 0.03, z));
+  g.add(mk(new THREE.TorusGeometry(0.26, 0.035, 8, 20), colMat, x, BY + 0.08, z, Math.PI / 2, 0, 0));
+  g.add(mk(new THREE.CylinderGeometry(0.23, 0.26, 0.04, 20), colMat, x, BY + 0.118, z));
+
+  // Shaft — same concave flute profile, a quarter of the segments
+  const shaftH = h - 0.7;
+  const geo = new THREE.CylinderGeometry(0.145, 0.195, shaftH, 20, 4);
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const px = pos.getX(i), pz = pos.getZ(i);
+    const r = Math.sqrt(px * px + pz * pz);
+    if (r < 0.001) continue;
+    const c = Math.cos(Math.atan2(pz, px) * 20);
+    const d = c > 0 ? 0.022 * c * c : 0.002 * Math.abs(c);
+    pos.setX(i, px * ((r - d) / r)); pos.setZ(i, pz * ((r - d) / r));
+  }
+  geo.computeVertexNormals();
+  const shaft = new THREE.Mesh(geo, colMat);
+  shaft.position.set(x, BY + 0.14 + shaftH / 2, z);
+  shaft.castShadow = true;
+  g.add(shaft);
+
+  g.add(mk(new THREE.TorusGeometry(0.155, 0.022, 8, 20), colMat, x, BY + h - 0.62, z, Math.PI / 2, 0, 0));
+  g.add(mk(new THREE.CylinderGeometry(0.30, 0.16, 0.22, 20), colMat, x, BY + h - 0.36, z));   // echinus
+  g.add(mk(new THREE.BoxGeometry(0.50, 0.05, 0.50), colMat, x, BY + h - 0.22, z));            // abacus
+
+  g.traverse(c => { if (c.isMesh) c.userData.isColumn = true; });
+  (parent || wingsGroup).add(g);
+  return g;
+}
+
+// ── One wing ───────────────────────────────────────────────
+// side: +1 east (the annex), −1 west (the library)
+function buildWing(side, name) {
+  const wing = new THREE.Group();
+  wing.name = name;
+  const xc = side * WING_CX;
+  const stone = new THREE.MeshStandardMaterial({ color: C.stone, roughness: 0.72, metalness: 0.02, side: THREE.FrontSide });
+  const stoneLight = new THREE.MeshStandardMaterial({ color: C.stoneLight, roughness: 0.65, metalness: 0.02, side: THREE.FrontSide });
+  const stoneMat2 = new THREE.MeshStandardMaterial({ color: C.stone, roughness: 0.72, metalness: 0.02 });
+  const stoneDarkMat2 = new THREE.MeshStandardMaterial({ color: C.stoneDark || 0x9c9384, roughness: 0.8, metalness: 0.02, side: THREE.DoubleSide });
+
+  // Stylobate — three steps, the pavilion's own rhythm. At the outer
+  // corners the rising ground beds the bottom riser slightly; that is the
+  // platform sitting into the hill, not a defect.
+  for (let step = 0; step < 3; step++) {
+    const shrink = step * 0.8;
+    const w = 24 - shrink * 2, d = 22 - shrink * 2;
+    const stepTop = (step + 1) * 0.5;
+    const mat = step === 2 ? stoneLight.clone() : stone.clone();
+    if (step === 2) { mat.transparent = true; mat.opacity = 0.5; }
+    const top = new THREE.Mesh(new THREE.PlaneGeometry(w, d), mat);
+    top.rotation.x = -Math.PI / 2;
+    top.position.set(xc, stepTop, 0);
+    top.receiveShadow = true;
+    wing.add(top);
+    const riser = (gw, px, py, pz, ry) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(gw, 0.5), stone.clone());
+      m.position.set(px, py, pz); m.rotation.y = ry; wing.add(m);
+    };
+    riser(w, xc, stepTop - 0.25, d / 2, 0);
+    riser(w, xc, stepTop - 0.25, -d / 2, Math.PI);
+    riser(d, xc - w / 2, stepTop - 0.25, 0, -Math.PI / 2);
+    riser(d, xc + w / 2, stepTop - 0.25, 0, Math.PI / 2);
+  }
+
+  // Floor
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(WING_HW * 2, WING_HD * 2),
+    new THREE.MeshStandardMaterial({ color: C.stoneLight, roughness: 0.6, metalness: 0.02 }));
+  floor.rotation.x = -Math.PI / 2;
+  floor.position.set(xc, BUILDING_Y + 0.01, 0);
+  floor.receiveShadow = true;
+  wing.add(floor);
+
+  // Three solid walls — outer face and both ends. Double-sided, because
+  // the holdings hang on the inside and pierce out through them.
+  const wallMat = new THREE.MeshStandardMaterial({ color: C.stone, roughness: 0.78, metalness: 0.02, side: THREE.DoubleSide });
+  const outerX = xc + side * WING_HW;
+  const outer = new THREE.Mesh(new THREE.PlaneGeometry(WING_HD * 2, WING_H), wallMat.clone());
+  outer.position.set(outerX, BUILDING_Y + WING_H / 2, 0);
+  outer.rotation.y = side * Math.PI / 2;
+  outer.receiveShadow = true;
+  wing.add(outer);
+  [-1, 1].forEach(s => {
+    const end = new THREE.Mesh(new THREE.PlaneGeometry(WING_HW * 2, WING_H), wallMat.clone());
+    end.position.set(xc, BUILDING_Y + WING_H / 2, s * WING_HD);
+    if (s < 0) end.rotation.y = Math.PI;
+    end.receiveShadow = true;
+    wing.add(end);
+  });
+
+  // Colonnade on the court face, five columns
+  const courtX = xc - side * WING_HW;
+  const zs = [-8, -4, 0, 4, 8];
+  zs.forEach(z => buildWingColumn(courtX, z, WING_H, wing));
+
+  // THE VEIL — the intercolumniations, per §2.2. See through, cannot cross.
+  // Not a wall: a filter. Sits just inboard of the columns.
+  // LIBRARY ONLY (caught in verification 2026-07-30): the annex is the wing
+  // a visitor is LED INTO (§2.4), so veiling it would seal the room the
+  // whole guestbook is pointed at. West is veiled, east is open. That
+  // asymmetry is the two wings' entire difference stated in one material.
+  const veilMat = new THREE.MeshStandardMaterial({
+    color: 0xbfc8c4, roughness: 0.25, metalness: 0.05,
+    transparent: true, opacity: 0.13, side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  for (let i = 0; side < 0 && i < zs.length - 1; i++) {
+    const span = zs[i + 1] - zs[i];
+    const veil = new THREE.Mesh(new THREE.PlaneGeometry(span - 0.5, WING_H - 0.5), veilMat.clone());
+    veil.position.set(courtX + side * 0.18, BUILDING_Y + WING_H / 2 - 0.2, (zs[i] + zs[i + 1]) / 2);
+    veil.rotation.y = side * Math.PI / 2;
+    veil.userData.isVeil = true;
+    wing.add(veil);
+  }
+
+  // Roof — a low gable with its ridge along x, so each wing shows a long
+  // tiled slope to the court and a pediment to the hills. Same terracotta
+  // as the pavilion; cover tiles and antefixes are added by the ornament
+  // pass below, which tiles every slope in the villa in one instanced mesh.
+  const wRoofY = BUILDING_Y + WING_H;
+  const A = WING_HW + 0.9, B = WING_HD + 0.9, RH = 2.4;   // eaves half-extents, rise
+
+  // Entablature band under the eaves
+  wing.add(mk(new THREE.BoxGeometry(A * 2 + 0.5, 0.26, B * 2 + 0.5), stoneMat2, xc, wRoofY + 0.13, 0));
+  wing.add(mk(new THREE.BoxGeometry(A * 2 + 0.9, 0.14, B * 2 + 0.9), stoneLight.clone(), xc, wRoofY + 0.33, 0));
+
+  const ry0 = wRoofY + 0.40;
+  const v = new Float32Array([
+    // north slope (−z)
+    xc - A, ry0, -B, xc + A, ry0, -B, xc + A, ry0 + RH, 0,
+    xc - A, ry0, -B, xc + A, ry0 + RH, 0, xc - A, ry0 + RH, 0,
+    // south slope (+z)
+    xc + A, ry0, B, xc - A, ry0, B, xc - A, ry0 + RH, 0,
+    xc + A, ry0, B, xc - A, ry0 + RH, 0, xc + A, ry0 + RH, 0,
+  ]);
+  const rg = new THREE.BufferGeometry();
+  rg.setAttribute('position', new THREE.BufferAttribute(v, 3));
+  rg.computeVertexNormals();
+  const wroof = new THREE.Mesh(rg, new THREE.MeshStandardMaterial({ color: C.terracotta, roughness: 0.85, side: THREE.DoubleSide }));
+  wroof.castShadow = true;
+  wing.add(wroof);
+
+  // Gable ends
+  [-1, 1].forEach(s => {
+    const sh = new THREE.Shape();
+    sh.moveTo(-B, 0); sh.lineTo(B, 0); sh.lineTo(0, RH); sh.closePath();
+    const ped = new THREE.Mesh(new THREE.ShapeGeometry(sh), stoneDarkMat2);
+    ped.position.set(xc + s * A, ry0, 0);
+    ped.rotation.y = s * Math.PI / 2;
+    wing.add(ped);
+  });
+
+  wing.userData.roof = { xc: xc, y: ry0, A: A, B: B, RH: RH };
+
+  wingsGroup.add(wing);
+  return wing;
+}
+
+const libraryWing = buildWing(-1, 'library');
+const annexWing = buildWing(1, 'annex');
+
+// ── The west court's kerb — the acacia's opening in the pavement ──
+// A tree growing out of the terrace wants an edge, or it reads as a
+// mistake rather than a planting.
+const ACACIA_X = -13.5, ACACIA_Z = 3;
+(function acaciaKerb() {
+  const kerbMat = new THREE.MeshStandardMaterial({ color: C.stone, roughness: 0.7, metalness: 0.02 });
+  const soil = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24),
+    new THREE.MeshStandardMaterial({ color: 0x3b3226, roughness: 0.95 }));
+  soil.rotation.x = -Math.PI / 2;
+  soil.position.set(ACACIA_X, BUILDING_Y + 0.02, ACACIA_Z);
+  wingsGroup.add(soil);
+  const kerb = new THREE.Mesh(new THREE.TorusGeometry(1.55, 0.11, 8, 32), kerbMat);
+  kerb.rotation.x = Math.PI / 2;
+  kerb.position.set(ACACIA_X, BUILDING_Y + 0.08, ACACIA_Z);
+  kerb.castShadow = true;
+  wingsGroup.add(kerb);
+})();
+
+// ============================================================
+// THE HOLDINGS (§2¾.1 pierce-out) — the library's walls, 2026-07-30
+// RULED this session: holdings pierce, video included. The library is
+// private and uncrossable, so by §2¾.2 everything hung in it is
+// unreachable, and unreachable things pierce. The photographs and the
+// two films therefore show THROUGH the west wall from the court, the
+// gallery, the annex, across the river. The collection will not stay in
+// its container — stated as a render mode.
+//
+// §2¾.5 gotcha 1 is the whole difficulty: with depthTest off an asset
+// draws over everything in front of it, so depth sorting inside the set
+// is gone. Internal order is established here by renderOrder, keyed to
+// each frame's x — west-most draws first, so the hang stacks front-to-
+// back the way you'd see it standing in the court, and never flickers.
+// ============================================================
+
+const PIERCE_BASE = 3000;
+const holdingsGroup = new THREE.Group();
+holdingsGroup.name = 'holdings';
+scene.add(holdingsGroup);
+
+const holdingState = { videos: [], playing: false, hung: [] };
+const texLoader = new THREE.TextureLoader();
+
+// wall: 'outer' (x = −36, faces east) | 'north' (z = −8) | 'south' (z = +8)
+// span: position along that wall · h: the frame's tall dimension
+function hangHolding(spec) {
+  const frameMat = new THREE.MeshBasicMaterial({
+    color: 0x14120f, side: THREE.DoubleSide,
+    depthTest: false, depthWrite: false, transparent: true, opacity: 0.96,
+  });
+  const g = new THREE.Group();
+
+  // Where on which wall
+  let x, z, ry;
+  const OUT = -WING_CX - WING_HW;      // −36
+  if (spec.wall === 'outer') { x = OUT + 0.09; z = spec.span; ry = Math.PI / 2; }
+  else if (spec.wall === 'north') { x = spec.span; z = -WING_HD + 0.09; ry = 0; }
+  else { x = spec.span; z = WING_HD - 0.09; ry = Math.PI; }
+  const y = BUILDING_Y + (spec.y || 2.9);
+  g.position.set(x, y, z);
+  g.rotation.y = ry;
+
+  // Placeholder proportions; corrected the moment the real aspect is known
+  const H = spec.h || 2.0;
+  const frame = new THREE.Mesh(new THREE.PlaneGeometry(H * 1.4 + 0.16, H + 0.16), frameMat);
+  frame.renderOrder = PIERCE_BASE + Math.round(x + 40) * 2;
+  g.add(frame);
+
+  const artMat = new THREE.MeshBasicMaterial({
+    side: THREE.DoubleSide, depthTest: false, depthWrite: false,
+    transparent: true, opacity: 0.97, toneMapped: false,
+  });
+  const art = new THREE.Mesh(new THREE.PlaneGeometry(H * 1.4, H), artMat);
+  art.position.z = 0.012;
+  art.renderOrder = frame.renderOrder + 1;
+  g.add(art);
+
+  function fit(w0, h0) {
+    if (!w0 || !h0) return;
+    const a = w0 / h0;
+    const w = H * a;
+    art.geometry.dispose();
+    art.geometry = new THREE.PlaneGeometry(w, H);
+    frame.geometry.dispose();
+    frame.geometry = new THREE.PlaneGeometry(w + 0.16, H + 0.16);
+  }
+
+  if (spec.video) {
+    const v = document.createElement('video');
+    v.src = spec.src; v.loop = true; v.muted = true; v.playsInline = true;
+    v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
+    v.preload = 'auto'; v.crossOrigin = 'anonymous';
+    const tex = new THREE.VideoTexture(v);
+    tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter;
+    tex.encoding = THREE.sRGBEncoding;
+    artMat.map = tex;
+    v.addEventListener('loadedmetadata', () => fit(v.videoWidth, v.videoHeight));
+    holdingState.videos.push(v);
+  } else {
+    texLoader.load(spec.src, tex => {
+      tex.encoding = THREE.sRGBEncoding;
+      tex.minFilter = THREE.LinearFilter;
+      artMat.map = tex; artMat.needsUpdate = true;
+      if (tex.image) fit(tex.image.width, tex.image.height);
+    });
+  }
+
+  // A wall label, in the same hand as the statement steles
+  if (spec.label) {
+    const cv = document.createElement('canvas');
+    cv.width = 256; cv.height = 48;
+    const c2 = cv.getContext('2d');
+    c2.fillStyle = 'rgba(232,224,208,0.72)';
+    c2.font = '19px Georgia'; c2.textAlign = 'center'; c2.textBaseline = 'middle';
+    c2.fillText(spec.label, 128, 24);
+    const lm = new THREE.MeshBasicMaterial({
+      map: new THREE.CanvasTexture(cv), transparent: true,
+      depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const lab = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.28), lm);
+    lab.position.set(0, -(H / 2) - 0.32, 0.012);
+    lab.renderOrder = frame.renderOrder + 2;
+    g.add(lab);
+  }
+
+  g.userData.isHolding = true;
+  g.userData.label = spec.label || 'Untitled';
+  // Face normal, for the camera to stand off from when this is focused
+  const n = spec.wall === 'outer' ? new THREE.Vector3(1, 0, 0)
+    : spec.wall === 'north' ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 0, -1);
+  holdingState.hung.push({ group: g, label: g.userData.label, wall: spec.wall, h: H, normal: n,
+    pos: new THREE.Vector3(x, y, z) });
+  holdingsGroup.add(g);
+  return g;
+}
+
+// ── The hang ───────────────────────────────────────────────
+// The two films take the west wall, because that is the wall you see
+// through from the whole villa — moving light showing across the river is
+// the loudest thing pierce-out can do, and it should be deliberate.
+[
+  { wall: 'outer', span: -4.2, h: 2.4, video: true, src: 'art/v-sailing.mp4', label: 'Cup Sailing' },
+  { wall: 'outer', span: 4.2, h: 2.4, video: true, src: 'art/v-replay.mp4', label: 'Replay' },
+  { wall: 'outer', span: 0, h: 1.5, src: 'art/h-getty.jpg', label: 'The Getty' },
+
+  { wall: 'north', span: -32.5, h: 1.9, src: 'art/h-coast.jpg', label: 'Coast' },
+  { wall: 'north', span: -27.0, h: 1.9, src: 'art/h-mountains.jpg', label: 'Mountains' },
+  { wall: 'north', span: -21.5, h: 1.9, src: 'art/h-illustration.jpg', label: 'Illustration' },
+
+  { wall: 'south', span: -32.5, h: 1.9, src: 'art/h-ted.jpg', label: 'Ted Turner' },
+  { wall: 'south', span: -27.0, h: 1.9, src: 'art/h-yachts.jpg', label: 'Yachts' },
+  { wall: 'south', span: -21.5, h: 1.9, src: 'art/h-hd.jpg', label: 'Untitled' },
+
+  { wall: 'north', span: -17.5, h: 1.4, y: 2.6, src: 'art/h-tweet.jpg', label: 'Tweet' },
+  { wall: 'south', span: -17.5, h: 1.4, y: 2.6, src: 'art/h-img2087.jpg', label: 'Untitled' },
+  { wall: 'outer', span: -7.4, h: 1.4, y: 2.6, src: 'art/h-img2173.jpg', label: 'Untitled' },
+].forEach(hangHolding);
+
+// ── Video decode is the expensive part ─────────────────────
+// Two simultaneous VideoTextures will cost a phone real frames, so they
+// only run when the library is actually being looked at. Checked on a slow
+// clock, not per frame.
+function updateHoldingVideos() {
+  const d = camera.position.distanceTo(new THREE.Vector3(-WING_CX, BUILDING_Y + 2, 0));
+  const want = d < 95;
+  if (want === holdingState.playing) return;
+  holdingState.playing = want;
+  holdingState.videos.forEach(v => {
+    if (want) { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); }
+    else v.pause();
+  });
+}
+setInterval(updateHoldingVideos, 900);
+// Autoplay is gated until the visitor acts; the villa's entry click is that act
+window.addEventListener('pointerdown', function kickHoldings() {
+  holdingState.videos.forEach(v => { const pr = v.play(); if (pr && pr.catch) pr.catch(() => {}); });
+  window.removeEventListener('pointerdown', kickHoldings);
+}, { once: true });
+
+// ============================================================
+// THE ANNEX — visitors' works, 2026-07-30
+// Pedestals and wall plinths, empty. §2.4's argument was that the annex
+// is a room you are LED to rather than one you stumble into, so it is
+// furnished before it is filled — a visitor arriving to bare stone knows
+// there is a place for their work.
+//
+// These do NOT pierce. Per §2¾.2 the discriminator is reachability, and
+// the annex is the one wing a visitor can walk into: its furniture obeys
+// occlusion like the graphmap and the easel do. If an annex pedestal ever
+// starts piercing, that is a real bug — unlike the library's holdings,
+// where piercing is the ruling.
+// ============================================================
+
+const annexGroup = new THREE.Group();
+annexGroup.name = 'annexFittings';
+scene.add(annexGroup);
+
+function buildAnnexPedestal(x, z, h) {
+  const g = new THREE.Group();
+  const H = h || 1.15;
+  const m = new THREE.MeshStandardMaterial({ color: 0x1a1814, roughness: 0.45, metalness: 0.08 });
+  g.add(mk(new THREE.BoxGeometry(0.78, 0.09, 0.78), m, x, BUILDING_Y + 0.045, z));
+  g.add(mk(new THREE.CylinderGeometry(0.30, 0.34, 0.07, 20), m, x, BUILDING_Y + 0.125, z));
+  g.add(mk(new THREE.TorusGeometry(0.27, 0.035, 8, 20), m, x, BUILDING_Y + 0.18, z, Math.PI / 2, 0, 0));
+  const shaft = mk(new THREE.CylinderGeometry(0.21, 0.25, H - 0.42, 20), m, x, BUILDING_Y + 0.21 + (H - 0.42) / 2, z);
+  shaft.castShadow = true;
+  g.add(shaft);
+  g.add(mk(new THREE.CylinderGeometry(0.30, 0.24, 0.06, 20), m, x, BUILDING_Y + H - 0.18, z));
+  const top = mk(new THREE.BoxGeometry(0.66, 0.07, 0.66),
+    new THREE.MeshStandardMaterial({ color: C.stoneLight, roughness: 0.5, metalness: 0.03 }),
+    x, BUILDING_Y + H - 0.11, z);
+  top.castShadow = true; top.receiveShadow = true;
+  g.add(top);
+  g.userData.isAnnexPedestal = true;
+  g.userData.slot = null;          // what stands here, once a visitor drops one in
+  annexGroup.add(g);
+  return g;
+}
+
+function buildWallPlinth(x, z, ry) {
+  const g = new THREE.Group();
+  const m = new THREE.MeshStandardMaterial({ color: 0x1a1814, roughness: 0.5, metalness: 0.08 });
+  const shelf = mk(new THREE.BoxGeometry(1.05, 0.08, 0.42), m, 0, 0, 0);
+  shelf.castShadow = true;
+  g.add(shelf);
+  g.add(mk(new THREE.BoxGeometry(0.9, 0.05, 0.30),
+    new THREE.MeshStandardMaterial({ color: C.stoneLight, roughness: 0.55 }), 0, 0.065, -0.02));
+  // Two corbels under it, so it reads as carried rather than stuck on
+  [-0.36, 0.36].forEach(dx => g.add(mk(new THREE.BoxGeometry(0.1, 0.22, 0.26), m, dx, -0.14, -0.06)));
+  g.position.set(x, BUILDING_Y + 1.25, z);
+  g.rotation.y = ry;
+  g.userData.isWallPlinth = true;
+  g.userData.slot = null;
+  annexGroup.add(g);
+  return g;
+}
+
+// Two rows down the room, off the cross-axis so the doorway view stays open
+[-4.5, 0, 4.5].forEach(z => {
+  buildAnnexPedestal(WING_CX - 3.6, z, 1.15);
+  buildAnnexPedestal(WING_CX + 3.6, z, 1.15);
+});
+// A taller one at the head of the room — the annex's own public pedestal
+buildAnnexPedestal(WING_CX + 7.4, 0, 1.45);
+
+// Wall plinths: the outer wall and both ends
+[-5.6, -1.9, 1.9, 5.6].forEach(z => buildWallPlinth(WING_CX + WING_HW - 0.22, z, -Math.PI / 2));
+[-6.5, 0, 6.5].forEach(x => {
+  buildWallPlinth(WING_CX + x, -WING_HD + 0.22, 0);
+  buildWallPlinth(WING_CX + x, WING_HD - 0.22, Math.PI);
+});
+
+// ============================================================
+// ROOF ORNAMENT — 2026-07-30
+// The roofs were flat coloured planes: correct massing, no period. A Roman
+// villa roof is tegulae (flat pan tiles) with imbrices (the semicircular
+// cover tiles) capping every joint, an antefix closing each imbrex at the
+// eaves, a dentil course under the cornice, and acroteria at the pediment.
+// That corduroy of cover tiles is the single thing that reads as "Roman"
+// at any distance, so it is what gets real geometry.
+//
+// Every cover tile on every roof in the villa is ONE InstancedMesh — a
+// single draw call for ~250 tiles. Same for antefixes and dentils. This
+// is why the ornament costs almost nothing despite tripling the detail.
+// ============================================================
+
+const imbrexM = [], antefixM = [], dentilM = [];
+const _m4 = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler();
+const _pos = new THREE.Vector3(), _scl = new THREE.Vector3(1, 1, 1);
+
+// Lay cover tiles up a slope. eaveA→eaveB is the eaves line; `up` carries
+// each run from the eaves to the ridge. Tiles are spaced along the eaves.
+function tileSlope(eaveA, eaveB, up, spacing, withAntefix) {
+  const along = new THREE.Vector3().subVectors(eaveB, eaveA);
+  const runLen = up.length();
+  const n = Math.max(2, Math.round(along.length() / spacing));
+  const step = along.clone().divideScalar(n);
+  const dir = up.clone().normalize();
+  // A cylinder's axis is +y; rotate it onto the slope direction
+  _q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+  for (let i = 0; i <= n; i++) {
+    const base = eaveA.clone().addScaledVector(step, i);
+    const mid = base.clone().addScaledVector(dir, runLen / 2);
+    _m4.compose(mid, _q, new THREE.Vector3(1, runLen, 1));
+    imbrexM.push(_m4.clone());
+    if (withAntefix) {
+      const face = new THREE.Vector3(dir.x, 0, dir.z).normalize().negate();
+      _e.set(0, Math.atan2(face.x, face.z), 0);
+      _q.setFromEuler(_e);
+      _m4.compose(base.clone().addScaledVector(face, 0.06).setY(base.y + 0.12), _q, _scl);
+      antefixM.push(_m4.clone());
+      _q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);   // restore
+    }
+  }
+}
+
+// A dentil course — small blocks under a cornice, around a rectangle
+function dentilCourse(cx, y, halfW, halfD, spacing) {
+  const put = (x, z, ry) => {
+    _e.set(0, ry, 0); _q.setFromEuler(_e);
+    _m4.compose(new THREE.Vector3(x, y, z), _q, _scl);
+    dentilM.push(_m4.clone());
+  };
+  const nx = Math.round((halfW * 2) / spacing), nz = Math.round((halfD * 2) / spacing);
+  for (let i = 0; i <= nx; i++) {
+    const x = cx - halfW + (i * halfW * 2) / nx;
+    put(x, halfD, 0); put(x, -halfD, 0);
+  }
+  for (let i = 1; i < nz; i++) {
+    const z = -halfD + (i * halfD * 2) / nz;
+    put(cx + halfW, z, Math.PI / 2); put(cx - halfW, z, Math.PI / 2);
+  }
+}
+
+// ── The pavilion: gable ridge along z, slopes facing ±x ──
+(function tilePavilion() {
+  const ridgeY = roofY + ridgeH;
+  [-1, 1].forEach(s => {
+    const eA = new THREE.Vector3(s * rW, roofY + 0.02, -rD);
+    const eB = new THREE.Vector3(s * rW, roofY + 0.02, rD);
+    const up = new THREE.Vector3(-s * rW, ridgeH, 0);
+    tileSlope(eA, eB, up, 0.82, true);
+  });
+  dentilCourse(0, entabY + 0.62, WW + 0.62, WD + 3.05, 0.46);
+})();
+
+// ── The wings ──
+[libraryWing, annexWing].forEach(w => {
+  const r = w.userData.roof;
+  if (!r) return;
+  [-1, 1].forEach(s => {
+    const eA = new THREE.Vector3(r.xc - r.A, r.y + 0.02, s * r.B);
+    const eB = new THREE.Vector3(r.xc + r.A, r.y + 0.02, s * r.B);
+    const up = new THREE.Vector3(0, r.RH, -s * r.B);
+    tileSlope(eA, eB, up, 0.78, true);
+  });
+  dentilCourse(r.xc, r.y - 0.16, r.A + 0.2, r.B + 0.2, 0.44);
+});
+
+// ── Build the three instanced meshes ──
+(function raiseOrnament() {
+  const tileMat = new THREE.MeshStandardMaterial({ color: 0x8f5233, roughness: 0.88, metalness: 0.02 });
+  const antefixMat = new THREE.MeshStandardMaterial({ color: 0xb58a5e, roughness: 0.7, metalness: 0.03, side: THREE.DoubleSide });
+  const dentilMat = new THREE.MeshStandardMaterial({ color: C.stoneLight, roughness: 0.7, metalness: 0.02 });
+
+  // Imbrex — a half-cylinder, unit length, scaled per instance
+  const imbrexGeo = new THREE.CylinderGeometry(0.125, 0.125, 1, 7, 1, true, 0, Math.PI);
+  const imbrex = new THREE.InstancedMesh(imbrexGeo, tileMat, imbrexM.length);
+  imbrexM.forEach((m, i) => imbrex.setMatrixAt(i, m));
+  imbrex.instanceMatrix.needsUpdate = true;
+  imbrex.castShadow = true;
+  scene.add(imbrex);
+
+  // Antefix — the palmette plate that closes each cover tile at the eaves
+  const afShape = new THREE.Shape();
+  afShape.moveTo(-0.14, -0.06);
+  afShape.lineTo(0.14, -0.06);
+  afShape.lineTo(0.17, 0.10);
+  afShape.quadraticCurveTo(0.10, 0.26, 0, 0.30);
+  afShape.quadraticCurveTo(-0.10, 0.26, -0.17, 0.10);
+  afShape.closePath();
+  const antefix = new THREE.InstancedMesh(new THREE.ShapeGeometry(afShape), antefixMat, antefixM.length);
+  antefixM.forEach((m, i) => antefix.setMatrixAt(i, m));
+  antefix.instanceMatrix.needsUpdate = true;
+  scene.add(antefix);
+
+  const dentil = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 0.19, 0.30), dentilMat, dentilM.length);
+  dentilM.forEach((m, i) => dentil.setMatrixAt(i, m));
+  dentil.instanceMatrix.needsUpdate = true;
+  dentil.castShadow = true;
+  scene.add(dentil);
+
+  console.log('[Getty] roof ornament — ' + imbrexM.length + ' cover tiles, ' +
+    antefixM.length + ' antefixes, ' + dentilM.length + ' dentils, 3 draw calls');
+})();
+
+// ── Ridge tiles and acroteria on the pavilion ──
+(function pavilionCrest() {
+  const tileMat = new THREE.MeshStandardMaterial({ color: 0x8f5233, roughness: 0.88, metalness: 0.02 });
+  const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, rD * 2 + 0.4, 8, 1, true, 0, Math.PI), tileMat);
+  ridge.rotation.x = Math.PI / 2;
+  ridge.position.set(0, roofY + ridgeH + 0.04, 0);
+  ridge.castShadow = true;
+  scene.add(ridge);
+
+  // Acroteria — apex and both lower corners of each pediment
+  const acMat = new THREE.MeshStandardMaterial({ color: C.stoneLight, roughness: 0.62, metalness: 0.03, side: THREE.DoubleSide });
+  const pal = new THREE.Shape();
+  pal.moveTo(-0.22, 0);
+  pal.quadraticCurveTo(-0.30, 0.34, -0.10, 0.56);
+  pal.quadraticCurveTo(0, 0.68, 0.10, 0.56);
+  pal.quadraticCurveTo(0.30, 0.34, 0.22, 0);
+  pal.closePath();
+  const palGeo = new THREE.ShapeGeometry(pal);
+  [-1, 1].forEach(s => {
+    [{ x: 0, y: roofY + ridgeH + 0.06 }, { x: -rW + 0.3, y: roofY }, { x: rW - 0.3, y: roofY }].forEach(p => {
+      const a = new THREE.Mesh(palGeo, acMat);
+      a.position.set(p.x, p.y, s * (rD + 0.08));
+      if (s < 0) a.rotation.y = Math.PI;
+      a.castShadow = true;
+      scene.add(a);
+    });
+  });
+})();
+
+// ── Wing gable crests ──
+[libraryWing, annexWing].forEach(w => {
+  const r = w.userData.roof;
+  if (!r) return;
+  const tileMat = new THREE.MeshStandardMaterial({ color: 0x8f5233, roughness: 0.88, metalness: 0.02 });
+  const ridge = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, r.A * 2 + 0.3, 8, 1, true, 0, Math.PI), tileMat);
+  ridge.rotation.z = Math.PI / 2;
+  ridge.rotation.y = Math.PI / 2;
+  ridge.position.set(r.xc, r.y + r.RH + 0.03, 0);
+  ridge.castShadow = true;
+  scene.add(ridge);
+});
+
 const acaciaTree = buildAcaciaTree();
-const acaciaX = -28, acaciaZ = 6;
-acaciaTree.position.set(acaciaX, getTerrainHeight(acaciaX, acaciaZ), acaciaZ);
+// RESITED 2026-07-30 — the west court, between the Getty and the library.
+// It stands on the terrace, in its kerbed opening, and its crown pierces
+// both roofs: the pavilion has it under the eaves, the library gets it
+// straight through the slab.
+const acaciaX = ACACIA_X, acaciaZ = ACACIA_Z;
+acaciaTree.position.set(acaciaX, BUILDING_Y, acaciaZ);
 acaciaTree.scale.set(1.2, 1.2, 1.2);
 scene.add(acaciaTree);
 
@@ -8661,6 +10173,25 @@ addFocusTarget('Surfboard', surfboardGroup,
   new THREE.Vector3(poolW / 2 + 1.2, BUILDING_Y + 0.1, poolZ + 2) // hitbox position
 );
 
+// ── The hang is focusable (2026-07-30) ──────────────────────
+// Sailor: click the art and lock onto it. Note this does NOT make the
+// holdings reachable in the §2¾.2 sense — you still cannot cross into the
+// library. Looking at the unreachable is the entire point of the veil, so
+// focus and reach are different things, and the pierce ruling stands.
+holdingState.hung.forEach(function (hd) {
+  // Stand off far enough that the frame reads whole, with wall either side.
+  // Videos keep their placeholder proportions until metadata loads, so the
+  // margin is generous on purpose.
+  const stand = hd.pos.clone().addScaledVector(hd.normal, Math.max(3.6, hd.h * 2.6));
+  const thin = 0.5, wide = hd.h * 1.7, tall = hd.h + 0.5;
+  addFocusTarget(hd.label, hd.group,
+    { x: stand.x, y: hd.pos.y + 0.15, z: stand.z },
+    { x: hd.pos.x, y: hd.pos.y, z: hd.pos.z },
+    hd.wall === 'outer' ? { x: thin, y: tall, z: wide } : { x: wide, y: tall, z: thin },
+    hd.pos.clone()
+  );
+});
+
 const focusHitboxes = focusTargets.map(t => t.hitbox);
 
 function focusOn(target) {
@@ -8951,12 +10482,31 @@ container.addEventListener('pointerup', e => {
     if (troutFish.visible) critters.push({ key: 'trout', mesh: troutFish });
     if (sealPup.visible) critters.push({ key: 'seal', mesh: sealPup });
     if (y2kHusky.visible) critters.push({ key: 'y2k', mesh: y2kHusky });
+    if (otterPrincess.visible) critters.push({ key: 'otter', mesh: otterPrincess });
+    if (greyhound.visible) critters.push({ key: 'grey', mesh: greyhound });
+    if (diddyKong.visible) critters.push({ key: 'diddy', mesh: diddyKong });
     if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
     for (const c of critters) {
       if (raycaster.intersectObject(c.mesh, true).length > 0) {
         if (followAnimal.key === c.key) stopFollow();
         else startFollow(c.key);
         return;
+      }
+    }
+
+    // ── A statement stone. Residents outrank stone, so this comes after ──
+    // Reachable, therefore occluded normally (§2¾.2). Clicking one opens
+    // the speaker's card, which is where the statement's thread lives.
+    if (typeof steleField !== 'undefined' && steleField.children.length) {
+      const sHits = raycaster.intersectObject(steleField, true);
+      if (sHits.length > 0) {
+        const entry = steleEntryFor(sHits[0].object);
+        if (entry) {
+          showNavLabel('“' + entry.text.slice(0, 60) + (entry.text.length > 60 ? '…' : '') +
+                       '” — ' + (entry.place || '') + ', ' + timeAgo(entry.t));
+          if (typeof PROFILES !== 'undefined' && PROFILES[entry.author]) startFollow(entry.author);
+          return;
+        }
       }
     }
   }
@@ -11522,6 +13072,9 @@ function animate() {
   updateTrout(t);
   animateSeal(t);
   animateY2k(t);
+  animateOtter(t);
+  animateGrey(t);
+  animateDiddy(t);
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)
