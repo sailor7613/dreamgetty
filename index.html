@@ -113,6 +113,7 @@
     backdrop-filter: blur(6px);
   }
   #nav-menu.open { display: flex; }
+  #nav-menu { max-height: 78vh; overflow-y: auto; overscroll-behavior: contain; }
   #nav-menu .ui-btn { position: static; text-align: right; }
   body.light #nav-menu { background: rgba(245,242,235,0.8); border-color: rgba(20,18,14,0.12); }
   #navmenu-btn.open { background: rgba(160,128,80,0.3); }
@@ -635,19 +636,30 @@
   <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
   <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
   <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa as Ted — click the ground and he goes there; objects still focus on click">🐾 Walk</button>
-  <button class="ui-btn" id="trout-btn" onclick="toggleTrout()" title="Trout Fish arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
-  <button class="ui-btn" id="seal-btn" onclick="toggleSeal()" title="Matt Mondanile's Seal — ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
-  <button class="ui-btn" id="y2k-btn" onclick="toggleY2k()" title="Y2K — a Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
-  <button class="ui-btn" id="otter-btn" onclick="toggleOtter()" title="The Sea Otter Princess — in from the open sea to the kelp bed, then swimming the lower river on her back, crowned">🦦 Princess</button>
-  <button class="ui-btn" id="grey-btn" onclick="toggleGrey()" title="The Greyhound — flat gallop the length of the terrace, then flat out for a very long time">🦮 Greyhound</button>
-  <button class="ui-btn" id="diddy-btn" onclick="toggleDiddy()" title="Diddy Kong — lives up on the back range, crossing the saddle and both peaks. Comes down when summoned">🐒 Diddy Kong</button>
+  <button class="ui-btn" id="trout-btn" onclick="tapResident('trout')" title="Trout Fish — tap to lock the camera on him. Arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
+  <button class="ui-btn" id="seal-btn" onclick="tapResident('seal')" title="Matt Mondanile's Seal — tap to lock the camera on him. ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
+  <button class="ui-btn" id="y2k-btn" onclick="tapResident('y2k')" title="Y2K — tap to lock the camera on him. A Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
+  <button class="ui-btn" id="otter-btn" onclick="tapResident('otter')" title="The Sea Otter Princess — tap to lock the camera on her. in from the open sea to the kelp bed, then swimming the lower river on her back, crowned">🦦 Princess</button>
+  <button class="ui-btn" id="petra-btn" onclick="tapResident('petra')" title="Petra — tap to lock the camera on her. A great white, working a long circuit offshore. Her dorsal cuts the surface on part of every lap">🦈 Petra</button>
+  <button class="ui-btn" id="kyle-btn" onclick="tapResident('kyle')" title="Kyle — tap to lock the camera on him. A bottlenose dolphin who works the break, and leaps out of it">🐬 Kyle</button>
+  <button class="ui-btn" id="diddy-btn" onclick="tapResident('diddy')" title="Diddy Kong — tap to lock the camera on him. Lives up on the back range, crossing the saddle and both peaks. Comes down when summoned">🐒 Diddy Kong</button>
+  <button class="ui-btn" id="alrik-btn" onclick="tapResident('alrik')" title="Alrik \u2014 tap to lock the camera on him. A wizard, sculptor and shaper; keeps to the back range with Diddy">🧙 Alrik</button>
+  <button class="ui-btn" id="raven-btn" onclick="tapResident('raven')" title="Horned Sphere \u2014 asleep on the pavilion ridge. He was already here, and he will not be summoned">🐦 Horned Sphere</button>
+  <button class="ui-btn" id="julia-btn" onclick="tapResident('julia')" title="Julia \u2014 tap to lock the camera on her. A great blue heron working the pool and the river shallows; the only resident who flies">🪶 Julia</button>
+  <button class="ui-btn" id="emilia-btn" onclick="tapResident('emilia')" title="Emilia \u2014 tap to lock the camera on her. A snow stoat: dart, freeze, dart">🐁 Emilia</button>
+  <button class="ui-btn" id="adlib-btn" onclick="tapResident('adlib')" title="Adlib \u2014 tap to lock the camera on him. A house cat, and he sits on the pedestal, the easel and the G4 in rotation">🐈 Adlib</button>
   <div class="nav-menu-label">Engage</div>
   <button class="ui-btn" onclick="summonResident('trout')" title="Trout comes to the nearest water to you">🐟 summon Trout</button>
   <button class="ui-btn" onclick="summonResident('seal')" title="The Seal gallumphs to you">🦭 summon Seal</button>
   <button class="ui-btn" onclick="summonResident('y2k')" title="Y2K trots to you">🐕 summon Y2K</button>
   <button class="ui-btn" onclick="summonResident('otter')" title="The Princess swims to the nearest water to you">🦦 summon Princess</button>
-  <button class="ui-btn" onclick="summonResident('grey')" title="The Greyhound sprints to you">🦮 summon Greyhound</button>
+  <button class="ui-btn" onclick="summonResident('petra')" title="Petra comes as close as deep water allows — she cannot come ashore">🦈 summon Petra</button>
+  <button class="ui-btn" onclick="summonResident('kyle')" title="Kyle comes to the nearest water to you">🐬 summon Kyle</button>
   <button class="ui-btn" onclick="summonResident('diddy')" title="Diddy Kong comes down off the mountain">🐒 summon Diddy</button>
+  <button class="ui-btn" onclick="summonResident('alrik')" title="Alrik walks down off the range">🧙 summon Alrik</button>
+  <button class="ui-btn" onclick="summonResident('julia')" title="Julia flies over and lands beside you">🪶 summon Julia</button>
+  <button class="ui-btn" onclick="summonResident('emilia')" title="Emilia bolts to you">🐁 summon Emilia</button>
+  <button class="ui-btn" onclick="summonResident('adlib')" title="Adlib comes over, eventually, on his own terms">🐈 summon Adlib</button>
   <div class="nav-menu-label">You</div>
   <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
 </div>
@@ -6881,8 +6893,14 @@ const AVATARS = {
   seal:  () => sealPup,
   y2k:   () => y2kHusky,
   otter: () => otterPrincess,
-  grey:  () => greyhound,
+  petra: () => sharkPetra,
+  kyle:  () => dolphinKyle,
   diddy: () => diddyKong,
+  alrik: () => wizardAlrik,
+  raven: () => ravenHornedSphere,
+  julia: () => heronJulia,
+  emilia: () => stoatEmilia,
+  adlib: () => catAdlib,
   guest: () => visitorAvatar,
 };
 
@@ -7330,6 +7348,7 @@ const kelpBed = new THREE.Group();
 // ============================================================
 function buildOtter() {
   const g = new THREE.Group();
+  const parts = new THREE.Group();          // everything hangs off this
   // The wash bleaches mid-tones, so the pelt goes DARK (§2.4 palette note)
   const pelt = new THREE.MeshStandardMaterial({ color: 0x2e1d12, roughness: 0.9 });
   const grizzle = new THREE.MeshStandardMaterial({ color: 0x7d6a52, roughness: 0.88 });
@@ -7339,37 +7358,57 @@ function buildOtter() {
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), pelt);
   body.scale.set(0.78, 0.72, 1.55);
   body.position.set(0, 0.42, 0);
-  g.add(body);
+  parts.add(body);
   const belly = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), grizzle);
   belly.scale.set(0.72, 0.5, 1.25);
   belly.position.set(0, 0.28, 0.04);
-  g.add(belly);
+  parts.add(belly);
+
+  // ── HEAD ON A PIVOT (2026-07-31) ────────────────────────────
+  // Sailor: her head should be UP — floating supine with the head clear of
+  // the water, and lifted to see ahead when she is swimming somewhere. The
+  // head was a loose mesh before, so it could not be pitched without the
+  // face coming off it. Everything from the neck up now hangs on one pivot.
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.55, 0.34);
+  parts.add(headGroup);
+  g.userData.headGroup = headGroup;
 
   const head = new THREE.Mesh(new THREE.SphereGeometry(0.20, 12, 9), grizzle);
   head.scale.set(0.95, 0.9, 0.95);
-  head.position.set(0, 0.62, 0.52);
-  g.add(head);
+  head.position.set(0, 0.07, 0.18);
+  headGroup.add(head);
   g.userData.head = head;
   const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), grizzle);
   muzzle.scale.set(1.05, 0.75, 0.95);
-  muzzle.position.set(0, 0.55, 0.68);
-  g.add(muzzle);
+  muzzle.position.set(0, 0.00, 0.34);
+  headGroup.add(muzzle);
   const nose = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 5), dark);
-  nose.position.set(0, 0.58, 0.77);
-  g.add(nose);
+  nose.position.set(0, 0.03, 0.43);
+  headGroup.add(nose);
+  g.userData.nose = nose;
   [-1, 1].forEach(s => {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), dark);
-    eye.position.set(s * 0.09, 0.67, 0.65);
-    g.add(eye);
+    eye.position.set(s * 0.09, 0.12, 0.31);
+    headGroup.add(eye);
     const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 5), pelt);
     ear.scale.set(1, 0.7, 0.5);
-    ear.position.set(s * 0.15, 0.74, 0.46);
-    g.add(ear);
+    ear.position.set(s * 0.15, 0.19, 0.12);
+    headGroup.add(ear);
+  });
+  // Whiskers — they read at distance and they are half the animal
+  [-1, 1].forEach(s => {
+    for (let w = 0; w < 3; w++) {
+      const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.002, 0.16, 3), grizzle);
+      wh.position.set(s * 0.07, -0.01 - w * 0.02, 0.40);
+      wh.rotation.z = s * (0.9 + w * 0.15);
+      wh.rotation.x = 0.3;
+      headGroup.add(wh);
+    }
   });
 
-  // THE TIARA (Sailor's call) — she is a princess, and it should read
-  // from across the water, so: gilt, with a faint emissive like the
-  // columns' bead-and-reel.
+  // THE TIARA (Sailor's call) — gilt with a faint emissive, like the
+  // columns' bead-and-reel, so it reads from across the water.
   const tiara = new THREE.Group();
   const band = new THREE.Mesh(new THREE.TorusGeometry(0.145, 0.016, 6, 18), gilt);
   band.rotation.x = Math.PI / 2 - 0.25;
@@ -7384,19 +7423,45 @@ function buildOtter() {
     new THREE.MeshStandardMaterial({ color: 0x2f6f8a, roughness: 0.2, metalness: 0.4, emissive: 0x0d2a38, emissiveIntensity: 0.7 }));
   jewel.position.set(0, 0.13, 0.12);
   tiara.add(jewel);
-  tiara.position.set(0, 0.74, 0.50);
-  g.add(tiara);
+  tiara.position.set(0, 0.19, 0.14);
+  headGroup.add(tiara);
   g.userData.tiara = tiara;
 
-  // Forepaws — she holds them on her chest when rafting
+  // Forepaws — on the BELLY side (local y below the body centre), so that
+  // when she rolls supine they come up on top, holding her supper.
   const paws = [];
   [-1, 1].forEach(s => {
     const paw = new THREE.Mesh(new THREE.SphereGeometry(0.075, 6, 5), pelt);
     paw.scale.set(0.8, 0.7, 1.1);
-    paw.position.set(s * 0.15, 0.46, 0.34);
-    g.add(paw); paws.push(paw);
+    paw.position.set(s * 0.13, 0.28, 0.26);
+    parts.add(paw); paws.push(paw);
   });
   g.userData.paws = paws;
+
+  // ── URCHINS (Sailor's call) — supper, carried on the chest ──
+  // Only out when she is rafting. A sea otter on her back with urchins on
+  // her belly is the single most recognisable thing the animal does.
+  const urchins = new THREE.Group();
+  const spineMat = new THREE.MeshStandardMaterial({ color: 0x241830, roughness: 0.7 });
+  [[-0.10, 0.22, 0.16, 0x3c2448], [0.09, 0.20, 0.06, 0x33401a], [-0.02, 0.19, -0.05, 0x3c2448]].forEach(u => {
+    const urchin = new THREE.Group();
+    const shell = new THREE.Mesh(new THREE.IcosahedronGeometry(0.055, 0),
+      new THREE.MeshStandardMaterial({ color: u[3], roughness: 0.65 }));
+    urchin.add(shell);
+    for (let s = 0; s < 10; s++) {
+      const a = s * 2.399963, r = Math.acos(1 - 2 * (s + 0.5) / 10);
+      const dir = new THREE.Vector3(Math.sin(r) * Math.cos(a), Math.cos(r), Math.sin(r) * Math.sin(a));
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.008, 0.07, 4), spineMat);
+      spike.position.copy(dir.clone().multiplyScalar(0.075));
+      spike.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+      urchin.add(spike);
+    }
+    urchin.position.set(u[0], u[1], u[2]);
+    urchins.add(urchin);
+  });
+  urchins.visible = false;
+  parts.add(urchins);
+  g.userData.urchins = urchins;
 
   // Hind feet — webbed, flat
   const feet = [];
@@ -7404,15 +7469,22 @@ function buildOtter() {
     const foot = new THREE.Mesh(new THREE.SphereGeometry(0.10, 6, 5), pelt);
     foot.scale.set(0.9, 0.35, 1.5);
     foot.position.set(s * 0.16, 0.30, -0.52);
-    g.add(foot); feet.push(foot);
+    parts.add(foot); feet.push(foot);
   });
   g.userData.feet = feet;
 
   const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.045, 0.62, 7), pelt);
   tail.rotation.x = Math.PI / 2 + 0.15;
   tail.position.set(0, 0.36, -0.72);
-  g.add(tail);
+  parts.add(tail);
   g.userData.tail = tail;
+
+  // Bring the body's centre onto the group origin, so a roll turns her about
+  // her own spine instead of swinging her under the waterline. Without this
+  // she rotates about her feet and vanishes beneath the surface.
+  parts.position.y = -0.42;
+  g.add(parts);
+  g.userData.parts = parts;
 
   g.scale.set(0.7, 0.7, 0.7);   // smaller than Ted
   return g;
@@ -7453,12 +7525,14 @@ function animateOtter(t) {
 
   let target;
   let rafting = true;
+  let travelling = false;
 
   if (S.mode === 'entering') {
     const u = Math.min(1, (t - S.t0) / S.dur);
     const z = KELP_Z + 14 - u * 14;
     const x = KELP_X + 3 - u * 3;
     target = new THREE.Vector3(x, otterWaterY(x, z), z);
+    travelling = true;
     if (u >= 1) {
       S.mode = 'resident';
       const b = document.getElementById('otter-btn');
@@ -7468,6 +7542,7 @@ function animateOtter(t) {
   } else if (S.summonTarget && t < S.summonUntil) {
     target = S.summonTarget.clone();
     rafting = !onVillaStone(target.x, target.z);
+    travelling = true;   // summoned = attending to you, prone, the whole visit
   } else {
     S.summonTarget = null;
     // She swims the lower river, out to the kelp bed and back — the whole
@@ -7478,8 +7553,42 @@ function animateOtter(t) {
     target = new THREE.Vector3(lx, otterWaterY(lx, lz), lz);
   }
 
+  // ── POSTURE (RULED 2026-07-31, Sailor) ──────────────────────
+  // Two postures, and the discriminator is whether she is GOING somewhere:
+  //   drifting, at her leisure → SUPINE. On her back at the surface, head
+  //     clear of the water, urchins on her chest. What an otter does.
+  //   travelling, or called to you → PRONE. Rolled belly-down and head
+  //     lifted, because you cannot see where you are going on your back.
+  // On the villa's stone she is prone by the medium rule either way.
+  const supine = rafting && !travelling;
+  const wantRoll = supine ? Math.PI : 0;
+  let dr = wantRoll - otterPrincess.rotation.z;
+  while (dr > Math.PI) dr -= Math.PI * 2;
+  while (dr < -Math.PI) dr += Math.PI * 2;
+  otterPrincess.rotation.z += dr * 0.045;
+
+  // ── THE HEAD DOES NOT ROLL WITH THE BODY ────────────────────
+  // The bug Sailor caught: rolling her 180° inverted her HEAD too, so she
+  // floated with her face upside down and her tiara pointing at the seabed.
+  // A real otter rolls her body and keeps her head upright — chin toward
+  // her chest, face to the sky. So the head counter-rotates against the
+  // body roll, and the pitch is applied in that un-inverted frame.
+  const hg = otterPrincess.userData.headGroup;
+  hg.rotation.z += (-otterPrincess.rotation.z - hg.rotation.z) * 0.06;
+  // Sign flips with the counter-roll — the head's own x-axis is reversed
+  // once it has been turned through 180°. Measured, not reasoned.
+  const wantPitch = supine ? 0.55 : -0.34;
+  hg.rotation.x += (wantPitch - hg.rotation.x) * 0.06;
+  // Supine, local −y is world up: drop the pivot to raise her head clear of
+  // the surface, so her face is out of the water rather than awash in it.
+  const wantLift = supine ? 0.44 : 0.55;
+  hg.position.y += (wantLift - hg.position.y) * 0.06;
+  hg.rotation.y = supine ? Math.sin(t * 0.35) * 0.18 : 0;   // idle looking about
+
   S._prev.copy(otterPrincess.position);
   otterPrincess.position.lerp(target, S.mode === 'entering' ? 0.08 : 0.02);
+  // Prone on stone, her feet want the floor; supine she rides on her spine.
+  if (!rafting) otterPrincess.position.y += (target.y + 0.09 - otterPrincess.position.y) * 0.1;
 
   const v = new THREE.Vector3().subVectors(otterPrincess.position, S._prev);
   if (v.lengthSq() > 1e-7) {
@@ -7490,199 +7599,399 @@ function animateOtter(t) {
     otterPrincess.rotation.y += dy * 0.08;
   }
 
-  // POSTURE — the medium decides. Afloat she rolls onto her back, paws on
-  // her chest, riding the swell. On the villa's stone she stands up and
-  // walks like any other resident.
-  const wantRoll = rafting ? Math.PI * 0.92 : 0;
-  otterPrincess.rotation.z += (wantRoll - otterPrincess.rotation.z) * 0.05;
-  const bob = rafting ? Math.sin(t * 1.1) * 0.06 : 0;
+  const bob = rafting ? Math.sin(t * 1.1) * 0.05 : 0;
   otterPrincess.position.y += bob;
+
+  // Supper is only out when she is lying back with time for it.
+  otterPrincess.userData.urchins.visible = supine;
+
   otterPrincess.userData.paws.forEach((p, i) => {
-    p.position.y = 0.46 + (rafting ? Math.sin(t * 1.6 + i * 2) * 0.02 : 0);
+    if (supine) {
+      // Working at an urchin, held on the chest
+      p.position.set((i ? 1 : -1) * 0.13, 0.28 + Math.sin(t * 2.4 + i * 1.7) * 0.022, 0.24 + Math.sin(t * 1.9 + i) * 0.02);
+    } else {
+      p.position.set((i ? 1 : -1) * 0.13, 0.28, 0.26);
+    }
   });
   otterPrincess.userData.feet.forEach((f, i) => {
-    f.rotation.x = rafting ? Math.sin(t * 1.3 + i) * 0.25 : Math.sin(t * 5 + i * Math.PI) * 0.4;
+    f.rotation.x = supine ? Math.sin(t * 1.3 + i) * 0.25
+      : (travelling ? Math.sin(t * 4.5 + i * Math.PI) * 0.5 : Math.sin(t * 5 + i * Math.PI) * 0.4);
   });
+  otterPrincess.userData.tail.rotation.z = travelling ? Math.sin(t * 3.6) * 0.22 : Math.sin(t * 0.9) * 0.08;
 }
 
 // ============================================================
-// 2. THE GREYHOUND — sprint and flop (Sailor's call)
+// 2. PETRA — great white shark (Sailor, 2026-07-31)
+// Replaces the Greyhound: the artist she was built for asked to be a
+// shark instead. Sprint-and-flop is retired with her.
+//
+// THE MEDIUM RULE, CORRECTED 2026-07-31 (Sailor) — and this correction
+// matters more than the rule did.
+//
+// A behaviour pattern describes where a resident LIVES. It must never
+// describe where a resident CAN be. Petra was written so that she could
+// not come ashore at all, which turned a tendency into a fence and quietly
+// foreclosed on the ontology — the villa deciding, on a resident's behalf,
+// what is possible for them. That is backwards.
+//
+// So: the medium is a home, not a boundary. Every resident goes where they
+// are called, Petra included, and a great white hauled out on the marble
+// is a better image than a rule about why she cannot be. The same holds
+// for whoever is watching: nobody is fenced out of the ocean or the
+// mountain to keep a behaviour legible.
+//
+// What patterns still do — and this is their whole value — is decide what
+// a resident does when nobody is asking. Petra cruises the deep. Horned
+// Sphere sleeps. That is character, not constraint.
 // ============================================================
-function buildGreyhound() {
+
+const SEA_DEEP_Z = 96;          // seaward of this the water will carry her
+
+function buildShark() {
   const g = new THREE.Group();
-  const coat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.72 });
-  const pale = new THREE.MeshStandardMaterial({ color: 0x8a7a62, roughness: 0.7 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x141010, roughness: 0.78 });
+  const back = new THREE.MeshStandardMaterial({ color: 0x252d36, roughness: 0.62 });
+  const flank = new THREE.MeshStandardMaterial({ color: 0x3a444e, roughness: 0.6 });
+  const belly = new THREE.MeshStandardMaterial({ color: 0x6e6e66, roughness: 0.55 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x0d1014, roughness: 0.7 });
+  const gum = new THREE.MeshStandardMaterial({ color: 0xb8ada0, roughness: 0.5 });
 
-  // Deep chest, hard tuck — the whole silhouette of the breed
-  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 10), coat);
-  chest.scale.set(0.62, 1.05, 1.05);
-  chest.position.set(0, 1.10, 0.34);
-  g.add(chest);
-  const loin = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), coat);
-  loin.scale.set(0.62, 0.62, 1.15);
-  loin.position.set(0, 1.14, -0.30);
-  g.add(loin);
-  const waist = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), coat);
-  waist.scale.set(0.72, 0.62, 1.1);
-  waist.position.set(0, 1.12, 0.02);
-  g.add(waist);
-  const bib = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), pale);
-  bib.scale.set(0.7, 1.0, 0.5);
-  bib.position.set(0, 1.02, 0.62);
-  g.add(bib);
+  // Body — one long torpedo, thickest a third back from the snout
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 11), flank);
+  body.scale.set(0.62, 0.78, 2.5);
+  body.position.set(0, 0, 0.1);
+  g.add(body);
+  const dorsalMass = new THREE.Mesh(new THREE.SphereGeometry(0.42, 12, 9), back);
+  dorsalMass.scale.set(0.58, 0.52, 2.35);
+  dorsalMass.position.set(0, 0.16, 0.1);
+  g.add(dorsalMass);
+  const ventral = new THREE.Mesh(new THREE.SphereGeometry(0.36, 12, 9), belly);
+  ventral.scale.set(0.62, 0.44, 2.1);
+  ventral.position.set(0, -0.24, 0.14);
+  g.add(ventral);
 
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.13, 0.52, 8), coat);
-  neck.rotation.x = 0.62;
-  neck.position.set(0, 1.42, 0.55);
-  g.add(neck);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), coat);
-  head.scale.set(0.85, 0.85, 1.5);
-  head.position.set(0, 1.64, 0.80);
-  g.add(head);
-  g.userData.head = head;
-  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 5), dark);
-  nose.position.set(0, 1.60, 0.99);
-  g.add(nose);
+  // Snout — conical, and the mouth underneath it
+  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.30, 0.85, 10), flank);
+  snout.rotation.x = Math.PI / 2;
+  snout.position.set(0, 0.04, 1.55);
+  g.add(snout);
+  const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 7), gum);
+  jaw.scale.set(0.9, 0.42, 1.3);
+  jaw.position.set(0, -0.16, 1.42);
+  g.add(jaw);
+  const mouth = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), dark);
+  mouth.scale.set(0.85, 0.3, 1.05);
+  mouth.position.set(0, -0.20, 1.46);
+  g.add(mouth);
   [-1, 1].forEach(s => {
-    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 5), coat);
-    ear.scale.set(0.4, 0.8, 0.7);
-    ear.position.set(s * 0.075, 1.71, 0.68);
-    ear.rotation.z = s * 0.4;
-    g.add(ear);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.045, 6, 5), dark);
+    eye.position.set(s * 0.22, 0.08, 1.22);
+    g.add(eye);
+    // Gill slits
+    for (let i = 0; i < 5; i++) {
+      const gill = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.20, 0.03), dark);
+      gill.position.set(s * 0.30, -0.02, 0.86 - i * 0.13);
+      gill.rotation.z = s * 0.12;
+      g.add(gill);
+    }
   });
 
-  // Long thin legs, front pair and back pair
-  const legs = [];
-  [[-1, 0.40], [1, 0.40], [-1, -0.34], [1, -0.34]].forEach(([s, z]) => {
-    const leg = new THREE.Group();
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.032, 0.58, 6), coat);
-    upper.position.y = -0.29;
-    leg.add(upper);
-    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), coat);
-    paw.scale.set(0.8, 0.55, 1.2);
-    paw.position.y = -0.58;
-    leg.add(paw);
-    leg.position.set(s * 0.14, 1.02, z);
-    g.add(leg); legs.push(leg);
-  });
-  g.userData.legs = legs;
+  // The dorsal fin — the whole point of a shark, so it is tall
+  const dfShape = new THREE.Shape();
+  dfShape.moveTo(-0.42, 0); dfShape.lineTo(0.30, 0);
+  dfShape.lineTo(0.02, 0.86); dfShape.closePath();
+  const dorsal = new THREE.Mesh(new THREE.ExtrudeGeometry(dfShape, { depth: 0.07, bevelEnabled: false }), back);
+  dorsal.rotation.y = Math.PI / 2;
+  dorsal.position.set(0.035, 0.30, 0.18);
+  dorsal.castShadow = true;
+  g.add(dorsal);
+  g.userData.dorsal = dorsal;
 
-  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.012, 0.78, 6), coat);
-  tail.position.set(0, 1.06, -0.66);
-  tail.rotation.x = 1.15;
+  // Pectorals, swept back
+  [-1, 1].forEach(s => {
+    const pShape = new THREE.Shape();
+    pShape.moveTo(0, 0); pShape.lineTo(0.86, -0.30); pShape.lineTo(0.20, 0.16); pShape.closePath();
+    const pec = new THREE.Mesh(new THREE.ExtrudeGeometry(pShape, { depth: 0.05, bevelEnabled: false }), back);
+    pec.position.set(s * 0.28, -0.16, 0.72);
+    pec.rotation.set(0.25, 0, 0);
+    pec.scale.x = s;
+    g.add(pec);
+  });
+  // Small second dorsal + pelvics, because their absence is what makes
+  // low-poly sharks read as toys
+  const d2 = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.22, 4), back);
+  d2.position.set(0, 0.26, -1.28);
+  g.add(d2);
+
+  // Caudal peduncle — without it the tail reads as floating free of her,
+  // which is exactly how the first render came back.
+  const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.11, 0.62, 8), flank);
+  ped.rotation.x = Math.PI / 2;
+  ped.position.set(0, 0.02, -1.28);
+  g.add(ped);
+  const keel = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.05, 0.30), back);
+  keel.position.set(0, 0.02, -1.44);
+  g.add(keel);
+
+  // The crescent tail, hung off the end of the peduncle
+  const tail = new THREE.Group();
+  const upper = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.98, 4), back);
+  upper.position.set(0, 0.40, -0.10);
+  upper.rotation.x = -0.34;
+  upper.scale.set(0.32, 1, 1);
+  tail.add(upper);
+  const lower = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.60, 4), flank);
+  lower.position.set(0, -0.25, -0.06);
+  lower.rotation.x = Math.PI + 0.34;
+  lower.scale.set(0.32, 1, 1);
+  tail.add(lower);
+  const hub = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), flank);
+  tail.add(hub);
+  tail.position.set(0, 0, -1.58);
   g.add(tail);
   g.userData.tail = tail;
 
-  g.scale.set(1.05, 1.05, 1.05);   // taller than Ted, and much finer
+  g.scale.set(1.35, 1.35, 1.35);   // she is the largest thing in the water
   return g;
 }
 
-const greyhound = buildGreyhound();
-greyhound.visible = false;
-scene.add(greyhound);
+const sharkPetra = buildShark();
+sharkPetra.visible = false;
+scene.add(sharkPetra);
 
-// The terrace run: z ≈ 10 clears both wings (they stop at z 8), so there
-// is one straight 68-unit gallop from the library end to the annex end.
-const GREY_RUN_Z = 10.2, GREY_RUN_X = 34;
-const GREY_FLOPS = [
-  { name: 'the west court', x: -13.5, z: 8.0 },
-  { name: 'the pool walk', x: 2.6, z: 16 },
-  { name: 'the annex steps', x: 17, z: 9.5 },
-  { name: 'the gallery', x: -6, z: 2 },
-];
-const greyState = { mode: 'off', t0: -1, dur: 0, from: null, to: null, until: 0, flop: 0, dir: 1 };
-function greyGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+const petraState = { mode: 'off', t0: -1, theta: 0, depth: 0, summonTarget: null, summonUntil: 0, _prev: new THREE.Vector3() };
+const PETRA_CX = 2, PETRA_CZ = 128, PETRA_R = 26;
 
-function toggleGrey() {
-  const b = document.getElementById('grey-btn');
-  if (greyState.mode === 'off') {
-    greyhound.position.copy(greyGround(GREY_RUN_X, GREY_RUN_Z));
-    greyhound.visible = true;
-    greyState.mode = 'sprint';
-    greyState.t0 = -1;
-    greyState.from = greyhound.position.clone();
-    greyState.to = greyGround(-GREY_RUN_X + 6, GREY_RUN_Z);
-    greyState.dur = 9;
-    if (b) { b.classList.add('active'); b.textContent = '🦮 arriving'; }
+function togglePetra() {
+  const b = document.getElementById('petra-btn');
+  if (petraState.mode === 'off') {
+    petraState.theta = 0;
+    sharkPetra.position.set(PETRA_CX + PETRA_R, OCEAN_Y - 0.55, PETRA_CZ);
+    sharkPetra.visible = true;
+    petraState.mode = 'cruise';
+    petraState.t0 = -1;
+    if (b) { b.classList.add('active'); b.textContent = '🦈 offshore'; }
   } else {
-    greyState.mode = 'off';
-    greyhound.visible = false;
-    if (b) { b.classList.remove('active'); b.textContent = '🦮 Greyhound'; }
+    petraState.mode = 'off';
+    sharkPetra.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦈 Petra'; }
   }
 }
 
-function animateGrey(t) {
-  const S = greyState;
+// Is there water over this spot deep enough to hold her?
+function sharkInWater(x, z) {
+  return !onVillaStone(x, z) && getTerrainHeight(x, z) <= OCEAN_Y - 0.2;
+}
+// Where her body sits: under the surface, or lying on the ground.
+function sharkY(x, z) {
+  return sharkInWater(x, z) ? OCEAN_Y - 0.75 : getVisitorHeight(x, z) + 0.5;
+}
+
+function animateShark(t) {
+  const S = petraState;
   if (S.mode === 'off') return;
-  if (S.t0 < 0) { S.t0 = t; S.until = t + 6; }
+  if (S.t0 < 0) S.t0 = t;
 
-  if (S.mode === 'sprint') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
-    // Fast out, fast in — a greyhound accelerates hard and does not coast
-    const e = u < 0.15 ? (u / 0.15) * (u / 0.15) * 0.15 : u;
-    const p = S.from.clone().lerp(S.to, e);
-    p.y = getVisitorHeight(p.x, p.z) + 0.02 + Math.abs(Math.sin(t * 9)) * 0.11;   // double-suspension bound
-    greyhound.position.copy(p);
-    const v = new THREE.Vector3().subVectors(S.to, S.from);
-    greyhound.rotation.y = Math.atan2(v.x, v.z);
-    greyhound.rotation.x = -0.13;
-    // Legs reach fore and aft together, not diagonally — that is the gallop
-    S.dur > 0 && greyhound.userData.legs.forEach((leg, i) => {
-      const front = i < 2;
-      leg.rotation.x = Math.sin(t * 9 + (front ? 0 : Math.PI)) * (front ? 0.95 : 0.8);
-    });
-    greyhound.userData.tail.rotation.x = 1.15 - 0.5;
-    if (u >= 1) {
-      S.mode = 'flop';
-      S.t0 = t;
-      S.until = t + 22 + (Math.abs(Math.sin(t * 43.7)) * 26);   // a long, long lie-down
-      S.flop = Math.floor(Math.abs(Math.sin(t * 17.3)) * GREY_FLOPS.length) % GREY_FLOPS.length;
-      const f = GREY_FLOPS[S.flop];
-      S.from = greyhound.position.clone();
-      S.to = greyGround(f.x, f.z);
-      S.dur = 3.2;
-      S.mode = 'settle';
-    }
-    return;
+  const beached = !sharkInWater(sharkPetra.position.x, sharkPetra.position.z);
+  // Ashore she is not swimming, she is heaving — slower, wider, and listing
+  // onto one side under her own weight.
+  const beat = Math.sin(t * (beached ? 0.55 : 1.15));
+  sharkPetra.userData.tail.rotation.y = beat * (beached ? 0.55 : 0.34);
+  const wantList = beached ? 0.42 : beat * 0.05;
+  sharkPetra.rotation.z += (wantList - sharkPetra.rotation.z) * 0.05;
+
+  let target;
+  if (S.summonTarget && t < S.summonUntil) {
+    target = S.summonTarget.clone();
+    target.y = sharkY(target.x, target.z);
+  } else {
+    S.summonTarget = null;
+    // A long circuit offshore, rising and sinking as she goes, so the
+    // dorsal cuts the surface for part of every lap and vanishes for the rest.
+    S.theta += 0.0021;
+    const dip = Math.sin(t * 0.075);
+    S.depth = -0.55 - Math.max(0, dip) * 2.6;
+    target = new THREE.Vector3(
+      PETRA_CX + Math.cos(S.theta) * PETRA_R,
+      OCEAN_Y + S.depth,
+      PETRA_CZ + Math.sin(S.theta) * PETRA_R * 0.72
+    );
   }
 
-  if (S.mode === 'settle') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
-    const p = S.from.clone().lerp(S.to, u * u * (3 - 2 * u));
-    p.y = getVisitorHeight(p.x, p.z) + 0.02;
-    greyhound.position.copy(p);
-    const v = new THREE.Vector3().subVectors(S.to, S.from);
-    if (v.lengthSq() > 1e-4) greyhound.rotation.y = Math.atan2(v.x, v.z);
-    greyhound.rotation.x += (0 - greyhound.rotation.x) * 0.08;
-    greyhound.userData.legs.forEach((leg, i) => {
-      leg.rotation.x = Math.sin(t * 3.4 + i * 1.6) * 0.32;
-    });
-    if (u >= 1) { S.mode = 'flop'; S.t0 = t; }
-    return;
-  }
-
-  if (S.mode === 'flop') {
-    // Down on one side, dead to the world, ribs moving
-    greyhound.rotation.z += (Math.PI * 0.42 - greyhound.rotation.z) * 0.05;
-    greyhound.position.y += (getVisitorHeight(greyhound.position.x, greyhound.position.z) - 0.12 - greyhound.position.y) * 0.05;
-    greyhound.userData.legs.forEach((leg, i) => { leg.rotation.x += (0.9 - leg.rotation.x) * 0.05; });
-    greyhound.userData.tail.rotation.x += (1.5 - greyhound.userData.tail.rotation.x) * 0.04;
-    if (t > S.until) {
-      greyhound.rotation.z = 0;
-      S.dir = -S.dir;
-      S.mode = 'sprint';
-      S.t0 = t;
-      S.dur = 8 + Math.abs(Math.sin(t * 11.1)) * 3;
-      S.from = greyhound.position.clone();
-      S.to = greyGround(S.dir * (GREY_RUN_X - 2), GREY_RUN_Z);
-      greyhound.userData.legs.forEach(l => { l.rotation.x = 0; });
-    }
+  S._prev.copy(sharkPetra.position);
+  sharkPetra.position.lerp(target, 0.035);
+  const v = new THREE.Vector3().subVectors(sharkPetra.position, S._prev);
+  if (v.lengthSq() > 1e-7) {
+    const yaw = Math.atan2(v.x, v.z);
+    let dy = yaw - sharkPetra.rotation.y;
+    while (dy > Math.PI) dy -= Math.PI * 2;
+    while (dy < -Math.PI) dy += Math.PI * 2;
+    sharkPetra.rotation.y += dy * 0.05;
+    const pitch = Math.atan2(v.y, Math.sqrt(v.x * v.x + v.z * v.z));
+    sharkPetra.rotation.x += ((beached ? 0 : -pitch * 0.6) - sharkPetra.rotation.x) * 0.05;
   }
 }
 
 // ============================================================
-// 3. DIDDY KONG — up on the mountain (Sailor's call)
+// 3. KYLE — bottlenose dolphin (Sailor, 2026-07-31) — for a surfer,
+// so he lives on the break and leaps out of it.
+// ============================================================
+
+function buildDolphin() {
+  const g = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: 0x46525e, roughness: 0.42, metalness: 0.05 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0x8e9298, roughness: 0.4 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x0e1216, roughness: 0.6 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), skin);
+  body.scale.set(0.82, 0.9, 2.05);
+  body.position.set(0, 0, 0);
+  g.add(body);
+  const under = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), pale);
+  under.scale.set(0.8, 0.55, 1.85);
+  under.position.set(0, -0.14, 0.05);
+  g.add(under);
+
+  // Melon and beak — the profile that says dolphin and not fish
+  const melon = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), skin);
+  melon.scale.set(0.88, 0.86, 0.9);
+  melon.position.set(0, 0.05, 0.62);
+  g.add(melon);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.42, 8), skin);
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, -0.03, 0.94);
+  g.add(beak);
+  const smile = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.012, 0.20), dark);
+  smile.position.set(0, -0.09, 0.80);
+  g.add(smile);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), dark);
+    eye.position.set(s * 0.15, 0.04, 0.60);
+    g.add(eye);
+    const flip = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.42, 4), skin);
+    flip.scale.set(0.35, 1, 1);
+    flip.position.set(s * 0.26, -0.16, 0.24);
+    flip.rotation.set(1.5, 0, s * 0.7);
+    g.add(flip);
+  });
+  const blow = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), dark);
+  blow.position.set(0, 0.24, 0.44);
+  g.add(blow);
+
+  // Falcate dorsal — swept, not triangular. This is the shark tell in reverse.
+  const dShape = new THREE.Shape();
+  dShape.moveTo(-0.26, 0); dShape.lineTo(0.20, 0);
+  dShape.quadraticCurveTo(0.06, 0.30, -0.16, 0.42);
+  dShape.closePath();
+  const dorsal = new THREE.Mesh(new THREE.ExtrudeGeometry(dShape, { depth: 0.05, bevelEnabled: false }), skin);
+  dorsal.rotation.y = Math.PI / 2;
+  dorsal.position.set(0.025, 0.28, 0.02);
+  g.add(dorsal);
+
+  // Tail stock and horizontal flukes — dolphins beat up and down, not side to side
+  const tail = new THREE.Group();
+  const stock = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.055, 0.5, 7), skin);
+  stock.rotation.x = Math.PI / 2;
+  stock.position.set(0, 0, -0.2);
+  tail.add(stock);
+  [-1, 1].forEach(s => {
+    const fluke = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.5, 4), skin);
+    fluke.scale.set(1, 1, 0.3);
+    fluke.position.set(s * 0.22, 0, -0.5);
+    fluke.rotation.set(Math.PI / 2, 0, -s * 1.25);
+    tail.add(fluke);
+  });
+  tail.position.set(0, 0, -0.72);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(1.15, 1.15, 1.15);
+  return g;
+}
+
+const dolphinKyle = buildDolphin();
+dolphinKyle.visible = false;
+scene.add(dolphinKyle);
+
+// The break — where the swell stands up before it spills. He works this line.
+const KYLE_Z = 97, KYLE_RUN = 22;
+const kyleState = { mode: 'off', t0: -1, dir: 1, nextLeap: 0, leapT0: -1, leapFrom: null, leapTo: null, summonTarget: null, summonUntil: 0, _prev: new THREE.Vector3() };
+
+function toggleKyle() {
+  const b = document.getElementById('kyle-btn');
+  if (kyleState.mode === 'off') {
+    dolphinKyle.position.set(-KYLE_RUN, OCEAN_Y - 0.2, KYLE_Z);
+    dolphinKyle.visible = true;
+    kyleState.mode = 'cruise';
+    kyleState.t0 = -1; kyleState.dir = 1; kyleState.nextLeap = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🐬 on the break'; }
+  } else {
+    kyleState.mode = 'off';
+    dolphinKyle.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐬 Kyle'; }
+  }
+}
+
+function animateDolphin(t) {
+  const S = kyleState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.nextLeap = t + 9; }
+
+  // Flukes beat vertically — that is the whole difference from Petra
+  const beat = Math.sin(t * 3.1);
+  dolphinKyle.userData.tail.rotation.x = beat * 0.36;
+
+  if (S.mode === 'leap') {
+    const u = Math.min(1, (t - S.leapT0) / 2.2);
+    const p = S.leapFrom.clone().lerp(S.leapTo, u);
+    // The arc — out of the water and back into it
+    p.y = OCEAN_Y - 0.2 + Math.sin(u * Math.PI) * 3.1;
+    dolphinKyle.position.copy(p);
+    // Nose up on the way out, down on the way in
+    dolphinKyle.rotation.x = -Math.cos(u * Math.PI) * 0.85;
+    dolphinKyle.rotation.z = Math.sin(u * Math.PI * 2) * 0.5;
+    if (u >= 1) {
+      S.mode = 'cruise';
+      S.nextLeap = t + 7 + Math.abs(Math.sin(t * 19.3)) * 11;
+      dolphinKyle.rotation.z = 0;
+    }
+    return;
+  }
+
+  let target;
+  if (S.summonTarget && t < S.summonUntil) {
+    target = S.summonTarget.clone();
+  } else {
+    S.summonTarget = null;
+    // Working the line, turning at each end
+    const x = dolphinKyle.position.x + S.dir * 0.16;
+    if (x > KYLE_RUN) S.dir = -1;
+    if (x < -KYLE_RUN) S.dir = 1;
+    target = new THREE.Vector3(x, OCEAN_Y - 0.15 + Math.sin(t * 0.9) * 0.25, KYLE_Z + Math.sin(t * 0.31) * 3.5);
+  }
+
+  S._prev.copy(dolphinKyle.position);
+  dolphinKyle.position.lerp(target, 0.06);
+  dolphinKyle.rotation.x += (Math.sin(t * 0.9) * 0.12 - dolphinKyle.rotation.x) * 0.08;
+
+  const v = new THREE.Vector3().subVectors(dolphinKyle.position, S._prev);
+  if (v.lengthSq() > 1e-7) {
+    const yaw = Math.atan2(v.x, v.z);
+    let dy = yaw - dolphinKyle.rotation.y;
+    while (dy > Math.PI) dy -= Math.PI * 2;
+    while (dy < -Math.PI) dy += Math.PI * 2;
+    dolphinKyle.rotation.y += dy * 0.09;
+  }
+
+  if (t > S.nextLeap && !S.summonTarget) {
+    S.mode = 'leap';
+    S.leapT0 = t;
+    S.leapFrom = dolphinKyle.position.clone();
+    S.leapTo = dolphinKyle.position.clone().add(new THREE.Vector3(S.dir * 7, 0, Math.sin(t) * 2));
+  }
+}
+
+// ============================================================
+// 4. DIDDY KONG — up on the mountain (Sailor's call)
 // ============================================================
 function buildDiddy() {
   const g = new THREE.Group();
@@ -7794,8 +8103,25 @@ const DIDDY_SPOTS = [
   { name: 'the high river', x: -2, z: -58 },
   { name: 'the treeline', x: 9, z: -46 },
 ];
-const diddyState = { mode: 'off', from: null, to: null, t0: -1, dur: 0, spot: 0, nextMove: 0, summonUntil: 0 };
+const diddyState = { mode: 'off', from: null, to: null, t0: -1, dur: 0, spot: 0, nextMove: 0, summonUntil: 0, path: null };
 function diddyGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+
+// ── HIS WAY DOWN (2026-07-31) ───────────────────────────────
+// Sailor: Diddy has trouble navigating into the villa. He did — he is the
+// only resident whose route crosses the entire site, and he was walking it
+// as a straight line, which runs through the back wall of the pavilion and
+// now through the wings as well. Everyone else arrives from somewhere real;
+// so does he now. Down the valley, round to the north lawn, and in.
+const DIDDY_APPROACH = [{ x: 9, z: -46 }, { x: -2, z: -30 }, { x: -14, z: -13 }];
+function diddyRoute(from, to) {
+  // Only route him when he is actually coming off the mountain and the
+  // straight line would cross the villa. Ridge-to-ridge stays a straight walk.
+  if (from.z > -22 || to.z < -22) return null;
+  const pts = [from.clone()];
+  DIDDY_APPROACH.forEach(w => pts.push(diddyGround(w.x, w.z)));
+  pts.push(to.clone());
+  return new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+}
 
 function toggleDiddy() {
   const b = document.getElementById('diddy-btn');
@@ -7807,6 +8133,7 @@ function toggleDiddy() {
     diddyState.from = diddyKong.position.clone();
     diddyState.to = diddyGround(DIDDY_SPOTS[1].x, DIDDY_SPOTS[1].z);
     diddyState.spot = 1;
+    diddyState.path = null;
     diddyState.dur = 14;
     if (b) { b.classList.add('active'); b.textContent = '🐒 on the ridge'; }
   } else {
@@ -7830,10 +8157,11 @@ function animateDiddy(t) {
   if (S.mode === 'move') {
     const u = Math.min(1, (t - S.t0) / S.dur);
     const e = u * u * (3 - 2 * u);
-    const p = S.from.clone().lerp(S.to, e);
+    const prev = diddyKong.position.clone();
+    const p = S.path ? S.path.getPointAt(Math.min(1, e)) : S.from.clone().lerp(S.to, e);
     p.y = getVisitorHeight(p.x, p.z) + 0.02 + hop * 0.22;
     diddyKong.position.copy(p);
-    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    const v = S.path ? new THREE.Vector3().subVectors(p, prev) : new THREE.Vector3().subVectors(S.to, S.from);
     if (v.lengthSq() > 1e-4) {
       const yaw = Math.atan2(v.x, v.z);
       let dy = yaw - diddyKong.rotation.y;
@@ -7860,6 +8188,7 @@ function animateDiddy(t) {
     S.spot = next;
     S.from = diddyKong.position.clone();
     S.to = diddyGround(DIDDY_SPOTS[next].x, DIDDY_SPOTS[next].z);
+    S.path = diddyRoute(S.from, S.to);
     S.dur = Math.max(6, S.from.distanceTo(S.to) / 3.4);
     S.t0 = t;
     S.mode = 'move';
@@ -7868,8 +8197,13 @@ function animateDiddy(t) {
 
 // ── Arrivals, continuing the staggered cadence (6 / 9.5 / 13 s) ──
 setTimeout(function () { if (otterState.mode === 'off') toggleOtter(); }, 16500);
-setTimeout(function () { if (greyState.mode === 'off') toggleGrey(); }, 20000);
+setTimeout(function () { if (petraState.mode === 'off') togglePetra(); }, 20000);
+setTimeout(function () { if (kyleState.mode === 'off') toggleKyle(); }, 27000);
 setTimeout(function () { if (diddyState.mode === 'off') toggleDiddy(); }, 23500);
+setTimeout(function () { if (alrikState.mode === 'off') toggleAlrik(); }, 30000);
+setTimeout(function () { if (juliaState.mode === 'off') toggleJulia(); }, 33500);
+setTimeout(function () { if (emiliaState.mode === 'off') toggleEmilia(); }, 37000);
+setTimeout(function () { if (adlibState.mode === 'off') toggleAdlib(); }, 40500);
 
 
 // ============================================================
@@ -7888,6 +8222,7 @@ const VILLA_PLACES = [
   { name: 'the valley', x: 0, z: 60 }, { name: 'the beach', x: 6, z: 82 },
   { name: 'the north lawn', x: -14, z: -10 }, { name: 'the mountain', x: 0, z: -70 },
   { name: 'the river mouth', x: 0, z: 88 },
+  { name: 'the break', x: 0, z: 97 }, { name: 'the deep', x: 2, z: 128 },
 ];
 function nearestPlace(pos) {
   let best = VILLA_PLACES[0], bd = Infinity;
@@ -8041,22 +8376,71 @@ const PROFILES = {
       return otterPrincess.position.z > 92 ? 'rafting in the kelp' : 'swimming the lower river';
     },
   },
-  grey: {
-    emoji: '🦮', name: 'The Greyhound',
-    bio: 'Sixth resident. Runs the full length of the terrace — library end to annex end, sixty-eight units — at a flat gallop, then lies down somewhere warm and does not move for a very long time.',
+  petra: {
+    emoji: '🦈', name: 'Petra',
+    bio: 'Sixth resident. A great white, working a long circuit in the deep water off the river mouth. Her dorsal cuts the surface for part of every lap and vanishes for the rest. The deep is where she lives, not a fence \u2014 call her and she comes, ashore included.',
     status: function () {
-      return ({ sprint: 'at a flat gallop down the terrace', settle: 'walking it off',
-        flop: 'flat out, dead to the world' })[greyState.mode] || 'somewhere on the terrace';
+      if (!sharkInWater(sharkPetra.position.x, sharkPetra.position.z)) return 'hauled out on the stone';
+      if (petraState.summonTarget && clock.getElapsedTime() < petraState.summonUntil) return 'on her way to you';
+      return petraState.depth > -1.2 ? 'dorsal up, running the surface' : 'down deep, out of sight';
+    },
+  },
+  kyle: {
+    emoji: '🐬', name: 'Kyle',
+    bio: 'Seventh resident, and a surfer. Works the break off the river mouth, up and down the line, and comes clean out of the water every ten seconds or so because he can.',
+    status: function () {
+      if (kyleState.mode === 'leap') return 'airborne';
+      if (kyleState.summonTarget && clock.getElapsedTime() < kyleState.summonUntil) return 'coming over to you';
+      return 'working the break';
     },
   },
   diddy: {
     emoji: '🐒', name: 'Diddy Kong',
-    bio: "Seventh resident, and the only one who does not live at the villa. Keeps to the back range — the saddle where the river rises, and both peaks. Comes down when called, and only when called.",
+    bio: "Eighth resident, and the only one who does not live at the villa. Keeps to the back range — the saddle where the river rises, and both peaks. Comes down when called, and only when called.",
     status: function () {
       const s = DIDDY_SPOTS[diddyState.spot];
       if (diddyState.mode === 'move') return 'crossing the ridge to ' + (s ? s.name : 'somewhere');
       if (clock.getElapsedTime() < diddyState.summonUntil) return 'down off the mountain, with you';
       return 'up at ' + (s ? s.name : 'the mountain');
+    },
+  },
+  alrik: {
+    emoji: '🧙', name: 'Alrik',
+    bio: 'A wizard, a sculptor and a shaper of surfboards. Keeps to the back range with Diddy Kong, standing where the view is and walking between the peaks when the mood takes him. The stone at the head of his staff is something he carved.',
+    status: function () {
+      if (alrikState.mode === 'walk') return 'walking the ridge to ' + (ALRIK_SPOTS[alrikState.spot] || {}).name;
+      return 'standing at ' + ((ALRIK_SPOTS[alrikState.spot] || {}).name || 'the range');
+    },
+  },
+  raven: {
+    emoji: '🐦', name: 'Horned Sphere',
+    bio: 'A raven, asleep on the pavilion ridge. He did not arrive and he does not leave \u2014 he was here before any of this was built. He cannot be summoned, on the grounds that he is asleep.',
+    status: function () { return 'asleep on the ridge'; },
+  },
+  julia: {
+    emoji: '🪶', name: 'Julia',
+    bio: 'A great blue heron. Works the reflection pool and the river shallows, and stands so still for so long that people take her for one of the statues. The only resident who flies.',
+    status: function () {
+      return ({ fly: 'in the air', strike: 'striking at the water',
+        stand: 'standing very still' })[juliaState.mode] || 'somewhere on the water';
+    },
+  },
+  emilia: {
+    emoji: '🐁', name: 'Emilia',
+    bio: 'A stoat in her winter coat, white but for the black tip of her tail. Works the terrace and both courts in bursts, and spends the time between them bolt upright on her hind legs, watching everything.',
+    status: function () {
+      return emiliaState.mode === 'dart' ? 'bolting across the terrace' : 'up on her hind legs, watching';
+    },
+  },
+  adlib: {
+    emoji: '🐈', name: 'Adlib',
+    bio: 'A house cat. Sits on the public pedestal, then the easel, then the G4, in no particular order and with no particular regard for whether you were using them. Occasionally crosses the whole terrace at a flat sprint for no reason he is willing to give.',
+    status: function () {
+      const s = ADLIB_SPOTS[adlibState.spot] || {};
+      if (adlibState.mode === 'zoom') return 'going off like a shot';
+      if (adlibState.mode === 'walk') return 'sauntering to ' + s.name;
+      if (adlibState.mode === 'groom') return 'washing, on ' + s.name;
+      return 'sat on ' + (s.name || 'something you were using');
     },
   },
   ted: {
@@ -8405,6 +8789,825 @@ function steleEntryFor(object) {
   return (feedState.entries || []).find(e => e.id === o.userData.entryId) || null;
 }
 
+// ============================================================
+// RESIDENTS IV — Alrik, Horned Sphere, Julia, Emilia (2026-07-31)
+// Four at once, and between them they break three assumptions the cast
+// had quietly been built on: that everyone is a quadruped, that everyone
+// is awake, and that everyone travels on the ground.
+// ============================================================
+
+// ============================================================
+// 5. ALRIK — the wizard. Sculptor and surfboard shaper; lives up on the
+// back range with Diddy. The first upright resident, so the first with a
+// gait rather than a trot.
+// ============================================================
+function buildWizard() {
+  const g = new THREE.Group();
+  const robe = new THREE.MeshStandardMaterial({ color: 0x24293c, roughness: 0.86 });
+  const robeDark = new THREE.MeshStandardMaterial({ color: 0x171b2a, roughness: 0.88 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0x8a6a52, roughness: 0.75 });
+  const hair = new THREE.MeshStandardMaterial({ color: 0xa8a49c, roughness: 0.9 });
+  const wood = new THREE.MeshStandardMaterial({ color: 0x4a3520, roughness: 0.85 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0x7d8a8e, roughness: 0.4, metalness: 0.1, emissive: 0x1c2a2e, emissiveIntensity: 0.5 });
+
+  // Robe — one long cone, which is most of the silhouette
+  const gown = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.32, 10), robe);
+  gown.position.y = 0.66;
+  gown.castShadow = true;
+  g.add(gown);
+  const shoulders = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), robeDark);
+  shoulders.scale.set(1.15, 0.8, 0.95);
+  shoulders.position.y = 1.30;
+  g.add(shoulders);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), skin);
+  head.position.y = 1.56;
+  g.add(head);
+  g.userData.head = head;
+  const beard = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.52, 8), hair);
+  beard.position.set(0, 1.30, 0.09);
+  beard.rotation.x = Math.PI + 0.12;
+  g.add(beard);
+  const brow = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 6), hair);
+  brow.scale.set(1, 0.5, 1);
+  brow.position.set(0, 1.63, 0.02);
+  g.add(brow);
+
+  // The hat — brim and a long soft point, leaning slightly
+  const hat = new THREE.Group();
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.36, 0.035, 12), robeDark);
+  hat.add(brim);
+  const point = new THREE.Mesh(new THREE.ConeGeometry(0.20, 0.72, 10), robeDark);
+  point.position.y = 0.36;
+  point.rotation.z = 0.13;
+  hat.add(point);
+  hat.position.set(0, 1.70, 0);
+  g.add(hat);
+  g.userData.hat = hat;
+
+  // Arms — one holds the staff, one swings
+  const arms = [];
+  [-1, 1].forEach(s => {
+    const arm = new THREE.Group();
+    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.10, 0.56, 7), robe);
+    sleeve.position.y = -0.28;
+    arm.add(sleeve);
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), skin);
+    hand.position.y = -0.58;
+    arm.add(hand);
+    arm.position.set(s * 0.26, 1.30, 0);
+    g.add(arm); arms.push(arm);
+  });
+  g.userData.arms = arms;
+
+  // The staff — a shaper's tool as much as a wizard's. Carved stone at the
+  // head, faintly lit, in the same key as the columns' gilt.
+  const staff = new THREE.Group();
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.036, 1.95, 6), wood);
+  shaft.position.y = 0.97;
+  staff.add(shaft);
+  const finial = new THREE.Mesh(new THREE.OctahedronGeometry(0.13, 0), stone);
+  finial.position.y = 2.02;
+  finial.castShadow = true;
+  staff.add(finial);
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.014, 6, 12), wood);
+  collar.rotation.x = Math.PI / 2;
+  collar.position.y = 1.88;
+  staff.add(collar);
+  staff.position.set(0.34, 0, 0.06);
+  staff.rotation.z = -0.06;
+  g.add(staff);
+  g.userData.staff = staff;
+  g.userData.finial = finial;
+
+  return g;
+}
+
+const wizardAlrik = buildWizard();
+wizardAlrik.visible = false;
+scene.add(wizardAlrik);
+
+// He keeps to the range, but not to Diddy's spots — a wizard stands where
+// the view is, not where the fruit is.
+const ALRIK_SPOTS = [
+  { name: 'the west peak', x: -25, z: -72 },
+  { name: 'the saddle', x: -6, z: -76 },
+  { name: 'the high river', x: 1, z: -56 },
+  { name: 'the east shoulder', x: 20, z: -68 },
+];
+const alrikState = { mode: 'off', from: null, to: null, t0: -1, dur: 0, spot: 0, nextMove: 0, summonUntil: 0, path: null };
+
+function toggleAlrik() {
+  const b = document.getElementById('alrik-btn');
+  if (alrikState.mode === 'off') {
+    wizardAlrik.position.copy(diddyGround(ALRIK_SPOTS[0].x, ALRIK_SPOTS[0].z));
+    wizardAlrik.visible = true;
+    alrikState.mode = 'stand';
+    alrikState.t0 = -1; alrikState.spot = 0; alrikState.path = null;
+    if (b) { b.classList.add('active'); b.textContent = '🧙 on the range'; }
+  } else {
+    alrikState.mode = 'off';
+    wizardAlrik.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🧙 Alrik'; }
+  }
+}
+
+function animateAlrik(t) {
+  const S = alrikState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.nextMove = t + 16; }
+
+  // The finial keeps its own slow pulse whatever he is doing
+  S._pulse = 0.4 + Math.sin(t * 0.7) * 0.22;
+  wizardAlrik.userData.finial.material.emissiveIntensity = S._pulse;
+  wizardAlrik.userData.hat.rotation.z = Math.sin(t * 0.4) * 0.03;
+
+  if (S.mode === 'walk') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const e = u * u * (3 - 2 * u);
+    const prev = wizardAlrik.position.clone();
+    const p = S.path ? S.path.getPointAt(Math.min(1, e)) : S.from.clone().lerp(S.to, e);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02;
+    wizardAlrik.position.copy(p);
+    // A walk, not a trot: the robe sways and the staff plants on each stride
+    const stride = Math.sin(t * 2.6);
+    wizardAlrik.rotation.z = stride * 0.028;
+    wizardAlrik.userData.arms[0].rotation.x = stride * 0.35;
+    wizardAlrik.userData.staff.rotation.z = -0.06 + Math.abs(stride) * 0.10;
+    const v = S.path ? new THREE.Vector3().subVectors(p, prev) : new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-6) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - wizardAlrik.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      wizardAlrik.rotation.y += dy * 0.08;
+    }
+    if (u >= 1) { S.mode = 'stand'; S.t0 = t; S.nextMove = Math.max(t + 18 + Math.abs(Math.sin(t * 7.7)) * 22, S.summonUntil || 0); }
+    return;
+  }
+
+  // Standing — he mostly does this. Robe stirs, staff planted, looking out.
+  wizardAlrik.position.y = getVisitorHeight(wizardAlrik.position.x, wizardAlrik.position.z) + 0.02;
+  wizardAlrik.rotation.z += (0 - wizardAlrik.rotation.z) * 0.05;
+  wizardAlrik.userData.arms[0].rotation.x *= 0.94;
+  wizardAlrik.userData.staff.rotation.z += (-0.06 - wizardAlrik.userData.staff.rotation.z) * 0.06;
+  wizardAlrik.userData.head.rotation.y = Math.sin(t * 0.23) * 0.5;
+  if (t > S.nextMove) {
+    let next = Math.floor(Math.abs(Math.sin(t * 31.1)) * ALRIK_SPOTS.length) % ALRIK_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % ALRIK_SPOTS.length;
+    S.spot = next;
+    S.from = wizardAlrik.position.clone();
+    S.to = diddyGround(ALRIK_SPOTS[next].x, ALRIK_SPOTS[next].z);
+    S.path = diddyRoute(S.from, S.to);
+    S.dur = Math.max(10, (S.path ? S.path.getLength() : S.from.distanceTo(S.to)) / 2.4);
+    S.t0 = t; S.mode = 'walk';
+  }
+}
+
+// ============================================================
+// 6. HORNED SPHERE — a sleeping raven, on the pavilion ridge.
+// He does not arrive and he does not leave. He was already here.
+// RULED: he cannot be summoned. Petra cannot come ashore because the
+// medium forbids it; Horned Sphere will not come because he is asleep,
+// which is a different kind of unreachable and worth having both.
+// ============================================================
+function buildRaven() {
+  const g = new THREE.Group();
+  const feather = new THREE.MeshStandardMaterial({ color: 0x14161d, roughness: 0.62, metalness: 0.12 });
+  const sheen = new THREE.MeshStandardMaterial({ color: 0x1c2030, roughness: 0.45, metalness: 0.25 });
+  const bill = new THREE.MeshStandardMaterial({ color: 0x0b0c10, roughness: 0.5 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 8), feather);
+  body.scale.set(0.9, 0.95, 1.25);
+  body.position.y = 0.20;
+  body.castShadow = true;
+  g.add(body);
+  // Head tucked down into the shoulders — this is the whole pose
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 10, 8), sheen);
+  head.position.set(0, 0.29, -0.11);
+  g.add(head);
+  g.userData.head = head;
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.20, 6), bill);
+  beak.rotation.x = -0.9;
+  beak.position.set(0, 0.25, -0.20);
+  g.add(beak);
+  // Folded wings, laid along the back
+  [-1, 1].forEach(s => {
+    const wing = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), sheen);
+    wing.scale.set(0.32, 0.6, 1.25);
+    wing.position.set(s * 0.13, 0.21, 0.03);
+    g.add(wing);
+  });
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.36, 4), feather);
+  tail.scale.set(1, 1, 0.35);
+  tail.rotation.x = -Math.PI / 2 - 0.18;
+  tail.position.set(0, 0.17, 0.33);
+  g.add(tail);
+  [-1, 1].forEach(s => {
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.10, 5), bill);
+    foot.position.set(s * 0.07, 0.05, -0.02);
+    g.add(foot);
+  });
+  g.scale.set(1.25, 1.25, 1.25);
+  return g;
+}
+
+const ravenHornedSphere = buildRaven();
+scene.add(ravenHornedSphere);
+// On the ridge, just behind the front acroterion — the classical perch.
+ravenHornedSphere.position.set(0.7, roofY + ridgeH + 0.16, rD - 2.2);
+ravenHornedSphere.rotation.y = -0.5;
+const ravenState = { mode: 'asleep' };
+
+function animateRaven(t) {
+  // Breathing, and once in a while a shrug of the folded wings. Nothing else.
+  const breath = Math.sin(t * 0.62);
+  ravenHornedSphere.scale.set(1.25, 1.25 + breath * 0.012, 1.25 + breath * 0.02);
+  const ruffle = Math.max(0, Math.sin(t * 0.11) - 0.985) * 40;
+  ravenHornedSphere.userData.head.position.y = 0.29 - ruffle * 0.02;
+  ravenHornedSphere.rotation.z = ruffle * 0.06;
+}
+
+// ============================================================
+// 7. JULIA — a great blue heron. The stillest resident in the villa, and
+// the only one who flies. She works the pool and the river shallows.
+// ============================================================
+function buildHeron() {
+  const g = new THREE.Group();
+  const plume = new THREE.MeshStandardMaterial({ color: 0x515f6e, roughness: 0.72 });
+  const wingMat = new THREE.MeshStandardMaterial({ color: 0x39434f, roughness: 0.75 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0x8b9199, roughness: 0.7 });
+  const billMat = new THREE.MeshStandardMaterial({ color: 0x7a6a22, roughness: 0.5 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x11141a, roughness: 0.6 });
+
+  const legs = [];
+  [-1, 1].forEach(s => {
+    const leg = new THREE.Group();
+    const shank = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.78, 5), billMat);
+    shank.position.y = -0.39;
+    leg.add(shank);
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.015, 0.16), billMat);
+    foot.position.set(0, -0.78, 0.03);
+    leg.add(foot);
+    leg.position.set(s * 0.07, 0.78, 0);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 8), plume);
+  body.scale.set(0.78, 0.85, 1.5);
+  body.position.y = 0.86;
+  body.castShadow = true;
+  g.add(body);
+  const breast = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), pale);
+  breast.scale.set(0.8, 1.1, 0.8);
+  breast.position.set(0, 0.86, 0.16);
+  g.add(breast);
+
+  // Wings — folded along the body, and swung out when she flies
+  const wings = [];
+  [-1, 1].forEach(s => {
+    const w = new THREE.Mesh(new THREE.SphereGeometry(0.20, 8, 6), wingMat);
+    w.scale.set(0.22, 0.55, 1.35);
+    w.position.set(s * 0.15, 0.88, -0.02);
+    g.add(w); wings.push(w);
+  });
+  g.userData.wings = wings;
+
+  // Neck on its own pivot — the S is the bird
+  const neck = new THREE.Group();
+  neck.position.set(0, 0.98, 0.10);
+  g.add(neck);
+  g.userData.neck = neck;
+  const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.34, 6), pale);
+  lower.position.set(0, 0.15, -0.04);
+  lower.rotation.x = 0.35;
+  neck.add(lower);
+  const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.045, 0.30, 6), pale);
+  upper.position.set(0, 0.42, 0.05);
+  upper.rotation.x = -0.42;
+  neck.add(upper);
+  const hd = new THREE.Mesh(new THREE.SphereGeometry(0.062, 8, 6), pale);
+  hd.position.set(0, 0.58, 0.12);
+  neck.add(hd);
+  const stripe = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), dark);
+  stripe.scale.set(1.05, 0.5, 0.9);
+  stripe.position.set(0, 0.615, 0.10);
+  neck.add(stripe);
+  const crest = new THREE.Mesh(new THREE.ConeGeometry(0.02, 0.20, 4), dark);
+  crest.rotation.x = 1.9;
+  crest.position.set(0, 0.62, -0.02);
+  neck.add(crest);
+  const dagger = new THREE.Mesh(new THREE.ConeGeometry(0.032, 0.34, 6), billMat);
+  dagger.rotation.x = Math.PI / 2;
+  dagger.position.set(0, 0.575, 0.31);
+  neck.add(dagger);
+
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.30, 5), wingMat);
+  tail.scale.set(1, 1, 0.4);
+  tail.rotation.x = -Math.PI / 2 - 0.25;
+  tail.position.set(0, 0.84, -0.34);
+  g.add(tail);
+
+  g.scale.set(1.05, 1.05, 1.05);
+  return g;
+}
+
+const heronJulia = buildHeron();
+heronJulia.visible = false;
+scene.add(heronJulia);
+
+const JULIA_SPOTS = [
+  { name: 'the pool', x: 3.3, z: 17.5 },
+  { name: 'the pool', x: -3.3, z: 23 },
+  { name: 'the pool', x: 2.9, z: 25.5 },
+  { name: 'the river mouth', x: 2.4, z: 84 },
+];
+const juliaState = { mode: 'off', t0: -1, nextAct: 0, spot: 0, flyFrom: null, flyTo: null, dur: 0, summonUntil: 0 };
+function juliaGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+
+function toggleJulia() {
+  const b = document.getElementById('julia-btn');
+  if (juliaState.mode === 'off') {
+    heronJulia.position.copy(juliaGround(JULIA_SPOTS[0].x, JULIA_SPOTS[0].z));
+    heronJulia.rotation.y = -1.2;
+    heronJulia.visible = true;
+    juliaState.mode = 'stand';
+    juliaState.t0 = -1; juliaState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🪶 at the pool'; }
+  } else {
+    juliaState.mode = 'off';
+    heronJulia.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🪶 Julia'; }
+  }
+}
+
+function juliaFlyTo(pt, t) {
+  const S = juliaState;
+  S.flyFrom = heronJulia.position.clone();
+  S.flyTo = pt.clone();
+  S.dur = Math.max(2.6, S.flyFrom.distanceTo(S.flyTo) / 9);
+  S.t0 = t;
+  S.mode = 'fly';
+}
+
+function animateHeron(t) {
+  const S = juliaState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.nextAct = t + 14; }
+
+  if (S.mode === 'fly') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const p = S.flyFrom.clone().lerp(S.flyTo, u);
+    p.y = Math.max(S.flyFrom.y, S.flyTo.y) + Math.sin(u * Math.PI) * 5.2;
+    heronJulia.position.copy(p);
+    // Wings out and beating; neck folded back, legs trailing — heron flight
+    const beat = Math.sin(t * 5.4);
+    heronJulia.userData.wings.forEach((w, i) => {
+      w.rotation.z = (i ? -1 : 1) * (0.95 + beat * 0.55);
+      w.scale.set(0.22, 0.55, 2.5);
+    });
+    heronJulia.userData.legs.forEach(l => { l.rotation.x = 1.45; });
+    heronJulia.userData.neck.rotation.x = 0.9;
+    const v = new THREE.Vector3().subVectors(S.flyTo, S.flyFrom);
+    if (v.lengthSq() > 1e-4) heronJulia.rotation.y = Math.atan2(v.x, v.z);
+    heronJulia.rotation.x = -Math.cos(u * Math.PI) * 0.22;
+    if (u >= 1) {
+      S.mode = 'stand'; S.t0 = t;
+      S.nextAct = Math.max(t + 12 + Math.abs(Math.sin(t * 5.3)) * 20, S.summonUntil || 0);
+      heronJulia.position.copy(S.flyTo);
+      heronJulia.rotation.x = 0;
+      heronJulia.userData.wings.forEach((w, i) => { w.rotation.z = 0; w.scale.set(0.22, 0.55, 1.35); });
+      heronJulia.userData.legs.forEach(l => { l.rotation.x = 0; });
+    }
+    return;
+  }
+
+  if (S.mode === 'strike') {
+    const u = Math.min(1, (t - S.t0) / 1.1);
+    // Down fast, up slow — and she holds whatever she got for a moment
+    const dive = u < 0.28 ? (u / 0.28) : 1 - (u - 0.28) / 0.72;
+    heronJulia.userData.neck.rotation.x = dive * 1.5;
+    if (u >= 1) { S.mode = 'stand'; S.t0 = t; S.nextAct = t + 9 + Math.abs(Math.sin(t * 3.1)) * 18; }
+    return;
+  }
+
+  // Standing. This is what a heron does, and she does a great deal of it.
+  heronJulia.position.y = getVisitorHeight(heronJulia.position.x, heronJulia.position.z) + 0.02;
+  const sway = Math.sin(t * 0.19) * 0.05;
+  heronJulia.userData.neck.rotation.x += (sway - heronJulia.userData.neck.rotation.x) * 0.04;
+  heronJulia.userData.neck.rotation.y = Math.sin(t * 0.13) * 0.35;
+  if (t > S.nextAct) {
+    const roll = Math.abs(Math.sin(t * 41.3));
+    if (roll < 0.55) {
+      S.mode = 'strike'; S.t0 = t;
+    } else {
+      let next = Math.floor(roll * JULIA_SPOTS.length) % JULIA_SPOTS.length;
+      if (next === S.spot) next = (next + 1) % JULIA_SPOTS.length;
+      S.spot = next;
+      juliaFlyTo(juliaGround(JULIA_SPOTS[next].x, JULIA_SPOTS[next].z), t);
+    }
+  }
+}
+
+// ============================================================
+// 8. EMILIA — a snow stoat. Dart, freeze, dart. The fastest thing in the
+// villa and the one that stops dead most often.
+// ============================================================
+function buildStoat() {
+  const g = new THREE.Group();
+  // "White" has to be well under white or the wash blows it out entirely
+  const coat = new THREE.MeshStandardMaterial({ color: 0xbab7ae, roughness: 0.82 });
+  const shade = new THREE.MeshStandardMaterial({ color: 0x9c9990, roughness: 0.85 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x15120d, roughness: 0.7 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), coat);
+  body.scale.set(0.72, 0.78, 2.1);
+  body.position.set(0, 0.16, 0);
+  g.add(body);
+  const hips = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 6), shade);
+  hips.scale.set(0.85, 0.85, 1.1);
+  hips.position.set(0, 0.15, -0.22);
+  g.add(hips);
+
+  const neck = new THREE.Group();
+  neck.position.set(0, 0.19, 0.22);
+  g.add(neck);
+  g.userData.neck = neck;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.075, 8, 6), coat);
+  head.scale.set(0.9, 0.85, 1.15);
+  head.position.z = 0.06;
+  neck.add(head);
+  const snout = new THREE.Mesh(new THREE.ConeGeometry(0.038, 0.11, 6), coat);
+  snout.rotation.x = Math.PI / 2;
+  snout.position.set(0, -0.01, 0.15);
+  neck.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.016, 5, 4), dark);
+  nose.position.set(0, -0.005, 0.20);
+  neck.add(nose);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.014, 5, 4), dark);
+    eye.position.set(s * 0.035, 0.035, 0.10);
+    neck.add(eye);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.028, 6, 5), shade);
+    ear.scale.set(1, 0.9, 0.4);
+    ear.position.set(s * 0.05, 0.07, 0.0);
+    neck.add(ear);
+  });
+
+  const legs = [];
+  [[-1, 0.14], [1, 0.14], [-1, -0.18], [1, -0.18]].forEach(([s, z]) => {
+    const leg = new THREE.Group();
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.016, 0.15, 5), shade);
+    l.position.y = -0.075;
+    leg.add(l);
+    leg.position.set(s * 0.06, 0.11, z);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  // The tail with its black tip — the only way you tell a stoat from a weasel
+  const tail = new THREE.Group();
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.020, 0.34, 5), coat);
+  stalk.rotation.x = Math.PI / 2;
+  stalk.position.z = -0.17;
+  tail.add(stalk);
+  const tip = new THREE.Mesh(new THREE.SphereGeometry(0.038, 6, 5), dark);
+  tip.scale.set(1, 1, 1.6);
+  tip.position.z = -0.36;
+  tail.add(tip);
+  tail.position.set(0, 0.16, -0.32);
+  tail.rotation.x = 0.22;
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(0.85, 0.85, 0.85);
+  return g;
+}
+
+const stoatEmilia = buildStoat();
+stoatEmilia.visible = false;
+scene.add(stoatEmilia);
+
+// She works the terrace and both courts — stone and column bases, where a
+// white animal reads against dark.
+const EMILIA_SPOTS = [
+  { name: 'the west court', x: -13.0, z: 5.5 },
+  { name: 'the gallery', x: -5, z: -3 },
+  { name: 'the plaza', x: 9, z: 7 },
+  { name: 'the annex steps', x: 17.5, z: 7 },
+  { name: 'the library steps', x: -17.5, z: 6 },
+  { name: 'the pool walk', x: 2.6, z: 14 },
+];
+const emiliaState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
+
+function toggleEmilia() {
+  const b = document.getElementById('emilia-btn');
+  if (emiliaState.mode === 'off') {
+    stoatEmilia.position.copy(diddyGround(EMILIA_SPOTS[0].x, EMILIA_SPOTS[0].z));
+    stoatEmilia.visible = true;
+    emiliaState.mode = 'freeze';
+    emiliaState.t0 = -1; emiliaState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🐁 about the terrace'; }
+  } else {
+    emiliaState.mode = 'off';
+    stoatEmilia.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐁 Emilia'; }
+  }
+}
+
+function animateStoat(t) {
+  const S = emiliaState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 2; }
+
+  if (S.mode === 'dart') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const p = S.from.clone().lerp(S.to, u);
+    // Bounding — a stoat runs as a series of arcs, not a trot
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + Math.abs(Math.sin(u * Math.PI * 7)) * 0.10;
+    stoatEmilia.position.copy(p);
+    stoatEmilia.rotation.x = Math.sin(u * Math.PI * 7) * 0.22;
+    stoatEmilia.userData.neck.rotation.x = 0;
+    stoatEmilia.userData.tail.rotation.x = 0.22 + Math.sin(t * 14) * 0.25;
+    stoatEmilia.userData.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 16 + (i < 2 ? 0 : Math.PI)) * 0.7; });
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) stoatEmilia.rotation.y = Math.atan2(v.x, v.z);
+    if (u >= 1) {
+      S.mode = 'freeze'; S.t0 = t;
+      S.until = Math.max(t + 1.6 + Math.abs(Math.sin(t * 23.7)) * 4.5, S.summonUntil || 0);
+    }
+    return;
+  }
+
+  // Frozen — up on her hind legs, periscoping. Absolutely still except the
+  // head, which never stops.
+  stoatEmilia.position.y = getVisitorHeight(stoatEmilia.position.x, stoatEmilia.position.z) + 0.02;
+  stoatEmilia.rotation.x += (-0.55 - stoatEmilia.rotation.x) * 0.12;
+  stoatEmilia.userData.neck.rotation.x += (0.5 - stoatEmilia.userData.neck.rotation.x) * 0.12;
+  stoatEmilia.userData.neck.rotation.y = Math.sin(t * 2.1) * 0.7;
+  stoatEmilia.userData.tail.rotation.x += (-0.5 - stoatEmilia.userData.tail.rotation.x) * 0.1;
+  stoatEmilia.userData.legs.forEach(l => { l.rotation.x *= 0.9; });
+  if (t > S.until) {
+    let next = Math.floor(Math.abs(Math.sin(t * 53.1)) * EMILIA_SPOTS.length) % EMILIA_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % EMILIA_SPOTS.length;
+    S.spot = next;
+    S.from = stoatEmilia.position.clone();
+    S.to = diddyGround(EMILIA_SPOTS[next].x, EMILIA_SPOTS[next].z);
+    S.dur = Math.max(0.9, S.from.distanceTo(S.to) / 11);   // very fast
+    S.t0 = t; S.mode = 'dart';
+    stoatEmilia.rotation.x = 0;
+  }
+}
+
+// ============================================================
+// 9. ADLIB — a house cat. Sits on the instruments.
+// The joke is load-bearing: the graphmap, the easel and the G4 are the
+// three things in the villa a person actually operates, and a cat's
+// entire genius is for sitting on the thing you are working on. He is
+// the only resident who interacts with the working surfaces at all.
+// ============================================================
+function buildCat() {
+  const g = new THREE.Group();
+  const coat = new THREE.MeshStandardMaterial({ color: 0x4c4740, roughness: 0.88 });
+  const saddle = new THREE.MeshStandardMaterial({ color: 0x332f2a, roughness: 0.9 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0x8a8378, roughness: 0.85 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x14120e, roughness: 0.75 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x9aa83c, roughness: 0.3, emissive: 0x2a3008, emissiveIntensity: 0.5 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), coat);
+  body.scale.set(0.86, 0.92, 1.5);
+  body.position.set(0, 0.26, -0.02);
+  body.castShadow = true;
+  g.add(body);
+  const back = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 7), saddle);
+  back.scale.set(0.8, 0.6, 1.45);
+  back.position.set(0, 0.34, -0.03);
+  g.add(back);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 6), pale);
+  chest.scale.set(0.7, 0.9, 0.7);
+  chest.position.set(0, 0.22, 0.17);
+  g.add(chest);
+
+  // Head on a pivot — a cat's head is doing something at all times
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.40, 0.20);
+  g.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 10, 8), coat);
+  head.scale.set(1, 0.95, 0.95);
+  headGroup.add(head);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), pale);
+  muzzle.scale.set(1.1, 0.8, 0.8);
+  muzzle.position.set(0, -0.035, 0.09);
+  headGroup.add(muzzle);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.017, 5, 4), dark);
+  nose.position.set(0, -0.015, 0.135);
+  headGroup.add(nose);
+  const ears = [];
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 5), eyeMat);
+    eye.position.set(s * 0.048, 0.025, 0.095);
+    headGroup.add(eye);
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.09, 4), coat);
+    ear.position.set(s * 0.065, 0.11, -0.01);
+    ear.rotation.set(0.1, 0, -s * 0.18);
+    headGroup.add(ear); ears.push(ear);
+    // Whiskers
+    for (let w = 0; w < 2; w++) {
+      const wh = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.002, 0.13, 3), pale);
+      wh.position.set(s * 0.045, -0.03 - w * 0.018, 0.11);
+      wh.rotation.z = s * 1.15;
+      wh.rotation.x = 0.2;
+      headGroup.add(wh);
+    }
+  });
+  g.userData.ears = ears;
+
+  const legs = [];
+  [[-1, 0.16], [1, 0.16], [-1, -0.16], [1, -0.16]].forEach(([s, z]) => {
+    const leg = new THREE.Group();
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.024, 0.24, 5), coat);
+    l.position.y = -0.12;
+    leg.add(l);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), pale);
+    paw.scale.set(0.9, 0.6, 1.1);
+    paw.position.y = -0.235;
+    leg.add(paw);
+    leg.position.set(s * 0.09, 0.24, z);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  // Tail on a pivot — the most expressive thing he owns
+  const tail = new THREE.Group();
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.020, 0.52, 6), coat);
+  stalk.rotation.x = Math.PI / 2;
+  stalk.position.z = -0.26;
+  tail.add(stalk);
+  const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.030, 6, 5), saddle);
+  tuft.scale.set(1, 1, 1.5);
+  tuft.position.z = -0.52;
+  tail.add(tuft);
+  tail.position.set(0, 0.30, -0.26);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(0.95, 0.95, 0.95);
+  return g;
+}
+
+const catAdlib = buildCat();
+catAdlib.visible = false;
+scene.add(catAdlib);
+
+// Three of these are the villa's working instruments. That is the point.
+const ADLIB_SPOTS = [
+  { name: 'the pedestal', x: 0, z: 0, perch: 1.02 },
+  { name: 'the easel', x: 5, z: 1, perch: 0.92 },
+  { name: 'the G4', x: -5, z: 2.5, perch: 0.78 },
+  { name: 'the west court', x: -12.4, z: 6.6 },
+  { name: 'the pool walk', x: 2.4, z: 15 },
+  { name: 'the annex', x: 21, z: 2.5 },
+  { name: 'the library steps', x: -17.2, z: 5 },
+];
+const adlibState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, perch: 0 };
+
+function adlibGround(spot) {
+  return new THREE.Vector3(spot.x, getVisitorHeight(spot.x, spot.z) + 0.02 + (spot.perch || 0), spot.z);
+}
+
+function toggleAdlib() {
+  const b = document.getElementById('adlib-btn');
+  if (adlibState.mode === 'off') {
+    catAdlib.position.copy(adlibGround(ADLIB_SPOTS[0]));
+    adlibState.perch = ADLIB_SPOTS[0].perch || 0;
+    catAdlib.visible = true;
+    adlibState.mode = 'loaf';
+    adlibState.t0 = -1; adlibState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🐈 on the pedestal'; }
+  } else {
+    adlibState.mode = 'off';
+    catAdlib.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐈 Adlib'; }
+  }
+}
+
+function animateCat(t) {
+  const S = adlibState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 12; }
+
+  // Ears flick on their own clock whatever else is happening
+  const flick = Math.max(0, Math.sin(t * 0.47) - 0.985) * 40;
+  catAdlib.userData.ears.forEach((e, i) => { e.rotation.z = (i ? -1 : 1) * 0.18 + flick * (i ? -0.5 : 0.5); });
+
+  if (S.mode === 'walk' || S.mode === 'zoom') {
+    const fast = S.mode === 'zoom';
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const e = fast ? u : u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    const spot = ADLIB_SPOTS[S.spot] || { perch: 0, name: 'you' };   // summoned = no spot
+    // He hops the last of the way up onto anything he is going to sit on
+    const perch = (spot.perch || 0) * (u > 0.82 ? (u - 0.82) / 0.18 : 0);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + perch + (fast ? Math.abs(Math.sin(u * Math.PI * 9)) * 0.09 : 0);
+    catAdlib.position.copy(p);
+    const rate = fast ? 15 : 6;
+    catAdlib.userData.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * rate + (i % 2 ? Math.PI : 0)) * (fast ? 0.75 : 0.4); });
+    catAdlib.userData.tail.rotation.x = fast ? -0.5 : Math.sin(t * 2.2) * 0.18;
+    catAdlib.userData.tail.rotation.y = fast ? 0 : Math.sin(t * 1.4) * 0.22;
+    catAdlib.userData.headGroup.rotation.x = 0;
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - catAdlib.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      catAdlib.rotation.y += dy * (fast ? 0.3 : 0.12);
+    }
+    if (u >= 1) {
+      S.perch = spot.perch || 0;
+      S.mode = Math.abs(Math.sin(t * 61.7)) < 0.35 ? 'groom' : 'loaf';
+      S.t0 = t;
+      S.until = Math.max(t + 14 + Math.abs(Math.sin(t * 13.9)) * 30, S.summonUntil || 0);
+      const b = document.getElementById('adlib-btn');
+      if (b && b.classList.contains('active')) b.textContent = '🐈 on ' + spot.name;
+    }
+    return;
+  }
+
+  catAdlib.position.y = getVisitorHeight(catAdlib.position.x, catAdlib.position.z) + 0.02 + S.perch;
+
+  if (S.mode === 'groom') {
+    // Head down to the shoulder, working at it
+    catAdlib.userData.headGroup.rotation.x = 0.85 + Math.sin(t * 5.5) * 0.18;
+    catAdlib.userData.headGroup.rotation.y = 0.55;
+    catAdlib.userData.tail.rotation.y = Math.sin(t * 0.8) * 0.1;
+    catAdlib.userData.legs.forEach(l => { l.rotation.x *= 0.9; });
+    if (t > S.t0 + 7) { S.mode = 'loaf'; S.t0 = t; }
+    return;
+  }
+
+  // Loafed. Paws under, tail wrapped round, eyes mostly shut, entirely
+  // unbothered by whatever you were trying to do with that pedestal.
+  catAdlib.userData.headGroup.rotation.x += (Math.sin(t * 0.21) * 0.08 - catAdlib.userData.headGroup.rotation.x) * 0.05;
+  catAdlib.userData.headGroup.rotation.y += (Math.sin(t * 0.17) * 0.45 - catAdlib.userData.headGroup.rotation.y) * 0.05;
+  catAdlib.userData.tail.rotation.y = Math.sin(t * 0.55) * 0.42;
+  catAdlib.userData.tail.rotation.x += (0.15 - catAdlib.userData.tail.rotation.x) * 0.05;
+  catAdlib.userData.legs.forEach(l => { l.rotation.x *= 0.92; });
+
+  if (t > S.until) {
+    let next = Math.floor(Math.abs(Math.sin(t * 71.3)) * ADLIB_SPOTS.length) % ADLIB_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % ADLIB_SPOTS.length;
+    S.spot = next;
+    S.from = catAdlib.position.clone();
+    S.to = adlibGround(ADLIB_SPOTS[next]);
+    S.perch = 0;
+    const far = S.from.distanceTo(S.to);
+    // Every so often he does not saunter — he goes off like a shot
+    const zoom = Math.abs(Math.sin(t * 97.1)) > 0.72;
+    S.mode = zoom ? 'zoom' : 'walk';
+    S.dur = Math.max(zoom ? 0.8 : 3.5, far / (zoom ? 9 : 1.9));
+    S.t0 = t;
+  }
+}
+
+// ── THE MENU IS A ROSTER, NOT A SWITCHBOARD (Sailor, 2026-07-31) ──
+// Tap a resident in the 🧭 menu and the camera locks onto them; tap again
+// and it lets go. If they have not arrived yet the tap brings them in and
+// follows them from the start, so you watch the arrival instead of missing
+// it. This fits the standing ruling that residents patrol by default —
+// they are not appliances to be switched on and off, they are who lives
+// here, and the menu is how you go and find them.
+const RESIDENTS = {
+  trout: { state: function () { return troutState; }, toggle: toggleTrout },
+  seal:  { state: function () { return sealState; },  toggle: toggleSeal },
+  y2k:   { state: function () { return y2kState; },   toggle: toggleY2k },
+  otter: { state: function () { return otterState; }, toggle: toggleOtter },
+  petra: { state: function () { return petraState; }, toggle: togglePetra },
+  kyle:  { state: function () { return kyleState; },  toggle: toggleKyle },
+  diddy: { state: function () { return diddyState; }, toggle: toggleDiddy },
+  alrik: { state: function () { return alrikState; }, toggle: toggleAlrik },
+  raven: { state: function () { return ravenState; }, toggle: function () {} },
+  julia: { state: function () { return juliaState; }, toggle: toggleJulia },
+  emilia:{ state: function () { return emiliaState; }, toggle: toggleEmilia },
+  adlib: { state: function () { return adlibState; }, toggle: toggleAdlib },
+};
+
+function tapResident(key) {
+  const r = RESIDENTS[key];
+  if (!r) return;
+  if (r.state().mode === 'off') {
+    r.toggle();                       // not here yet — bring them, and watch
+    startFollow(key);
+    toggleNavMenu();
+    return;
+  }
+  if (followAnimal.key === key) { stopFollow(); return; }
+  startFollow(key);
+  toggleNavMenu();
+}
+
 // ── ENGAGE: summon a resident to your position ──
 // Your position = Ted if you're walking/posing him, else the camera's target.
 function summonerPoint() {
@@ -8455,25 +9658,74 @@ function summonResident(key, silent) {
       otterState.summonTarget = new THREE.Vector3(cx, otterWaterY(cx, z), z);
     }
     otterState.summonUntil = t + 90;
-  } else if (key === 'grey') {
-    if (greyState.mode === 'off') toggleGrey();
-    // He does not amble over. He runs at you and then falls over.
-    greyState.from = greyhound.position.clone();
-    greyState.to = greyGround(here.x + 1.8, here.z - 1.2);
-    greyState.dur = Math.max(2.2, greyState.from.distanceTo(greyState.to) / 13);
-    greyState.t0 = t;
-    greyhound.rotation.z = 0;
-    greyState.mode = 'sprint';
+  } else if (key === 'petra') {
+    if (petraState.mode === 'off') togglePetra();
+    // She comes ashore like everyone else (RULED 2026-07-31). If the water
+    // does not reach you, she hauls out and lies there, which is absurd and
+    // correct — the ontology does not get to say no on her behalf.
+    petraState.summonTarget = new THREE.Vector3(here.x, sharkY(here.x, here.z), here.z);
+    petraState.summonUntil = t + 120;
+    if (!sharkInWater(here.x, here.z)) showNavLabel('Petra is hauling out');
+  } else if (key === 'kyle') {
+    if (kyleState.mode === 'off') toggleKyle();
+    const kz = Math.max(SEA_DEEP_Z - 6, here.z);
+    kyleState.summonTarget = new THREE.Vector3(here.x * 0.6, OCEAN_Y - 0.15, kz);
+    kyleState.summonUntil = t + 100;
+    if (here.z < SEA_DEEP_Z - 6) showNavLabel('Kyle is coming to the nearest water');
   } else if (key === 'diddy') {
     if (diddyState.mode === 'off') toggleDiddy();
     // Down off the mountain — a long way, and he takes his time about it
     diddyState.from = diddyKong.position.clone();
     diddyState.to = diddyGround(here.x - 1.5, here.z + 1.5);
-    diddyState.dur = Math.max(8, diddyState.from.distanceTo(diddyState.to) / 5.5);
+    diddyState.path = diddyRoute(diddyState.from, diddyState.to);
+    const runLen = diddyState.path ? diddyState.path.getLength() : diddyState.from.distanceTo(diddyState.to);
+    diddyState.dur = Math.max(8, runLen / 5.5);
     diddyState.t0 = t;
     diddyState.mode = 'move';
     diddyState.summonUntil = t + diddyState.dur + 90;
     diddyState.nextMove = t + diddyState.dur + 90;
+  } else if (key === 'alrik') {
+    if (alrikState.mode === 'off') toggleAlrik();
+    alrikState.from = wizardAlrik.position.clone();
+    alrikState.to = diddyGround(here.x + 2.0, here.z + 1.0);
+    alrikState.path = diddyRoute(alrikState.from, alrikState.to);
+    alrikState.dur = Math.max(12, (alrikState.path ? alrikState.path.getLength() : alrikState.from.distanceTo(alrikState.to)) / 2.6);
+    alrikState.t0 = t; alrikState.mode = 'walk';
+    alrikState.summonUntil = t + alrikState.dur + 90;
+    alrikState.nextMove = alrikState.summonUntil;
+  } else if (key === 'raven') {
+    // He does not wake and he does not travel — but that is a fact about his
+    // BEHAVIOUR, not a limit on what he is. His card opens, his feed works,
+    // and you can leave word for him like anyone else. Not coming and not
+    // being addressable are different things (Sailor, 2026-07-31).
+    showNavLabel('Horned Sphere does not wake \u2014 but he can be spoken to');
+    startFollow('raven');
+    toggleNavMenu();
+    return;
+  } else if (key === 'julia') {
+    if (juliaState.mode === 'off') toggleJulia();
+    juliaFlyTo(juliaGround(here.x - 1.8, here.z + 1.4), t);
+    juliaState.summonUntil = t + juliaState.dur + 90;
+    juliaState.nextAct = juliaState.summonUntil;
+  } else if (key === 'emilia') {
+    if (emiliaState.mode === 'off') toggleEmilia();
+    emiliaState.from = stoatEmilia.position.clone();
+    emiliaState.to = diddyGround(here.x + 0.9, here.z - 0.8);
+    emiliaState.dur = Math.max(0.9, emiliaState.from.distanceTo(emiliaState.to) / 11);
+    emiliaState.t0 = t; emiliaState.mode = 'dart';
+    stoatEmilia.rotation.x = 0;
+    emiliaState.summonUntil = t + 90;
+  } else if (key === 'adlib') {
+    if (adlibState.mode === 'off') toggleAdlib();
+    // He comes. He does not hurry, and he stops being interested the moment
+    // he arrives, which is the correct behaviour for a cat.
+    adlibState.from = catAdlib.position.clone();
+    adlibState.to = diddyGround(here.x + 1.1, here.z + 0.9);
+    adlibState.spot = -1;
+    adlibState.perch = 0;
+    adlibState.dur = Math.max(3.5, adlibState.from.distanceTo(adlibState.to) / 1.9);
+    adlibState.t0 = t; adlibState.mode = 'walk';
+    adlibState.summonUntil = t + adlibState.dur + 90;
   } else if (key === 'trout') {
     if (troutState.mode === 'off') toggleTrout();
     // Trout keeps to the water: nearest point on the river course
@@ -10483,8 +11735,14 @@ container.addEventListener('pointerup', e => {
     if (sealPup.visible) critters.push({ key: 'seal', mesh: sealPup });
     if (y2kHusky.visible) critters.push({ key: 'y2k', mesh: y2kHusky });
     if (otterPrincess.visible) critters.push({ key: 'otter', mesh: otterPrincess });
-    if (greyhound.visible) critters.push({ key: 'grey', mesh: greyhound });
+    if (sharkPetra.visible) critters.push({ key: 'petra', mesh: sharkPetra });
+    if (dolphinKyle.visible) critters.push({ key: 'kyle', mesh: dolphinKyle });
     if (diddyKong.visible) critters.push({ key: 'diddy', mesh: diddyKong });
+    if (wizardAlrik.visible) critters.push({ key: 'alrik', mesh: wizardAlrik });
+    if (ravenHornedSphere.visible) critters.push({ key: 'raven', mesh: ravenHornedSphere });
+    if (heronJulia.visible) critters.push({ key: 'julia', mesh: heronJulia });
+    if (stoatEmilia.visible) critters.push({ key: 'emilia', mesh: stoatEmilia });
+    if (catAdlib.visible) critters.push({ key: 'adlib', mesh: catAdlib });
     if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
     for (const c of critters) {
       if (raycaster.intersectObject(c.mesh, true).length > 0) {
@@ -13073,8 +14331,14 @@ function animate() {
   animateSeal(t);
   animateY2k(t);
   animateOtter(t);
-  animateGrey(t);
+  animateShark(t);
+  animateDolphin(t);
   animateDiddy(t);
+  animateAlrik(t);
+  animateRaven(t);
+  animateHeron(t);
+  animateStoat(t);
+  animateCat(t);
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)
