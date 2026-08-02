@@ -652,6 +652,7 @@
   <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
   <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
   <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
+  <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
   <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
   <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa as Ted — click the ground and he goes there; objects still focus on click">🐾 Walk</button>
   <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
@@ -710,8 +711,9 @@
   <div id="ip-avatars"></div>
   <input id="ip-token" type="password" placeholder="your key from Sailor (ghp_… or github_pat_…)">
   <div id="ip-row"><button class="ui-btn" onclick="saveIdentityFromPanel()">enter the villa</button>
-  <button class="ui-btn" onclick="document.getElementById('identity-panel').classList.remove('open')">later</button></div>
-  <div id="ip-note">the key lives only on this device</div>
+  <button class="ui-btn" onclick="document.getElementById('identity-panel').classList.remove('open')">later</button>
+  <button class="ui-btn" id="ip-forget" style="display:none" onclick="forgetIdentity()">forget my key</button></div>
+  <div id="ip-note">the key lives only on this device — and so does anyone else who uses it. not on a shared computer.</div>
 </div>
 
 <div id="nav-bar">
@@ -3452,16 +3454,81 @@ const scene = new THREE.Scene();
 scene.fog = new THREE.Fog(C.nightFog, 100, 400);
 scene.background = new THREE.Color(C.nightBg);
 
-const camera = new THREE.PerspectiveCamera(36, container.clientWidth / container.clientHeight, 0.1, 600);
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+// ============================================================
+// THE QUALITY TIER (2026-08-02) — see DreamGetty_Y2K_Design_Rules.md §5
+//
+// One object decides everything that scales with the device. The villa is a
+// link handed to friends with unknown phones, so the tier is probed on load,
+// can be forced with ?q=low / ?q=high, and is cycled from the perf HUD.
+// RULE: nothing else in this file may read navigator or devicePixelRatio.
+// If a new cost needs to scale, it gets a FIELD HERE, so everything added
+// later inherits the tier the way the shadow budget is inherited.
+// ============================================================
+const QUALITY = (function () {
+  const forced = new URLSearchParams(location.search).get('q');
+  let stored = null; try { stored = localStorage.getItem('dg_quality'); } catch (e) {}
+  const probe = (function () {
+    // UNKNOWN IS NOT LOW (fixed 2026-08-02).
+    // `navigator.deviceMemory` is Chrome-only — Safari and Firefox do not
+    // implement it at all. The original read `deviceMemory || 4` and then
+    // tested `mem <= 4`, so every browser that does not report memory fell
+    // straight through to the low tier: pixel grid 0.58 AND a 1.0 DPR cap.
+    // On a Retina laptop that is 0.29 of native linear resolution — about a
+    // twelfth of the pixels — which is why the villa looked like its
+    // architecture had been downgraded when nothing had been touched.
+    // A missing signal now means "no evidence of a weak device", not "weak".
+    const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    const cores  = navigator.hardwareConcurrency || 0;   // 0 = not reported
+    const mem    = navigator.deviceMemory || 0;          // 0 = not reported
+    const weak = (cores > 0 && cores <= 4) || (mem > 0 && mem <= 4);
+    return (mobile || weak) ? 'low' : 'high';
+  })();
+  const tier = (forced === 'low' || forced === 'high') ? forced
+             : (stored === 'low' || stored === 'high') ? stored
+             : probe;
+  const T = {
+    //        pixel grid    DPR cap   shadow map   draw dist  fog far   near band  far update
+    low:  { pixelGrid: 0.58, maxDPR: 1.0, shadowMap: 512,  far: 300, fogFar: 240, nearRadius: 42, farHz: 10 },
+    high: { pixelGrid: 0.80, maxDPR: 1.5, shadowMap: 1024, far: 600, fogFar: 400, nearRadius: 70, farHz: 20 },
+  };
+  return Object.assign({ tier: tier, probed: probe }, T[tier]);
+})();
+
+// PIXEL_GRID is live — the HUD cycles it, localStorage remembers it.
+// 1.0 is off (native res). Below 1.0 the scene renders small and is upscaled
+// with NO filtering: the era's own look, and about 1/g² of the fragment work.
+let PIXEL_GRID = QUALITY.pixelGrid;
+try { const pg = parseFloat(localStorage.getItem('dg_pixelgrid')); if (pg >= 0.4 && pg <= 1) PIXEL_GRID = pg; } catch (e) {}
+
+const camera = new THREE.PerspectiveCamera(36, container.clientWidth / container.clientHeight, 0.1, QUALITY.far);
+const renderer = new THREE.WebGLRenderer({ antialias: PIXEL_GRID >= 0.999 });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY.maxDPR) * PIXEL_GRID);
 renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));   // 2 quadruples fragment work on Retina for no visible gain here
 renderer.outputEncoding = THREE.sRGBEncoding;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.9;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 container.appendChild(renderer.domElement);
+
+// The upscale is where the look lives: hard nearest-neighbour, no smoothing.
+// The DOM chrome stays crisp on top of it, which is exactly how a game of the
+// period looked on a monitor running above its render resolution.
+function applyPixelGrid() {
+  const w = container.clientWidth, h = container.clientHeight;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, QUALITY.maxDPR) * PIXEL_GRID);
+  renderer.setSize(w, h, true);
+  const st = renderer.domElement.style;
+  st.width = w + 'px'; st.height = h + 'px';
+  if (PIXEL_GRID < 0.999) { st.setProperty('image-rendering', 'crisp-edges'); st.setProperty('image-rendering', 'pixelated'); }
+  else st.removeProperty('image-rendering');
+}
+applyPixelGrid();
+
+// Draw distance is a tier field, and on low it is genuinely short. This is not
+// a compromise — a hard fog wall at the edge of the world is the period's own
+// solution to the same problem, and it is why the far coast can be culled.
+scene.fog.far = QUALITY.fogFar;
 
 const lights = {};
 const clock = new THREE.Clock();
@@ -3522,6 +3589,60 @@ function riverChannelFactor(x, z) {
   f = f * f * (3 - 2 * f);
   if (z < -76) f *= Math.max(0, (z + 84) / 8);  // the spring fades in
   return f;
+}
+
+// ── THE STRAND (2026-08-02) — the beach as a place, not a grade ──
+// The estuary ruling gave the valley a continuous glide to the waterline.
+// Handsome, and impossible to stand a crowd on: measured, the "beach" ran
+// 12–16° the whole way down with no level ground anywhere on it. Ted's intro
+// assembles the entire company at the water's edge, and on a ramp that reads
+// as fourteen animals sliding into the sea.
+//
+// So the beach is now built the way a beach is actually built: a backshore
+// that drops off the valley, a LEVEL BERM that is the ground the gathering
+// stands on, and a steeper foreshore into the water. The scarp at the back is
+// not a defect — it is the line where the valley ends and the beach begins,
+// and it is barely steeper than the grade it replaces.
+//
+// The seaward edge is held deliberately: the shoreline moves out ~7 units and
+// no further, because the kelp bed (8, 102) is the Otter Princess's raft and
+// Petra's circuit runs r 26 about (2, 128). A beach that grew past those would
+// strand two residents on dry land. THE BEACH GETS ITS SIZE FROM WIDTH AND
+// FLATNESS, NOT FROM REACH. Anything that moves STRAND_Z1 seaward has to move
+// the kelp bed and the shark's circuit with it.
+const STRAND_Z0 = 56;      // the valley starts handing off
+const STRAND_ZB0 = 66;     // berm, landward edge — level ground begins
+const STRAND_ZB1 = 82;     // berm crest — where the foreshore takes over
+const STRAND_Z1 = 87;      // the foreshore reaches the sea bed
+const STRAND_HALFW = 19;   // half-width of the level core
+const STRAND_FADE = 7;     // blend back into the valley sides / the bay
+const STRAND_Y = -10.9;    // the berm's own height. Dry sand, per the shading bands
+const STRAND_TOE = -13.4;  // the foot of the foreshore, under the waterline
+
+function strandFactor(x, z) {
+  if (z <= STRAND_Z0 || z >= STRAND_Z1) return 0;
+  const ax = Math.abs(x);
+  if (ax >= STRAND_HALFW + STRAND_FADE) return 0;
+  let w = 1;
+  if (ax > STRAND_HALFW) {
+    const u = (ax - STRAND_HALFW) / STRAND_FADE;
+    w = 1 - u * u * (3 - 2 * u);
+  }
+  // Fade in at the back so the valley meets the berm as a slope rather than a
+  // step, and out at the front so the foreshore rejoins the sea bed.
+  const zin = Math.min(1, (z - STRAND_Z0) / (STRAND_ZB0 - STRAND_Z0));
+  const zout = Math.min(1, (STRAND_Z1 - z) / 4);
+  return w * zin * zin * (3 - 2 * zin) * zout;
+}
+function strandHeight(x, z) {
+  // Sand ripple. A perfectly level berm renders as a sheet of paper — the
+  // first cut of this had no relief at all and read as a shelf rather than a
+  // beach. Amplitude is kept under half a unit so the ground stays level
+  // enough to stand a gathering on; this is texture, not terrain.
+  const ripple = (fbm(x * 0.085 + 21.3, z * 0.085 + 7.9, 2) - 0.5) * 0.7;
+  if (z <= STRAND_ZB1) return STRAND_Y + ripple;              // the berm is level. That is the point.
+  const t = (z - STRAND_ZB1) / (STRAND_Z1 - STRAND_ZB1);
+  return STRAND_Y + (STRAND_TOE - STRAND_Y) * t + ripple * (1 - t);   // the beach face
 }
 
 function getTerrainHeight(wx, wz) {
@@ -3596,6 +3717,22 @@ function getTerrainHeight(wx, wz) {
       const corridorH = -0.5 - slopeT * 4;
       h = h * (1 - corridorStrength) + corridorH * corridorStrength;
     }
+  }
+
+  // ── THE STRAND — cut after the valley and the corridor, and BEFORE the
+  // river, so the river still crosses the beach on its way out. The channel
+  // lands ~1 unit into the berm, which is what puts Trout in the middle of
+  // the assembly without breaking the Medium Rule.
+  const sf = strandFactor(wx, wz);
+  if (sf > 0) {
+    const sh = strandHeight(wx, wz);
+    // THE STRAND CUTS. IT DOES NOT FILL. The first version of this blended in
+    // both directions and quietly filled the cove — the sea went from half the
+    // frame to two lobes at the edges, and the thing that made the beach worth
+    // standing on was the thing it destroyed. Ground above the berm comes down
+    // to it; ground already at or below the berm is left exactly alone, so the
+    // waterline cannot move seaward no matter what these constants say.
+    if (sh < h) h = h * (1 - sf) + sh * sf;
   }
 
   // ── THE RIVER (§2½) — cut LAST, after every override above, or the
@@ -3682,6 +3819,31 @@ const oceanMat = new THREE.MeshStandardMaterial({
   color: 0x1a4a6a, roughness: 0.3, metalness: 0.15,
   transparent: true, opacity: 0.85,
 });
+// ── THE SWELL MOVED TO THE VERTEX SHADER (2026-08-02) ────────
+// animateOcean() used to walk all 2,665 vertices on the CPU every frame,
+// computing four sines each and re-uploading a 32 KB position buffer — about
+// 10,000 Math.sin calls per frame, on the main thread, forever. It is the
+// same four waves here, evaluated on the GPU for free, and the water is
+// pixel-identical because the old loop never recomputed normals either: the
+// lighting was always reading the flat plane's normals, and still is.
+// The river already worked this way ("flow is shader-side, uTime only") —
+// this is that ruling applied to the sea.
+oceanMat.userData.uTime = { value: 0 };
+oceanMat.onBeforeCompile = function (shader) {
+  shader.uniforms.uTime = oceanMat.userData.uTime;
+  shader.vertexShader = 'uniform float uTime;\n' + shader.vertexShader.replace(
+    '#include <begin_vertex>',
+    [
+      '#include <begin_vertex>',
+      'float oShoreT = clamp((30.0 - position.z) / 160.0, 0.0, 1.0);',
+      'float oRoller = sin(position.z * 0.09 + uTime * 1.35) * (0.35 + oShoreT * 0.85);',
+      'float oW1 = sin(position.x * 0.04 + uTime * 0.8) * 0.45;',
+      'float oW2 = sin(position.z * 0.06 + uTime * 0.6 + 1.3) * 0.3;',
+      'float oW3 = sin((position.x + position.z) * 0.03 + uTime * 1.1) * 0.2;',
+      'transformed.y += oRoller + oW1 + oW2 + oW3;',
+    ].join('\n')
+  );
+};
 const ocean = new THREE.Mesh(oceanGeo, oceanMat);
 ocean.position.set(0, OCEAN_Y, CLIFF_Z + 150); // pushed far forward, past the cliff
 ocean.receiveShadow = true;
@@ -3809,20 +3971,9 @@ riverGrate.position.set(0, 1.545, 0); // just above the gallery floor plane
 scene.add(riverGrate);
 
 function animateOcean(t) {
-  const pos = oceanGeo.attributes.position;
-  for (let i = 0; i < pos.count; i++) {
-    const x = pos.getX(i), z = pos.getZ(i);
-    // Shore-bound swell (2026-07-30): long rollers travel toward the beach
-    // (−z in the ocean's local frame) and steepen as they arrive.
-    const localZ = z; // ocean plane local z; −150 edge is nearest the shore
-    const shoreT = Math.max(0, Math.min(1, (30 - localZ) / 160)); // 1 at near edge
-    const roller = Math.sin(localZ * 0.09 + t * 1.35) * (0.35 + shoreT * 0.85);
-    const wave1 = Math.sin(x * 0.04 + t * 0.8) * 0.45;
-    const wave2 = Math.sin(z * 0.06 + t * 0.6 + 1.3) * 0.3;
-    const wave3 = Math.sin((x + z) * 0.03 + t * 1.1) * 0.2;
-    pos.setY(i, roller + wave1 + wave2 + wave3);
-  }
-  pos.needsUpdate = true;
+  // The swell itself is shader-side (see oceanMat.onBeforeCompile) — one
+  // uniform is the whole per-frame cost, same arrangement as the river.
+  oceanMat.userData.uTime.value = t;
   // Foam breathes with the arriving swell — slides up the sand and back
   foam.position.z = Math.sin(t * 0.7) * 1.6;
   foamMat.opacity = 0.16 + (Math.sin(t * 0.7) * 0.5 + 0.5) * 0.14;
@@ -3844,6 +3995,9 @@ scene.add(coastalFlora);
     const y = getTerrainHeight(x, z);
     if (y < OCEAN_Y + 1.2) continue;              // not in the surf
     if (riverChannelFactor(x, z) > 0.05) continue; // not in the river
+    if (strandFactor(x, z) > 0.25) continue;      // not on the strand (2026-08-02):
+    // a swept beach is bare, and the berm is the assembly's ground — a bush
+    // standing in the middle of Ted's gathering is the one thing it cannot have
     const b = new THREE.Group();
     const n = 2 + (i % 2);
     for (let k = 0; k < n; k++) {
@@ -3859,8 +4013,10 @@ scene.add(coastalFlora);
   // Trees — wind-leant coastal pines
   const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6a4a32, roughness: 0.9 });
   const canopyMat = new THREE.MeshStandardMaterial({ color: 0x35552a, roughness: 0.8 });
-  [{ x: -16, z: 52, s: 1.0, lean: 0.14 }, { x: 22, z: 62, s: 1.25, lean: -0.1 },
-   { x: -30, z: 72, s: 0.85, lean: 0.2 }].forEach(td => {
+  // Resited off the strand (2026-08-02) — they now hold the valley shoulders
+  // above the berm rather than standing in the middle of the beach.
+  [{ x: -16, z: 52, s: 1.0, lean: 0.14 }, { x: 24, z: 56, s: 1.25, lean: -0.1 },
+   { x: -22, z: 60, s: 0.85, lean: 0.2 }].forEach(td => {
     const y = getTerrainHeight(td.x, td.z);
     if (y < OCEAN_Y + 1) return;
     const tr = new THREE.Group();
@@ -4057,6 +4213,7 @@ const starMaterial = new THREE.PointsMaterial({
 const stars = new THREE.Points(starGeo, starMaterial);
 stars.renderOrder = -1;
 scene.add(stars);
+const starTwinkle = { last: -1 };   // fixed-rate clock for the scintillation — see animate()
 
 // ============================================================
 // MOON — phase-accurate procedural texture (ported from v2)
@@ -4249,7 +4406,7 @@ lights.moonBeam = new THREE.DirectionalLight(0xc8d4f0, 0.25 + illum * 0.4);
 lights.moonBeam.position.copy(moonDisc.position);
 lights.moonBeam.target.position.set(0, 4.3, 0);  // BUILDING_Y(1.5) + 2.8
 lights.moonBeam.castShadow = true;
-lights.moonBeam.shadow.mapSize.set(1024, 1024);
+lights.moonBeam.shadow.mapSize.set(QUALITY.shadowMap, QUALITY.shadowMap);
 lights.moonBeam.shadow.camera.left = -40; lights.moonBeam.shadow.camera.right = 40;
 lights.moonBeam.shadow.camera.top = 40; lights.moonBeam.shadow.camera.bottom = -40;
 lights.moonBeam.shadow.camera.far = 200;
@@ -4258,8 +4415,8 @@ scene.add(lights.moonBeam); scene.add(lights.moonBeam.target);
 
 lights.sun = new THREE.DirectionalLight(0xfff4e0, 0);
 lights.sun.position.set(-30, 60, -20);
-lights.sun.castShadow = true;
-lights.sun.shadow.mapSize.set(1024, 1024);
+lights.sun.castShadow = false;   // see THE ONE SHADOW rule — the dark-mode light owns the pass at load
+lights.sun.shadow.mapSize.set(QUALITY.shadowMap, QUALITY.shadowMap);
 lights.sun.shadow.camera.left = -40; lights.sun.shadow.camera.right = 40;
 lights.sun.shadow.camera.top = 40; lights.sun.shadow.camera.bottom = -40;
 lights.sun.shadow.camera.far = 200;
@@ -5143,11 +5300,18 @@ const ringMat1 = new THREE.MeshStandardMaterial({
   roughness: 0.25, metalness: 0.35, transparent: true, opacity: 0.85,
   side: THREE.DoubleSide
 });
-const ring1Geo = new THREE.TorusGeometry(RING_MIN, 0.018, 12, 48);
+// Built at UNIT radius and resized by .scale — see the aperture block in
+// animate(). The tube radius is divided out so the ring still reads the same
+// weight at RING_MIN; it thickens slightly as the aperture opens, which is
+// what the old rebuild did anyway.
+const ring1Geo = new THREE.TorusGeometry(1, 0.018 / RING_MIN, 12, 48);
 const ring1 = new THREE.Mesh(ring1Geo, ringMat1);
 ring1.rotation.x = Math.PI/2 - RING_TILT;
 ring1.position.set(0, ASTERISK_LOW_Y, 0);
+ring1.scale.set(RING_MIN, RING_MIN, 1);
 scene.add(ring1);
+// Live radii — the aperture animation lerps these instead of allocating.
+const ringGeoState = { r1: RING_MIN, r2: RING_MIN };
 
 // Ghost ring (opponent's perceived Diatribe) — hidden initially
 const ringMat2 = new THREE.MeshStandardMaterial({
@@ -5155,10 +5319,11 @@ const ringMat2 = new THREE.MeshStandardMaterial({
   roughness: 0.25, metalness: 0.35, transparent: true, opacity: 0,
   side: THREE.DoubleSide
 });
-const ring2Geo = new THREE.TorusGeometry(RING_MIN, 0.014, 12, 48);
+const ring2Geo = new THREE.TorusGeometry(1, 0.014 / RING_MIN, 12, 48);
 const ring2 = new THREE.Mesh(ring2Geo, ringMat2);
 ring2.rotation.x = Math.PI/2 - RING_TILT;
 ring2.position.set(0, ASTERISK_LOW_Y, 0);
+ring2.scale.set(RING_MIN, RING_MIN, 1);
 scene.add(ring2);
 
 // Ring glow sprite
@@ -7219,7 +7384,7 @@ const Y2K_SPOTS = [
   { name: 'the north lawn', x: -14, z: -10 },
   { name: 'the overlook', x: -9, z: 44 },
   { name: 'the valley path', x: 5, z: 58 },
-  { name: 'the beach', x: 10, z: 80 },
+  { name: 'the beach', x: 15, z: 78 },
 ];
 // getVisitorHeight, not getTerrainHeight (bugfix 2026-07-30): the walkable
 // height knows the stylobate and pool walk exist; the terrain does not.
@@ -8262,7 +8427,7 @@ const feedState = { entries: [], loaded: false, lastError: null };
 const VILLA_PLACES = [
   { name: 'the gallery', x: 0, z: 0 }, { name: 'the plaza', x: 10, z: 6 },
   { name: 'the pool', x: 0, z: 20 }, { name: 'the overlook', x: -9, z: 44 },
-  { name: 'the valley', x: 0, z: 60 }, { name: 'the beach', x: 6, z: 82 },
+  { name: 'the valley', x: 0, z: 60 }, { name: 'the beach', x: 15, z: 78 },
   { name: 'the north lawn', x: -14, z: -10 }, { name: 'the mountain', x: 0, z: -70 },
   { name: 'the river mouth', x: 0, z: 88 },
   { name: 'the break', x: 0, z: 97 }, { name: 'the deep', x: 2, z: 128 },
@@ -8285,12 +8450,59 @@ function saveFeedIdentity(avatar, token) {
   localStorage.setItem('dg_identity', JSON.stringify({ avatar: avatar, token: token }));
 }
 
+// ── THE BOUNDARY (SECURITY — 2026-08-02) ────────────────────────────
+// feed/manifest.json is written by whoever holds a key, and a key holder can
+// hand-edit it in the GitHub web UI. It is therefore UNTRUSTED INPUT, and this
+// is the single place it gets cleaned. Every field is coerced to a known type
+// and a known length here, once, so that no renderer downstream — DOM, canvas
+// or three.js — has to remember to be careful.
+//
+// THE RULE: nothing crosses this function that is not a short string, a finite
+// number, or null. A new field on a statement gets a line here, or it does not
+// exist. One boundary is cheaper to hold than "escape at every render site."
+const FEED_MAX_ENTRIES = 500;
+function safeStr(v, max) {
+  if (typeof v !== 'string') return '';
+  // control characters are stripped: they have no business in a statement, and
+  // they are how a crafted entry hides from a human reading the raw JSON
+  return v.replace(/[\u0000-\u001F\u007F]/g, '').slice(0, max);
+}
+function safeNum(v) {
+  const n = +v;
+  return Number.isFinite(n) ? Math.max(-1e4, Math.min(1e4, n)) : 0;
+}
+function sanitizeFeedEntry(e) {
+  if (!e || typeof e !== 'object') return null;
+  const author = safeStr(e.author, 40);
+  if (!author) return null;                    // an unattributed entry is not an entry
+  const pos = Array.isArray(e.pos) ? e.pos : [];
+  const to = safeStr(e.to, 40);
+  const replyTo = safeStr(e.replyTo, 80);
+  // a timestamp that is not a timestamp is dropped rather than carried —
+  // `t` is the one field that reaches an HTML attribute (the hover title)
+  const ts = safeStr(e.t, 40);
+  const when = Number.isFinite(new Date(ts).getTime()) ? ts : '';
+  return {
+    id: safeStr(e.id, 80) || (author + '-' + Math.random().toString(36).slice(2)),
+    author: author,
+    to: to || null,
+    text: safeStr(e.text, 400),
+    t: when,
+    pos: [safeNum(pos[0]), safeNum(pos[1]), safeNum(pos[2])],
+    place: safeStr(e.place, 60),
+    replyTo: replyTo || null,
+  };
+}
+
 // ── Read: one GET, cold-load the manifest. 404 = young villa, empty feed ──
 function loadFeed() {
   return fetch('feed/manifest.json?t=' + Date.now(), { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error('no manifest'); return r.json(); })
     .then(m => {
-      feedState.entries = (m.entries || []).sort((a, b) => (a.t < b.t ? 1 : -1));
+      feedState.entries = (Array.isArray(m.entries) ? m.entries : [])
+        .map(sanitizeFeedEntry).filter(Boolean)
+        .sort((a, b) => (a.t < b.t ? 1 : -1))
+        .slice(0, FEED_MAX_ENTRIES);
       feedState.loaded = true;
       if (followAnimal.key) renderFeedInto(followAnimal.key);
       if (typeof renderStatementField === 'function') renderStatementField();
@@ -8362,6 +8574,7 @@ function postStatement(text, toKey, replyTo) {
 
 function timeAgo(iso) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (!Number.isFinite(s)) return '';   // a hand-edited timestamp reads as nothing, not as "NaNd ago"
   if (s < 90) return 'just now';
   if (s < 3600) return Math.round(s / 60) + 'm ago';
   if (s < 86400) return Math.round(s / 3600) + 'h ago';
@@ -8553,8 +8766,19 @@ function renderFeedInto(key) {
     div.className = 'fc-entry';
     const head = document.createElement('div');
     head.className = 'fc-entry-head';
-    head.innerHTML = '<span>' + ep.emoji + (tp ? ' → ' + tp.emoji : '') + '</span>' +
-      '<span title="' + e.t + '">' + timeAgo(e.t) + ' · ' + (e.place || '') + '</span>';
+    // Built as nodes, never as markup (SECURITY — 2026-08-02). `e.t` and
+    // `e.place` come off the manifest, which any key holder can hand-edit;
+    // concatenating them into innerHTML was a stored-XSS path, and the prize
+    // for taking it was every other visitor's key out of localStorage on this
+    // origin. The boundary above already cleans these — this is the second
+    // lock on the same door, because one statement is enough to lose them all.
+    const whoSpan = document.createElement('span');
+    whoSpan.textContent = ep.emoji + (tp ? ' → ' + tp.emoji : '');
+    const whenSpan = document.createElement('span');
+    whenSpan.title = e.t;
+    whenSpan.textContent = timeAgo(e.t) + ' · ' + (e.place || '');
+    head.appendChild(whoSpan);
+    head.appendChild(whenSpan);
     div.appendChild(head);
     const txt = document.createElement('div');
     txt.className = 'fc-entry-text';
@@ -8565,7 +8789,11 @@ function renderFeedInto(key) {
     rep.textContent = 'reply';
     rep.onclick = function () {
       composeState.replyTo = e.id;
-      note.innerHTML = '<span class="fc-replying">replying to ' + ep.emoji + ' — esc to cancel</span>';
+      note.textContent = '';
+      const tag = document.createElement('span');
+      tag.className = 'fc-replying';
+      tag.textContent = 'replying to ' + ep.emoji + ' — esc to cancel';
+      note.appendChild(tag);
       input.focus();
     };
     div.appendChild(rep);
@@ -8619,17 +8847,53 @@ function openIdentityPanel() {
     };
     wrap.appendChild(d);
   });
-  if (current && current.token) document.getElementById('ip-token').value = current.token;
+  // The key is never re-displayed (SECURITY — 2026-08-02). A held key shows as
+  // a placeholder and an empty field; saving with the field empty keeps it.
+  // A password input is one devtools attribute away from being plain text, and
+  // the villa has no reason to put a live credential back on screen.
+  const tokenIn = document.getElementById('ip-token');
+  tokenIn.value = '';
+  tokenIn.placeholder = (current && current.token)
+    ? '— a key is held on this device —'
+    : 'your key from Sailor (ghp_… or github_pat_…)';
+  const forget = document.getElementById('ip-forget');
+  if (forget) forget.style.display = (current && current.token) ? '' : 'none';
   panel.classList.add('open');
 }
+
+// The key is a GitHub PAT and nothing else. Refusing anything else is not
+// security — it is a guard against the likelier accident, which is pasting
+// the wrong secret (an Anthropic key, a password) into a field that then
+// writes it to localStorage on a public origin.
+const PAT_SHAPE = /^(ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,})$/;
 function saveIdentityFromPanel() {
   const sel = document.querySelector('#ip-avatars .ip-avatar.selected');
-  const token = document.getElementById('ip-token').value.trim();
-  if (!sel) return;
+  const typed = document.getElementById('ip-token').value.trim();
+  const note = document.getElementById('ip-note');
+  const current = feedIdentity();
+  if (!sel) { if (note) note.textContent = 'choose who you are in the villa first'; return; }
+  if (typed && !PAT_SHAPE.test(typed)) {
+    if (note) note.textContent = 'that is not a villa key — a key begins ghp_ or github_pat_. nothing was saved.';
+    return;
+  }
+  const token = typed || ((current && current.token) || '');   // empty field keeps the held key
   saveFeedIdentity(sel.dataset.key, token);
   document.getElementById('identity-panel').classList.remove('open');
   const b = document.getElementById('identity-btn');
   if (b) b.textContent = '⚿ ' + (PROFILES[sel.dataset.key] || {}).name;
+  if (followAnimal.key) renderFeedInto(followAnimal.key);
+}
+
+// Leaving the villa on a borrowed machine. The counterpart to "the key lives
+// only on this device" — a device you do not keep needs a way to forget.
+function forgetIdentity() {
+  try { localStorage.removeItem('dg_identity'); } catch (e) {}
+  const t = document.getElementById('ip-token');
+  if (t) { t.value = ''; t.placeholder = 'your key from Sailor (ghp_… or github_pat_…)'; }
+  const f = document.getElementById('ip-forget'); if (f) f.style.display = 'none';
+  const b = document.getElementById('identity-btn'); if (b) b.textContent = '⚿ identity';
+  const note = document.getElementById('ip-note');
+  if (note) note.textContent = 'the key is gone from this device. the villa will not remember you here.';
   if (followAnimal.key) renderFeedInto(followAnimal.key);
 }
 document.getElementById('ip-token').addEventListener('keydown', function (e) { e.stopPropagation(); });
@@ -9741,8 +10005,8 @@ scene.add(pelicanAustin);
 // The coast, and one inland perch — pelicans do come up the river
 const AUSTIN_SPOTS = [
   { name: 'the river mouth', x: 3.5, z: 87 },
-  { name: 'the break', x: -9, z: 95 },
-  { name: 'the beach', x: 11, z: 81 },
+  { name: 'the break', x: -9, z: 104 },
+  { name: 'the beach', x: 16, z: 79 },
   { name: 'the pool', x: 3.6, z: 26 },
 ];
 const austinState = { mode: 'off', t0: -1, spot: 0, from: null, to: null, dur: 0, until: 0, summonUntil: 0 };
@@ -12202,6 +12466,11 @@ container.addEventListener('touchmove', e => {
 
 // Click-to-navigate raycasting
 const raycaster = new THREE.Raycaster();
+// A Raycaster only tests layer 0 by default, so the moment a resident crosses
+// into the pierce layer it would become unclickable — you could see Y2K through
+// the wall and not be able to follow him. Enable every layer here; the pierce
+// layer is a RENDER concern only and must never change what you can address.
+raycaster.layers.enableAll();
 const mouse = new THREE.Vector2();
 let pStart = { x: 0, y: 0 };
 
@@ -12744,8 +13013,10 @@ function toggleMode() {
     warmI: dark ? 0.4 : 0.15,
     exp: dark ? 0.9 : 1.4,
     fogColor: dark ? new THREE.Color(C.nightFog) : new THREE.Color(C.dayFog),
-    fogNear: dark ? 100 : 200,
-    fogFar: dark ? 400 : 600,
+    // Fog distance rides the tier (2026-08-02). Day pushes the wall out, but
+    // never past what the tier's draw distance can actually reach.
+    fogNear: (dark ? 100 : 200) * (QUALITY.fogFar / 400),
+    fogFar: dark ? QUALITY.fogFar : Math.min(QUALITY.fogFar * 1.5, QUALITY.far - 20),
     wallOp: 0,  // walls removed — no-op
     wallColor: dark ? new THREE.Color(0x13120f) : new THREE.Color(0xd8d2c8),
     floorColor: dark ? new THREE.Color(0x1e2530) : new THREE.Color(0x3a4550),
@@ -12801,6 +13072,19 @@ function toggleMode() {
     lights.hemi.intensity += (T.hemiI - lights.hemi.intensity) * r;
     lights.moonBeam.intensity += (T.moonI - lights.moonBeam.intensity) * r;
     lights.sun.intensity += (T.sunI - lights.sun.intensity) * r;
+
+    // ── THE ONE SHADOW (2026-08-02) ────────────────────────────
+    // Both directionals used to cast, always, so every frame rendered the
+    // whole caster set into two depth maps — and one of the two lights was
+    // always at or near zero intensity, so half that work was invisible by
+    // construction. Whichever light is actually brighter owns the pass; the
+    // other stops casting. Handing over mid-lerp is safe because the loser
+    // is by definition the dimmer one, so its shadow was already the fainter.
+    const sunOwns = lights.sun.intensity > lights.moonBeam.intensity;
+    if (lights.sun.castShadow !== sunOwns) {
+      lights.sun.castShadow = sunOwns;
+      lights.moonBeam.castShadow = !sunOwns;
+    }
     lights.spotMain.intensity += (T.spotI - lights.spotMain.intensity) * r;
     lights.spotWarm.intensity += (T.warmI - lights.spotWarm.intensity) * r;
     renderer.toneMappingExposure += (T.exp - renderer.toneMappingExposure) * r;
@@ -14761,6 +15045,337 @@ function handleG4ScreenClick(region) {
     pruned + ' small casters pruned, ' + kept + ' kept');
 })();
 
+// ── THE STONE DOESN'T MOVE (2026-08-02) ─────────────────────
+// Measured: the two wings were 124 separate meshes for 11,600 triangles, and
+// the annex fittings another 82 for 4,568 — 206 draw calls for stone that will
+// never move again as long as the villa stands. That is the cost of having
+// built it column by column, which was the right way to build it and the wrong
+// way to draw it.
+//
+// This bakes each static group down: meshes sharing a material and shadow
+// flags are welded into one, world transforms applied. Nothing moves and
+// nothing changes colour, so nothing is lost.
+//
+// WHAT IT REFUSES TO TOUCH, and why (design rules §2):
+//   · anything with depthTest === false — the pierce set. Merging would fuse
+//     objects that must keep their own renderOrder, and the ordering INSIDE
+//     the pierce band is the mechanism. Holdings are excluded entirely.
+//   · the veil — one transparent surface, sorted per-object on purpose.
+//   · InstancedMesh — the roof ornament is already 3 calls for ~250 tiles.
+//   · anything animated. Hence an explicit list of roots rather than a sweep:
+//     a group is baked because someone confirmed it is furniture, not because
+//     a heuristic guessed. Residents must never appear in that list.
+// userData flags that other systems look up by traverse. A baked mesh MUST
+// carry them or the thing that reads them silently stops working — the
+// day/night pass finds columns this way, so losing the flag would freeze the
+// wings dark while the pavilion turned to daylight. Flags also join the merge
+// signature, so two meshes only bake together if they carry the same ones.
+const BAKE_KEEP_FLAGS = ['isColumn', 'isPedestal', 'isAnnexPedestal', 'isWallPlinth', 'isStatue', 'isTerrain'];
+function bakeFlagSig(o) {
+  let s = '';
+  for (let i = 0; i < BAKE_KEEP_FLAGS.length; i++) {
+    if (o.userData && o.userData[BAKE_KEEP_FLAGS[i]]) s += BAKE_KEEP_FLAGS[i] + ',';
+  }
+  return s;
+}
+
+function bakeMeshes(list, parent, label) {
+  if (!list.length || !parent) return 0;
+  scene.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(parent.matrixWorld).invert();
+  const tmp = new THREE.Matrix4();
+  const buckets = new Map();
+  list.forEach(function (o) {
+    const m = o.material, g = o.geometry;
+    if (!m || Array.isArray(m) || !g || !g.attributes.position) return;
+    if (m.depthTest === false) return;                 // pierce set — never
+    if (o.userData && o.userData.isVeil) return;       // the veil sorts alone
+    const sig = [
+      m.type, m.color && m.color.getHex(), m.emissive && m.emissive.getHex(),
+      m.emissiveIntensity, m.roughness, m.metalness, m.opacity, m.transparent,
+      m.side, m.depthWrite, m.blending, m.map ? m.map.uuid : 0,
+      o.castShadow, o.receiveShadow, o.visible, bakeFlagSig(o),
+      Object.keys(g.attributes).sort().join(','),
+    ].join('|');
+    if (!buckets.has(sig)) buckets.set(sig, []);
+    buckets.get(sig).push(o);
+  });
+  let made = 0, folded = 0;
+  buckets.forEach(function (list) {
+    if (list.length < 2) return;
+    const use = ['position', 'normal', 'uv'].filter(function (n) {
+      return list.every(function (o) { return !!o.geometry.attributes[n]; });
+    });
+    if (use.indexOf('position') < 0) return;
+    const parts = {}; use.forEach(function (n) { parts[n] = []; });
+    list.forEach(function (o) {
+      const g = o.geometry.index ? o.geometry.toNonIndexed() : o.geometry.clone();
+      g.applyMatrix4(tmp.multiplyMatrices(inv, o.matrixWorld));
+      use.forEach(function (n) { parts[n].push(g.attributes[n].array); });
+    });
+    const merged = new THREE.BufferGeometry();
+    use.forEach(function (n) {
+      let total = 0; parts[n].forEach(function (a) { total += a.length; });
+      const out = new Float32Array(total); let off = 0;
+      parts[n].forEach(function (a) { out.set(a, off); off += a.length; });
+      merged.setAttribute(n, new THREE.BufferAttribute(out, n === 'uv' ? 2 : 3));
+    });
+    const mesh = new THREE.Mesh(merged, list[0].material);
+    mesh.castShadow = list[0].castShadow;
+    mesh.receiveShadow = list[0].receiveShadow;
+    mesh.name = label + '·baked';
+    BAKE_KEEP_FLAGS.forEach(function (f) {
+      if (list[0].userData && list[0].userData[f]) mesh.userData[f] = list[0].userData[f];
+    });
+    // Source geometries are NOT disposed: some may be shared, and this runs
+    // before first paint, so nothing has been uploaded to the GPU to drop.
+    list.forEach(function (o) { if (o.parent) o.parent.remove(o); folded++; });
+    parent.add(mesh);
+    made++;
+  });
+  if (made) console.log('[Getty] baked ' + label + ' — ' + folded + ' meshes into ' + made);
+  return folded - made;
+}
+
+// Collector A — everything under one group root (wings, fittings, planting).
+function mergeStaticGroup(root, label) {
+  if (!root) return 0;
+  const list = [];
+  root.traverse(function (o) { if (o.isMesh && !o.isInstancedMesh) list.push(o); });
+  return bakeMeshes(list, root, label);
+}
+
+// Collector B — everything carrying a userData tag, wherever it sits. The
+// pavilion's columns are each their own Group added straight to the scene, and
+// buildColumn() calls colMat.clone() for every moulding, so ~10 columns arrive
+// as ~300 meshes holding ~300 materials that are all the same three values.
+// They bake to a handful, and the day/night pass gets faster too: it used to
+// allocate two THREE.Color per column mesh per frame for 150 frames.
+function mergeTagged(tag, label) {
+  const list = [];
+  scene.traverse(function (o) {
+    if (o.isMesh && !o.isInstancedMesh && o.userData && o.userData[tag]) list.push(o);
+  });
+  if (!list.length) return 0;
+  const g = new THREE.Group(); g.name = label; scene.add(g);
+  return bakeMeshes(list, g, label);
+}
+
+(function stoneBudget() {
+  let saved = 0;
+  saved += mergeStaticGroup(scene.getObjectByName('wings'), 'wings');
+  saved += mergeStaticGroup(scene.getObjectByName('annexFittings'), 'annexFittings');
+  saved += mergeStaticGroup(typeof coastalFlora !== 'undefined' ? coastalFlora : null, 'coastalFlora');
+  saved += mergeStaticGroup(typeof kelpBed !== 'undefined' ? kelpBed : null, 'kelpBed');
+  saved += mergeTagged('isColumn', 'columns');
+  console.log('[Getty] stone budget — ' + saved + ' draw calls removed from static geometry');
+})();
+
+// ── THE ATTENTION BUDGET (2026-08-02) ───────────────────────
+// Same shape as the shadow budget above, and for the same reason: a rule
+// rather than a list, so every resident added later inherits it without
+// anyone remembering to wire it up.
+//
+// A resident near the camera runs every frame. A resident far from it runs
+// on a slower clock. Whoever you are FOLLOWING or MEETING is near by
+// definition, whatever the arithmetic says.
+const residentBudget = {
+  _last: Object.create(null),
+  _t: 0, near: 0, far: 0, ran: 0,
+  begin: function (t) { this._t = t; this.near = 0; this.far = 0; this.ran = 0; },
+  run: function (key, fn, t, mesh) {
+    let isNear = true;
+    if (mesh) {
+      const exempt = (typeof followAnimal !== 'undefined' && followAnimal.key === key) ||
+                     (typeof meetState !== 'undefined' && meetState.who === key);
+      if (!exempt) {
+        const r = QUALITY.nearRadius;
+        isNear = camera.position.distanceToSquared(mesh.position) <= r * r;
+      }
+    }
+    if (isNear) { this.near++; this.ran++; fn(t); return; }
+    this.far++;
+    const prev = this._last[key];
+    if (prev === undefined || t - prev >= 1 / QUALITY.farHz) {
+      this._last[key] = t; this.ran++; fn(t);
+    }
+  },
+  end: function () {},
+};
+
+// ============================================================
+// THE LIVING PIERCE (RULED 2026-08-02, Sailor)
+//
+// The residents pierce. All of them, through every layer.
+//
+// This is not a new rule — it is the 07-29 pierce-in ruling catching up with
+// itself. That ruling already named Ted alongside the acacia and the animals,
+// and then twelve residents arrived over three days and none of them inherited
+// it. This finishes the sentence.
+//
+// It also survives the reachability test, which is worth writing down because
+// it looks at first as though it shouldn't. The discriminator was never "can
+// you click it" — you can click a holding in the library and still never cross
+// to it. It is "can you OPERATE it." The graphmap, the easel, the G4 are
+// instruments; you work them. The residents are not: they patrol whether or
+// not anyone is watching, Petra will not come ashore because the medium
+// forbids it, and Horned Sphere will not come because he is asleep. A thing
+// with its own will that you cannot command is the strongest form of
+// unreachable the villa has. The living pierce.
+//
+// SCOPE — near band only (RULED with it). A resident pierces while inside
+// QUALITY.nearRadius and obeys occlusion beyond it. Piercing should read as
+// presence, not as clutter; Petra glowing through the mountain from 130 units
+// out to sea would make the effect meaningless. The band is the same one the
+// attention budget uses, so "near" means one thing in this file.
+//
+// MECHANISM — why this is not just depthTest:false. Switching depth testing
+// off does not only let an animal show through walls, it lets it show through
+// ITSELF: the far legs draw over the near flank and the body scrambles. §2¾.5
+// gotcha 1, which the holdings solved by hand-ordering a flat hang — an animal
+// cannot be hand-ordered because it turns around. So instead: the world draws,
+// the depth buffer is wiped, and the residents draw as their own pass. They
+// sort correctly against each other and float over all geography. Two scene
+// walks per frame is the price.
+//
+// Toggle with P, or from the 🧭 menu. Default on, remembered per device.
+// ============================================================
+const PIERCE_LAYER = 1;
+const livingPierce = { on: true, _state: Object.create(null) };
+try { const v = localStorage.getItem('dg_livingpierce'); if (v === '0') livingPierce.on = false; } catch (e) {}
+
+const PIERCE_BODIES = [
+  ['ted', tedTurner], ['trout', troutFish], ['seal', sealPup], ['y2k', y2kHusky],
+  ['otter', otterPrincess], ['petra', sharkPetra], ['kyle', dolphinKyle],
+  ['diddy', diddyKong], ['alrik', wizardAlrik], ['raven', ravenHornedSphere],
+  ['julia', heronJulia], ['emilia', stoatEmilia], ['adlib', catAdlib],
+  ['austin', pelicanAustin],
+];
+
+// The lights must be told they can still see the pierce layer or the residents
+// stop casting shadows the moment they cross into it — the shadow pass tests
+// object.layers against light.layers, and both default to layer 0 only.
+lights.sun.layers.enable(PIERCE_LAYER);
+lights.moonBeam.layers.enable(PIERCE_LAYER);
+
+function setSubtreeLayer(root, layer) {
+  root.traverse(function (o) { o.layers.set(layer); });
+}
+
+// Only walks a resident's subtree when its band actually changes, not per
+// frame — flipping 14 subtrees every frame would cost more than the pierce.
+function updateLivingPierce() {
+  const r = QUALITY.nearRadius, r2 = r * r;
+  for (let i = 0; i < PIERCE_BODIES.length; i++) {
+    const key = PIERCE_BODIES[i][0], body = PIERCE_BODIES[i][1];
+    if (!body) continue;
+    const want = (livingPierce.on && body.visible &&
+                  camera.position.distanceToSquared(body.position) <= r2)
+                 ? PIERCE_LAYER : 0;
+    if (livingPierce._state[key] === want) continue;
+    livingPierce._state[key] = want;
+    setSubtreeLayer(body, want);
+  }
+}
+
+function setLivingPierce(on) {
+  livingPierce.on = !!on;
+  try { localStorage.setItem('dg_livingpierce', livingPierce.on ? '1' : '0'); } catch (e) {}
+  updateLivingPierce();
+  const btn = document.getElementById('pierce-btn');
+  if (btn) btn.textContent = livingPierce.on ? '◈ Pierce · on' : '◈ Pierce · off';
+}
+function toggleLivingPierce() { setLivingPierce(!livingPierce.on); }
+
+window.addEventListener('keydown', function (e) {
+  if (e.key !== 'p' && e.key !== 'P') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  toggleLivingPierce();
+});
+
+// ── THE PERF HUD (2026-08-02) ───────────────────────────────
+// The gauge. It is permanent on purpose: the villa is going to keep growing,
+// and the only way expansion stays honest is if the cost of the last thing
+// added is visible while the next thing is being added. Toggle with the `
+// (backtick) key, or ?perf=1 to have it open on load. Draw calls is the
+// number that decides whether this feels solid — everything else is context.
+const perfHUD = (function () {
+  const el = document.createElement('div');
+  el.id = 'perf-hud';
+  el.style.cssText = [
+    'position:absolute', 'bottom:8px', 'left:8px', 'z-index:40',
+    'font:10px/1.45 ui-monospace,Menlo,Consolas,monospace',
+    'color:rgba(245,240,232,0.62)', 'background:rgba(12,10,8,0.72)',
+    'border:1px solid rgba(245,240,232,0.1)', 'border-radius:4px',
+    'padding:7px 9px', 'backdrop-filter:blur(6px)', 'pointer-events:auto',
+    'letter-spacing:0.02em', 'white-space:pre', 'cursor:pointer',
+    'display:none', 'min-width:150px',
+  ].join(';');
+  el.title = 'click: cycle pixel grid · shift-click: swap quality tier · ` to hide';
+  document.body.appendChild(el);
+
+  let frames = 0, acc = 0, worst = 0, fps = 0, ms = 0, spike = 0, last = performance.now();
+  const state = { visible: new URLSearchParams(location.search).get('perf') === '1' };
+  el.style.display = state.visible ? 'block' : 'none';
+
+  const GRID_STEPS = [1.0, 0.85, 0.7, 0.58, 0.45];
+  el.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (e.shiftKey) {
+      const next = QUALITY.tier === 'low' ? 'high' : 'low';
+      try { localStorage.setItem('dg_quality', next); } catch (err) {}
+      location.reload();
+      return;
+    }
+    let i = 0, best = 9;
+    GRID_STEPS.forEach(function (g, k) { const d = Math.abs(g - PIXEL_GRID); if (d < best) { best = d; i = k; } });
+    PIXEL_GRID = GRID_STEPS[(i + 1) % GRID_STEPS.length];
+    try { localStorage.setItem('dg_pixelgrid', String(PIXEL_GRID)); } catch (err) {}
+    applyPixelGrid();
+  });
+
+  window.addEventListener('keydown', function (e) {
+    if (e.key !== '`' || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    state.visible = !state.visible;
+    el.style.display = state.visible ? 'block' : 'none';
+  });
+
+  let meshes = 0, tris = 0;
+  function recount() {
+    meshes = 0; tris = 0;
+    scene.traverse(function (o) {
+      if (!o.isMesh && !o.isInstancedMesh) return;
+      meshes++;
+      const g = o.geometry; if (!g) return;
+      const n = g.index ? g.index.count / 3 : (g.attributes.position ? g.attributes.position.count / 3 : 0);
+      tris += n * (o.isInstancedMesh ? o.count : 1);
+    });
+  }
+  let recountIn = 0;
+
+  return {
+    frame: function () {
+      const now = performance.now(), dt = now - last; last = now;
+      acc += dt; frames++; if (dt > worst) worst = dt;
+      if (acc >= 500) { fps = 1000 / (acc / frames); ms = acc / frames; spike = worst; acc = 0; frames = 0; worst = 0; }
+      if (!state.visible) return;
+      if (--recountIn <= 0) { recount(); recountIn = 120; }
+      const i = renderer.info;
+      el.textContent =
+        'fps    ' + fps.toFixed(0).padStart(6) + '   ' + ms.toFixed(1) + 'ms\n' +
+        'spike  ' + spike.toFixed(1).padStart(6) + 'ms\n' +
+        'calls  ' + String(i.render.calls).padStart(6) + '\n' +
+        'tris   ' + String(Math.round(i.render.triangles / 1000) + 'k').padStart(6) + '\n' +
+        'meshes ' + String(meshes).padStart(6) + '  ' + Math.round(tris / 1000) + 'k\n' +
+        'geo/tex' + String(i.memory.geometries).padStart(6) + ' /' + i.memory.textures + '\n' +
+        'cast   ' + String((lights.sun.castShadow ? 1 : 0) + (lights.moonBeam.castShadow ? 1 : 0)).padStart(6) + ' light\n' +
+        'resid  ' + String(residentBudget.ran).padStart(6) + ' of ' + (residentBudget.near + residentBudget.far) +
+          '  (' + residentBudget.near + ' near)\n' +
+        'tier   ' + QUALITY.tier.padStart(6) + '   grid ' + PIXEL_GRID.toFixed(2);
+    },
+  };
+})();
+
 function animate() {
   requestAnimationFrame(animate);
   animate._fc = (animate._fc || 0) + 1;
@@ -14787,24 +15402,20 @@ function animate() {
     const ds = diatribeState;
     const lerpRate = 0.04;
 
-    // Ring1 radius interpolation
-    const currentR1 = ring1.geometry.parameters.radius;
-    const targetR1 = ds.ring1Size;
-    if (Math.abs(currentR1 - targetR1) > 0.005) {
-      ring1.geometry.dispose();
-      const newR = currentR1 + (targetR1 - currentR1) * lerpRate;
-      ring1.geometry = new THREE.TorusGeometry(newR, 0.018, 12, 48);
-    }
+    // ── RINGS RESIZE BY SCALE, NOT BY REBUILD (2026-08-02) ─────
+    // These two used to dispose() their TorusGeometry and allocate a new one
+    // EVERY FRAME the aperture was moving — a fresh vertex buffer uploaded to
+    // the GPU 60×/second for a radius change. That is a hitch you can feel and
+    // it was the single worst allocation in the file. The geometry is now
+    // built once at radius 1 and the radius is carried on .scale, which is a
+    // matrix update and costs nothing. Identical on screen.
+    ringGeoState.r1 += (ds.ring1Size - ringGeoState.r1) * lerpRate;
+    ring1.scale.set(ringGeoState.r1, ringGeoState.r1, 1);
 
-    // Ring2 radius interpolation (ghost ring)
+    // Ring2 (ghost ring)
     if (Math.abs(ds.position) > 0.05) {
-      const currentR2 = ring2.geometry.parameters.radius;
-      const targetR2 = ds.ring2Size;
-      if (Math.abs(currentR2 - targetR2) > 0.005) {
-        ring2.geometry.dispose();
-        const newR = currentR2 + (targetR2 - currentR2) * lerpRate;
-        ring2.geometry = new THREE.TorusGeometry(newR, 0.014, 12, 48);
-      }
+      ringGeoState.r2 += (ds.ring2Size - ringGeoState.r2) * lerpRate;
+      ring2.scale.set(ringGeoState.r2, ringGeoState.r2, 1);
       ringMat2.opacity += (0.5 - ringMat2.opacity) * 0.03;
     } else {
       ringMat2.opacity += (0 - ringMat2.opacity) * 0.03;
@@ -14832,13 +15443,21 @@ function animate() {
     asteriskGroup.rotation.z = Math.sin(t * 0.25) * 0.04;
 
     // Ring glow tracks ring1
-    const r1Scale = ring1.geometry.parameters.radius * 3;
+    const r1Scale = ringGeoState.r1 * 3;   // was geometry.parameters.radius, now the live radius
     ringGlow1.scale.set(r1Scale, r1Scale * 0.35, 1);
     ringGlow1.material.opacity = 0.04 + Math.sin(t * 0.6) * 0.02;
   }
 
-  // Star twinkle
-  if (starMaterial.opacity > 0.01) {
+  // ── STAR TWINKLE, ON ITS OWN CLOCK (2026-08-02) ──────────────
+  // KEPT DELIBERATELY NOISY. The per-star Math.random() is the one place in
+  // the villa where a value is re-rolled every tick rather than eased, and
+  // that white-noise scintillation is the point — do not replace it with a
+  // smooth sine. What changed is only the RATE: it ran 800 randoms plus a
+  // full 3.2 KB attribute upload 60×/second, for a twinkle nobody can read
+  // faster than about 15 Hz. Now it re-rolls on a fixed 15 Hz clock, which
+  // is a quarter of the work and, if anything, reads MORE like the period.
+  if (starMaterial.opacity > 0.01 && t - starTwinkle.last >= 1 / 15) {
+    starTwinkle.last = t;
     const sizes = stars.geometry.attributes.size;
     for (let i = 0; i < starCount; i++) {
       sizes.array[i] = (0.3 + Math.random() * 0.8) * (0.5 + Math.sin(t * 1.5 + i * 5.7) * 0.5);
@@ -14870,20 +15489,37 @@ function animate() {
   // Walk mode (Ted under Sailor's wheel) — click-to-walk
   updateVisitor(t);
 
-  // Trout Fish — arrival swim / resident float
-  updateTrout(t);
-  animateSeal(t);
-  animateY2k(t);
-  animateOtter(t);
-  animateShark(t);
-  animateDolphin(t);
-  animateDiddy(t);
-  animateAlrik(t);
-  animateRaven(t);
-  animateHeron(t);
-  animateStoat(t);
-  animateCat(t);
-  animateAustin(t);
+  // ── THE ATTENTION BUDGET (2026-08-02) ────────────────────────
+  // Thirteen behaviour loops used to run at full rate always, so Petra's
+  // circuit 130 units out to sea and Diddy's route along the back range were
+  // simulated in full while you stood in the gallery looking the other way.
+  // Now: residents inside QUALITY.nearRadius of the camera pivot run every
+  // frame, exactly as before. Residents outside it run on a slower clock —
+  // 20 Hz on desktop, 10 Hz on a phone.
+  //
+  // Note what this deliberately IS: at distance the far cast moves in visible
+  // steps rather than smoothly. That is not damage being hidden, it is the
+  // period's own answer to the same problem, and at 40+ units it reads as
+  // the world ticking rather than as a fault. §4 of the design rules.
+  //
+  // Two residents are exempt and always run every frame: whoever the camera
+  // is following, and whoever is currently being met — being looked at is
+  // what "near" actually means.
+  residentBudget.begin(t);
+  residentBudget.run('trout',   updateTrout,    t, troutFish);
+  residentBudget.run('seal',    animateSeal,    t, sealPup);
+  residentBudget.run('y2k',     animateY2k,     t, y2kHusky);
+  residentBudget.run('otter',   animateOtter,   t, otterPrincess);
+  residentBudget.run('petra',   animateShark,   t, sharkPetra);
+  residentBudget.run('kyle',    animateDolphin, t, dolphinKyle);
+  residentBudget.run('diddy',   animateDiddy,   t, diddyKong);
+  residentBudget.run('alrik',   animateAlrik,   t, wizardAlrik);
+  animateRaven(t);   // asleep on the ridge; the cheapest loop in the file, and always in frame
+  residentBudget.run('julia',   animateHeron,   t, heronJulia);
+  residentBudget.run('emilia',  animateStoat,   t, stoatEmilia);
+  residentBudget.run('adlib',   animateCat,     t, catAdlib);
+  residentBudget.run('austin',  animateAustin,  t, pelicanAustin);
+  residentBudget.end();
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)
@@ -14910,18 +15546,50 @@ function animate() {
   // Story element animations (settle, scale-in, etc.)
   updateStoryAnimations();
 
-  renderer.render(scene, camera);
+  // ── THE TWO PASSES (living pierce, 2026-08-02) ───────────────
+  // Pass 1 draws the world. The depth buffer is then wiped and pass 2 draws
+  // the residents, so they keep their own depth sorting against each other
+  // while standing in front of all geography. Shadow maps are computed once,
+  // in pass 1 — without pinning autoUpdate the second render would rebuild
+  // every depth map and cost more than the effect.
+  updateLivingPierce();
+  if (livingPierce.on) {
+    renderer.autoClear = false;
+    // Pass 1 — the world. A Color scene.background makes three.js force a full
+    // clear at the top of EVERY render() call, so pass 1 still clears normally
+    // even with autoClear off.
+    camera.layers.set(0);
+    renderer.render(scene, camera);
+    // Pass 2 — the living. background must go to null for the duration or that
+    // same forced clear wipes pass 1 and you get residents on a black field.
+    // This cost an hour; it is the only non-obvious line in the whole feature.
+    const bg = scene.background;
+    scene.background = null;
+    renderer.shadowMap.autoUpdate = false;   // reuse pass 1's depth maps
+    camera.layers.set(PIERCE_LAYER);
+    renderer.clearDepth();
+    renderer.render(scene, camera);
+    scene.background = bg;
+    renderer.shadowMap.autoUpdate = true;
+    camera.layers.set(0);
+    renderer.autoClear = true;
+  } else {
+    camera.layers.enableAll();
+    renderer.render(scene, camera);
+  }
+  perfHUD.frame();
 }
 
 function onResize() {
   const w = container.clientWidth, h = container.clientHeight;
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
+  applyPixelGrid();   // owns setSize now — the grid has to survive a rotate
 }
 window.addEventListener('resize', onResize);
 
 updateCamera();
+setLivingPierce(livingPierce.on);   // sync the menu label + layers before the first frame
 animate();
 
 console.log('[Dream Getty v6] Scene loaded. Meshes:', (() => { let c = 0; scene.traverse(o => { if (o.isMesh) c++; }); return c; })());
