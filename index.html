@@ -705,15 +705,15 @@
   </div>
 </div>
 
-<!-- Identity panel — who this device speaks as, and its key -->
+<!-- Identity panel — who this device speaks as, and its passcode -->
 <div id="identity-panel">
   <div id="ip-title">Who are you in the villa?</div>
   <div id="ip-avatars"></div>
-  <input id="ip-token" type="password" placeholder="your key from Sailor (ghp_… or github_pat_…)">
+  <input id="ip-token" type="password" placeholder="the passcode Sailor gave you">
   <div id="ip-row"><button class="ui-btn" onclick="saveIdentityFromPanel()">enter the villa</button>
   <button class="ui-btn" onclick="document.getElementById('identity-panel').classList.remove('open')">later</button>
-  <button class="ui-btn" id="ip-forget" style="display:none" onclick="forgetIdentity()">forget my key</button></div>
-  <div id="ip-note">the key lives only on this device — and so does anyone else who uses it. not on a shared computer.</div>
+  <button class="ui-btn" id="ip-forget" style="display:none" onclick="forgetIdentity()">forget me</button></div>
+  <div id="ip-note">the passcode stays on this device. it lets you write in the guestbook and nothing else.</div>
 </div>
 
 <div id="nav-bar">
@@ -8424,6 +8424,21 @@ setTimeout(function () { if (austinState.mode === 'off') toggleAustin(); }, 4400
 const FEED_REPO = 'sailor7613/dreamgetty';
 const feedState = { entries: [], loaded: false, lastError: null };
 
+// ── THE GATE (2026-08-02) ────────────────────────────────────────────
+// Writes no longer go to GitHub from the browser. They go here, and the gate
+// holds the token on its own side. Reads are unchanged — feed/manifest.json is
+// fetched from this origin with no credential at all, as it always was.
+//
+// Why: a passcode checked in this file is a costume, because this file is a
+// file anyone can read. And the design it replaces put a real GitHub token in
+// every friend's localStorage on a public origin, which made one XSS bug worth
+// every key in the villa. The gate is the smallest thing that fixes both.
+//
+// SET THIS after `wrangler deploy` prints your worker URL. Until it is set,
+// the villa is read-only and says so honestly rather than failing at the post.
+const GATE = 'https://villa-gate.shanecorwin.workers.dev';
+const gateReady = () => /^https:\/\/\S+$/.test(GATE);
+
 const VILLA_PLACES = [
   { name: 'the gallery', x: 0, z: 0 }, { name: 'the plaza', x: 10, z: 6 },
   { name: 'the pool', x: 0, z: 20 }, { name: 'the overlook', x: -9, z: 44 },
@@ -8441,13 +8456,24 @@ function nearestPlace(pos) {
   return best.name;
 }
 
-// ── Identity: who this device speaks as, and its key ──
+// ── Identity: who this device speaks as, and its passcode ──
+// The stored shape is { avatar, pass }. It used to be { avatar, token } and
+// the token was a real GitHub credential; any of those still sitting in a
+// friend's browser are DISCARDED on read rather than migrated. A credential
+// that should never have been there does not get carried forward — they type
+// the house passcode once and the token is gone from that device for good.
 function feedIdentity() {
-  try { return JSON.parse(localStorage.getItem('dg_identity') || 'null'); }
-  catch (e) { return null; }
+  let id = null;
+  try { id = JSON.parse(localStorage.getItem('dg_identity') || 'null'); } catch (e) { return null; }
+  if (!id || typeof id !== 'object') return null;
+  if (id.token) {
+    delete id.token;
+    try { localStorage.setItem('dg_identity', JSON.stringify({ avatar: id.avatar, pass: '' })); } catch (e) {}
+  }
+  return { avatar: id.avatar, pass: typeof id.pass === 'string' ? id.pass : '' };
 }
-function saveFeedIdentity(avatar, token) {
-  localStorage.setItem('dg_identity', JSON.stringify({ avatar: avatar, token: token }));
+function saveFeedIdentity(avatar, pass) {
+  localStorage.setItem('dg_identity', JSON.stringify({ avatar: avatar, pass: pass }));
 }
 
 // ── THE BOUNDARY (SECURITY — 2026-08-02) ────────────────────────────
@@ -8513,61 +8539,72 @@ loadFeed();
 setInterval(loadFeed, 5 * 60 * 1000);   // the villa settles — refresh on its own clock
 
 // ── Write: statement file + manifest update, contents API, ruled shape ──
-function ghPut(path, contentObj, message, token, sha) {
-  const body = {
-    message: message,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(contentObj, null, 1)))),
-    branch: 'main',
-  };
-  if (sha) body.sha = sha;
-  return fetch('https://api.github.com/repos/' + FEED_REPO + '/contents/' + path, {
-    method: 'PUT',
-    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
-    body: JSON.stringify(body),
-  }).then(r => { if (!r.ok) return r.json().then(j => { throw new Error(j.message || r.status); }); return r.json(); });
-}
-function ghGetSha(path, token) {
-  return fetch('https://api.github.com/repos/' + FEED_REPO + '/contents/' + path + '?ref=main&t=' + Date.now(), {
-    headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json' },
-    cache: 'no-store',
-  }).then(r => r.ok ? r.json() : null);
-}
-
+// ── Write: through the gate. No credential, no api.github.com. ──
+// ghPut and ghGetSha are GONE. They were the only two functions in this file
+// that touched api.github.com, and they needed a real GitHub token in the
+// browser to work. Deleting them is the actual security change; everything
+// else this session was defence around the hole they left open.
 function postStatement(text, toKey, replyTo) {
   const id = feedIdentity();
-  if (!id || !id.token) { openIdentityPanel(); return Promise.reject(new Error('no key')); }
+  if (!id || !id.pass) { openIdentityPanel(); return Promise.reject(new Error('no key')); }
+  if (!gateReady()) {
+    const fb = document.getElementById('fc-feed-body');
+    if (fb) fb.textContent = 'the villa has no door yet — Sailor has not opened it';
+    return Promise.reject(new Error('no gate'));
+  }
   const authorMesh = AVATARS[id.avatar] && AVATARS[id.avatar]();
   // The stamp: where the exchange is happening — the followed resident's
   // spot if you're at someone's card, else your own avatar's.
   const stampMesh = (toKey && AVATARS[toKey] && AVATARS[toKey]().visible) ? AVATARS[toKey]() : authorMesh;
   const pos = stampMesh ? stampMesh.position : new THREE.Vector3();
-  const entry = {
-    id: Date.now() + '-' + id.avatar,
-    author: id.avatar,
+  const place = meetState.label || nearestPlace(pos);   // a meeting names its own place
+
+  // The optimistic entry is a LOCAL PLACEHOLDER ONLY. The gate authors the
+  // real one — its id and its timestamp are the server's, not ours — and the
+  // placeholder is swapped for it on success. Nothing this function invents
+  // is ever what gets stored.
+  const tempId = 'pending-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+  const optimistic = {
+    id: tempId, author: id.avatar,
     to: toKey && toKey !== id.avatar ? toKey : null,
-    text: text.slice(0, 400),
-    t: new Date().toISOString(),
+    text: text.slice(0, 400), t: new Date().toISOString(),
     pos: [+pos.x.toFixed(1), +pos.y.toFixed(1), +pos.z.toFixed(1)],
-    place: meetState.label || nearestPlace(pos),   // a meeting names its own place
-    replyTo: replyTo || null,
+    place: place, replyTo: replyTo || null,
   };
-  feedState.entries.unshift(entry);            // optimistic
-  renderFeedInto(followAnimal.key || id.avatar);
-  if (typeof renderStatementField === 'function') renderStatementField();
-  const commitMsg = 'feed: ' + entry.author + (entry.to ? ' → ' + entry.to : '') + ' @ ' + entry.place;
-  return ghPut('feed/' + entry.id + '.json', entry, commitMsg, id.token)
-    .then(() => ghGetSha('feed/manifest.json', id.token))
-    .then(m => {
-      const entries = feedState.entries.slice().sort((a, b) => (a.t < b.t ? 1 : -1));
-      return ghPut('feed/manifest.json', { entries: entries }, commitMsg + ' (manifest)', id.token, m && m.sha);
+  const repaint = () => {
+    renderFeedInto(followAnimal.key || id.avatar);
+    if (typeof renderStatementField === 'function') renderStatementField();
+  };
+  feedState.entries.unshift(optimistic);
+  repaint();
+
+  return fetch(GATE + '/say', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      pass: id.pass, avatar: id.avatar, text: text.slice(0, 400),
+      to: toKey && toKey !== id.avatar ? toKey : null,
+      replyTo: replyTo || null, place: place, pos: optimistic.pos,
+    }),
+  })
+    .then(r => r.json().catch(() => ({})).then(j => {
+      if (!r.ok) throw new Error(j.error || ('the villa could not remember that (' + r.status + ')'));
+      return j;
+    }))
+    .then(j => {
+      // swap the placeholder for what the gate actually wrote
+      feedState.entries = feedState.entries.filter(e => e.id !== tempId);
+      if (j.entry) feedState.entries.unshift(sanitizeFeedEntry(j.entry));
+      feedState.entries.sort((a, b) => (a.t < b.t ? 1 : -1));
+      repaint();
+      return j;
     })
     .catch(err => {
-      feedState.entries = feedState.entries.filter(e => e.id !== entry.id);   // revert optimism
-      renderFeedInto(followAnimal.key || id.avatar);
-      if (typeof renderStatementField === 'function') renderStatementField();
+      feedState.entries = feedState.entries.filter(e => e.id !== tempId);   // revert optimism
+      repaint();
       feedState.lastError = err.message;
       const fb = document.getElementById('fc-feed-body');
-      if (fb) fb.textContent = 'the villa could not remember that — ' + err.message;
+      if (fb) fb.textContent = err.message;
       throw err;
     });
 }
@@ -8801,7 +8838,7 @@ function renderFeedInto(key) {
   });
   note.textContent = '';
   if (!entries.length) note.textContent = feedState.loaded ? '— nothing said here yet —' : '— listening… —';
-  if (!id || !id.token) {
+  if (!id || !id.pass) {
     input.placeholder = 'the villa hears you but cannot remember — ask Sailor for a key';
   } else {
     input.placeholder = mine ? 'say something to the villa…' : 'leave word for ' + (PROFILES[key] || {}).name + '…';
@@ -8817,7 +8854,7 @@ function renderFeedInto(key) {
     const text = input.value.trim();
     if (!text) return;
     const id = feedIdentity();
-    if (!id || !id.token) { openIdentityPanel(); return; }
+    if (!id || !id.pass) { openIdentityPanel(); return; }
     const key = followAnimal.key || id.avatar;
     const toKey = key === id.avatar ? null : key;
     input.value = '';
@@ -8829,13 +8866,22 @@ function renderFeedInto(key) {
 })();
 
 // ── Identity panel ──
+// Avatars are ASSIGNED, personally (Sailor, 2026-08-02) — the picker offers
+// the whole company rather than the four it used to, because a friend needs to
+// find the one that is theirs. Ted is staff and Horned Sphere is asleep and
+// cannot be summoned, so neither is assignable; SPEAKABLE in the gate is the
+// same list, and the gate refuses anything outside it.
+const ASSIGNABLE = ['trout', 'seal', 'y2k', 'otter', 'petra', 'kyle', 'diddy',
+                    'alrik', 'julia', 'emilia', 'adlib', 'austin'];
+
 function openIdentityPanel() {
   const panel = document.getElementById('identity-panel');
   const wrap = document.getElementById('ip-avatars');
   wrap.innerHTML = '';
   const current = feedIdentity();
-  ['ted', 'trout', 'seal', 'y2k'].forEach(function (k) {
+  ASSIGNABLE.forEach(function (k) {
     const p = PROFILES[k];
+    if (!p) return;
     const d = document.createElement('div');
     d.className = 'ip-avatar' + (current && current.avatar === k ? ' selected' : '');
     d.textContent = p.emoji;
@@ -8847,53 +8893,54 @@ function openIdentityPanel() {
     };
     wrap.appendChild(d);
   });
-  // The key is never re-displayed (SECURITY — 2026-08-02). A held key shows as
-  // a placeholder and an empty field; saving with the field empty keeps it.
-  // A password input is one devtools attribute away from being plain text, and
-  // the villa has no reason to put a live credential back on screen.
-  const tokenIn = document.getElementById('ip-token');
-  tokenIn.value = '';
-  tokenIn.placeholder = (current && current.token)
-    ? '— a key is held on this device —'
-    : 'your key from Sailor (ghp_… or github_pat_…)';
+  // The passcode is never re-displayed. A held one shows as a placeholder and
+  // an empty field; saving with the field empty keeps it. A password input is
+  // one devtools attribute away from being plain text.
+  const passIn = document.getElementById('ip-token');
+  passIn.value = '';
+  passIn.placeholder = (current && current.pass)
+    ? '— the villa knows you on this device —'
+    : 'the passcode Sailor gave you';
   const forget = document.getElementById('ip-forget');
-  if (forget) forget.style.display = (current && current.token) ? '' : 'none';
+  if (forget) forget.style.display = (current && current.pass) ? '' : 'none';
+  const note = document.getElementById('ip-note');
+  if (note) {
+    note.textContent = gateReady()
+      ? 'the passcode stays on this device. it lets you write in the guestbook and nothing else.'
+      : 'the villa is listening but its door is not open yet — ask Sailor.';
+  }
   panel.classList.add('open');
 }
 
-// The key is a GitHub PAT and nothing else. Refusing anything else is not
-// security — it is a guard against the likelier accident, which is pasting
-// the wrong secret (an Anthropic key, a password) into a field that then
-// writes it to localStorage on a public origin.
-const PAT_SHAPE = /^(ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{20,})$/;
+// No shape test any more, and that is the point: a passcode has no shape. What
+// used to live here refused anything that was not a GitHub token, because a
+// GitHub token was what this field took. It no longer takes credentials at
+// all — the worst thing a stolen passcode does now is write a guestbook entry,
+// and Sailor revokes it by editing one line of the gate's config.
 function saveIdentityFromPanel() {
   const sel = document.querySelector('#ip-avatars .ip-avatar.selected');
   const typed = document.getElementById('ip-token').value.trim();
   const note = document.getElementById('ip-note');
   const current = feedIdentity();
   if (!sel) { if (note) note.textContent = 'choose who you are in the villa first'; return; }
-  if (typed && !PAT_SHAPE.test(typed)) {
-    if (note) note.textContent = 'that is not a villa key — a key begins ghp_ or github_pat_. nothing was saved.';
-    return;
-  }
-  const token = typed || ((current && current.token) || '');   // empty field keeps the held key
-  saveFeedIdentity(sel.dataset.key, token);
+  const pass = typed || ((current && current.pass) || '');   // empty field keeps the held one
+  if (!pass) { if (note) note.textContent = 'the villa needs the passcode before it can remember you'; return; }
+  saveFeedIdentity(sel.dataset.key, pass);
   document.getElementById('identity-panel').classList.remove('open');
   const b = document.getElementById('identity-btn');
-  if (b) b.textContent = '⚿ ' + (PROFILES[sel.dataset.key] || {}).name;
+  if (b) b.textContent = '\u269a ' + (PROFILES[sel.dataset.key] || {}).name;
   if (followAnimal.key) renderFeedInto(followAnimal.key);
 }
 
-// Leaving the villa on a borrowed machine. The counterpart to "the key lives
-// only on this device" — a device you do not keep needs a way to forget.
+// Leaving the villa on a borrowed machine.
 function forgetIdentity() {
   try { localStorage.removeItem('dg_identity'); } catch (e) {}
   const t = document.getElementById('ip-token');
-  if (t) { t.value = ''; t.placeholder = 'your key from Sailor (ghp_… or github_pat_…)'; }
+  if (t) { t.value = ''; t.placeholder = 'the passcode Sailor gave you'; }
   const f = document.getElementById('ip-forget'); if (f) f.style.display = 'none';
-  const b = document.getElementById('identity-btn'); if (b) b.textContent = '⚿ identity';
+  const b = document.getElementById('identity-btn'); if (b) b.textContent = '\u269a identity';
   const note = document.getElementById('ip-note');
-  if (note) note.textContent = 'the key is gone from this device. the villa will not remember you here.';
+  if (note) note.textContent = 'forgotten. the villa will not remember you on this device.';
   if (followAnimal.key) renderFeedInto(followAnimal.key);
 }
 document.getElementById('ip-token').addEventListener('keydown', function (e) { e.stopPropagation(); });
