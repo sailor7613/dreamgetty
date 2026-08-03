@@ -708,6 +708,7 @@
 <!-- Identity panel — who this device speaks as, and its passcode -->
 <div id="identity-panel">
   <div id="ip-title">Who are you in the villa?</div>
+  <div id="ip-sub">choose a resident, or enter your own key and the villa will know you</div>
   <div id="ip-avatars"></div>
   <input id="ip-token" type="password" placeholder="the passcode Sailor gave you">
   <div id="ip-row"><button class="ui-btn" id="ip-enter" onclick="saveIdentityFromPanel()">enter the villa</button>
@@ -8934,28 +8935,39 @@ function openIdentityPanel() {
 // Before this, the passcode was saved without ever being tested: a typo saved
 // silently and the visitor found out when their first statement vanished, and
 // rotating HOUSE_CODE stranded everyone holding the old one with no route back
-// except knowing to reopen this menu. Both are the same bug \u2014 the villa knew
+// except knowing to reopen this menu. Both are the same bug — the villa knew
 // the key was bad and did not say so at the moment it could still be fixed.
+//
+// AND THE GATE MAY NAME YOU. /verify returns an avatar when a per-person
+// passcode resolves to one. That is how Ted works: he is not in the picker,
+// because the docent's voice cannot be something anyone holding the house code
+// can put on. Sailor types his own code and the villa recognises him. Everyone
+// else gets the house code and chooses from the twelve.
 function saveIdentityFromPanel() {
   const sel = document.querySelector('#ip-avatars .ip-avatar.selected');
   const typed = document.getElementById('ip-token').value.trim();
   const note = document.getElementById('ip-note');
   const btn = document.getElementById('ip-enter');
   const current = feedIdentity();
-  if (!sel) { if (note) note.textContent = 'choose who you are in the villa first'; return; }
   const pass = typed || ((current && current.pass) || '');   // empty field keeps the held one
   if (!pass) { if (note) note.textContent = 'the villa needs the passcode before it can remember you'; return; }
 
-  const finish = () => {
-    saveFeedIdentity(sel.dataset.key, pass);
+  const finish = (avatar) => {
+    saveFeedIdentity(avatar, pass);
     document.getElementById('identity-panel').classList.remove('open');
     const b = document.getElementById('identity-btn');
-    if (b) b.textContent = '\u269a ' + (PROFILES[sel.dataset.key] || {}).name;
+    if (b) b.textContent = '\u269a ' + ((PROFILES[avatar] || {}).name || avatar);
     if (followAnimal.key) renderFeedInto(followAnimal.key);
   };
+  // Used when the gate has not named anyone: the choice is the visitor's.
+  const finishChosen = () => {
+    if (!sel) { if (note) note.textContent = 'choose who you are in the villa first'; return false; }
+    finish(sel.dataset.key);
+    return true;
+  };
 
-  if (!gateReady()) { finish(); return; }        // no door yet \u2014 nothing to check against
-  if (note) note.textContent = 'the villa is listening\u2026';
+  if (!gateReady()) { finishChosen(); return; }   // no door yet — nothing to check against
+  if (note) note.textContent = 'the villa is listening…';
   if (btn) btn.disabled = true;
   fetch(GATE + '/verify', {
     method: 'POST', headers: { 'content-type': 'application/json' },
@@ -8966,16 +8978,25 @@ function saveIdentityFromPanel() {
       if (btn) btn.disabled = false;
       if (!res.ok) {
         if (note) note.textContent = (res.j && res.j.error) || 'the villa does not know that key';
-        return;                                   // nothing saved \u2014 they can try again
+        return;                                   // nothing saved — they can try again
       }
-      finish();
+      const assigned = res.j && res.j.avatar;
+      if (assigned && AVATARS[assigned]) {
+        // The gate knows this person. Their pick, if any, is not consulted —
+        // the same rule the server applies when the statement is written.
+        if (note) note.textContent = 'the villa knows you — welcome back, ' +
+          ((PROFILES[assigned] || {}).name || assigned);
+        finish(assigned);
+        return;
+      }
+      finishChosen();
     })
     .catch(() => {
-      // The gate is unreachable \u2014 offline, or Cloudflare is having a day. Save
+      // The gate is unreachable — offline, or Cloudflare is having a day. Save
       // anyway rather than locking someone out of their own identity over a
       // network blip; the post path will tell them if the key is truly bad.
       if (btn) btn.disabled = false;
-      finish();
+      finishChosen();
     });
 }
 
