@@ -710,7 +710,7 @@
   <div id="ip-title">Who are you in the villa?</div>
   <div id="ip-avatars"></div>
   <input id="ip-token" type="password" placeholder="the passcode Sailor gave you">
-  <div id="ip-row"><button class="ui-btn" onclick="saveIdentityFromPanel()">enter the villa</button>
+  <div id="ip-row"><button class="ui-btn" id="ip-enter" onclick="saveIdentityFromPanel()">enter the villa</button>
   <button class="ui-btn" onclick="document.getElementById('identity-panel').classList.remove('open')">later</button>
   <button class="ui-btn" id="ip-forget" style="display:none" onclick="forgetIdentity()">forget me</button></div>
   <div id="ip-note">the passcode stays on this device. it lets you write in the guestbook and nothing else.</div>
@@ -8588,7 +8588,11 @@ function postStatement(text, toKey, replyTo) {
     }),
   })
     .then(r => r.json().catch(() => ({})).then(j => {
-      if (!r.ok) throw new Error(j.error || ('the villa could not remember that (' + r.status + ')'));
+      if (!r.ok) {
+        const e = new Error(j.error || ('the villa could not remember that (' + r.status + ')'));
+        e.stale = (r.status === 401);   // the key is wrong, not the network
+        throw e;
+      }
       return j;
     }))
     .then(j => {
@@ -8605,6 +8609,15 @@ function postStatement(text, toKey, replyTo) {
       feedState.lastError = err.message;
       const fb = document.getElementById('fc-feed-body');
       if (fb) fb.textContent = err.message;
+      // A key that the villa no longer knows is not an error to read and
+      // shrug at — it is a door to reopen. This is what happens to every
+      // friend the moment Sailor rotates the house code, so it has to land
+      // somewhere they can act on rather than in a line of red text.
+      if (err.stale) {
+        const note = document.getElementById('ip-note');
+        openIdentityPanel();
+        if (note) note.textContent = 'the villa no longer knows that key — ask Sailor for the current one';
+      }
       throw err;
     });
 }
@@ -8917,19 +8930,53 @@ function openIdentityPanel() {
 // GitHub token was what this field took. It no longer takes credentials at
 // all — the worst thing a stolen passcode does now is write a guestbook entry,
 // and Sailor revokes it by editing one line of the gate's config.
+// THE DOOR IS CHECKED AT THE DOOR (2026-08-02).
+// Before this, the passcode was saved without ever being tested: a typo saved
+// silently and the visitor found out when their first statement vanished, and
+// rotating HOUSE_CODE stranded everyone holding the old one with no route back
+// except knowing to reopen this menu. Both are the same bug \u2014 the villa knew
+// the key was bad and did not say so at the moment it could still be fixed.
 function saveIdentityFromPanel() {
   const sel = document.querySelector('#ip-avatars .ip-avatar.selected');
   const typed = document.getElementById('ip-token').value.trim();
   const note = document.getElementById('ip-note');
+  const btn = document.getElementById('ip-enter');
   const current = feedIdentity();
   if (!sel) { if (note) note.textContent = 'choose who you are in the villa first'; return; }
   const pass = typed || ((current && current.pass) || '');   // empty field keeps the held one
   if (!pass) { if (note) note.textContent = 'the villa needs the passcode before it can remember you'; return; }
-  saveFeedIdentity(sel.dataset.key, pass);
-  document.getElementById('identity-panel').classList.remove('open');
-  const b = document.getElementById('identity-btn');
-  if (b) b.textContent = '\u269a ' + (PROFILES[sel.dataset.key] || {}).name;
-  if (followAnimal.key) renderFeedInto(followAnimal.key);
+
+  const finish = () => {
+    saveFeedIdentity(sel.dataset.key, pass);
+    document.getElementById('identity-panel').classList.remove('open');
+    const b = document.getElementById('identity-btn');
+    if (b) b.textContent = '\u269a ' + (PROFILES[sel.dataset.key] || {}).name;
+    if (followAnimal.key) renderFeedInto(followAnimal.key);
+  };
+
+  if (!gateReady()) { finish(); return; }        // no door yet \u2014 nothing to check against
+  if (note) note.textContent = 'the villa is listening\u2026';
+  if (btn) btn.disabled = true;
+  fetch(GATE + '/verify', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ pass: pass }),
+  })
+    .then(r => r.json().catch(() => ({})).then(j => ({ ok: r.ok, j: j })))
+    .then(res => {
+      if (btn) btn.disabled = false;
+      if (!res.ok) {
+        if (note) note.textContent = (res.j && res.j.error) || 'the villa does not know that key';
+        return;                                   // nothing saved \u2014 they can try again
+      }
+      finish();
+    })
+    .catch(() => {
+      // The gate is unreachable \u2014 offline, or Cloudflare is having a day. Save
+      // anyway rather than locking someone out of their own identity over a
+      // network blip; the post path will tell them if the key is truly bad.
+      if (btn) btn.disabled = false;
+      finish();
+    });
 }
 
 // Leaving the villa on a borrowed machine.
