@@ -207,10 +207,14 @@
   #identity-panel.open { display: block; }
   body.light #identity-panel { background: rgba(245,242,235,0.94); color: rgba(20,18,14,0.75); }
   #ip-title { font-size: 13px; letter-spacing: 0.06em; margin-bottom: 12px; }
-  #ip-avatars { display: flex; gap: 8px; margin-bottom: 12px; }
+  #ip-avatars { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .ip-avatar { font-size: 22px; padding: 6px 10px; border: 1px solid rgba(128,120,110,0.25);
     border-radius: 4px; cursor: pointer; opacity: 0.55; }
   .ip-avatar.selected { opacity: 1; border-color: rgba(200,160,90,0.7); background: rgba(160,128,80,0.18); }
+  #ip-invite { display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    padding: 8px 10px; border: 1px solid rgba(200,160,90,0.45); border-radius: 4px;
+    background: rgba(160,128,80,0.12); font-size: 12px; }
+  #ip-invite .ip-emoji { font-size: 22px; }
   #ip-token { width: 100%; box-sizing: border-box; background: rgba(128,120,110,0.12);
     border: 1px solid rgba(128,120,110,0.25); border-radius: 3px; padding: 6px 8px;
     font-size: 10px; color: inherit; font-family: monospace; margin-bottom: 10px; }
@@ -680,7 +684,7 @@
   <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
   <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
   <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
-  <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa as Ted — click the ground and he goes there; objects still focus on click">🐾 Walk</button>
+  <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa — click the ground and you go there. Sailor's own key takes Ted's wheel; everyone else walks as the villa's guest, whom the veil refuses. Objects still focus on click">🐾 Walk</button>
   <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
   <button class="ui-btn" id="austin-btn" onclick="tapResident('austin')" title="Austin \u2014 tap to lock the camera on him. A brown pelican working the coast; glides low over the swell and goes in bill first">🦢 Austin</button>
   <div class="nav-menu-label">Go</div>
@@ -755,8 +759,9 @@
 <!-- Identity panel — who this device speaks as, and its passcode -->
 <div id="identity-panel">
   <div id="ip-title">Who are you in the villa?</div>
-  <div id="ip-sub">choose a resident, or enter your own key and the villa will know you</div>
-  <div id="ip-avatars"></div>
+  <div id="ip-sub">enter your key — the villa will know you</div>
+  <div id="ip-invite" style="display:none"></div>
+  <div id="ip-avatars" style="display:none"></div>
   <input id="ip-token" type="password" placeholder="the passcode Sailor gave you">
   <div id="ip-row"><button class="ui-btn" id="ip-enter" onclick="saveIdentityFromPanel()">enter the villa</button>
   <button class="ui-btn" onclick="document.getElementById('identity-panel').classList.remove('open')">later</button>
@@ -6848,9 +6853,18 @@ function updateVisitor(t) {
 }
 
 function toggleVisitor() {
-  // RULED 2026-07-30: Ted is Sailor's avatar. Walk mode takes the wheel of
-  // Ted himself; the patrol is simply what Ted does when Sailor is away.
-  // The capped sailor figure stays in the registry as the default guest.
+  // RULED 2026-08-04 (Sailor): Ted Turner is the ADMIN avatar. His wheel is
+  // part of the docent's authority — assigned by the gate when Sailor's own
+  // code names him, never ambient. Until 08-04 this line set the subject to
+  // Ted unconditionally, which handed every anonymous stranger the admin's
+  // body AND his veil privilege (§2¾) — the verification walk caught it:
+  // the "visitor stops at the veil" rule was real in rooms_test and
+  // unreachable in the villa, because no UI path ever created a visitor.
+  //
+  // Everyone else walks as the capped sailor figure — the body the villa
+  // lends a guest. Walking as your own resident (a friend as Y2K) needs the
+  // §8.1 priority stack so the resident's behaviour loop can be hijacked
+  // the way Ted's patrol is here; it lands with home regions, not today.
   visitorNav.active = !visitorNav.active;
   const b = document.getElementById('visitor-btn');
   if (visitorNav.active) {
@@ -6859,24 +6873,39 @@ function toggleVisitor() {
     // Walking the villa is free navigation — drop focus locks and flights
     try { if (activeFocus) releaseFocus(); } catch (e) {}
     approach.active = false;
-    visitorNav.subject = tedTurner;
-    tedPatrol.state = 'player';
+    const asTed = (typeof isDocent === 'function') && isDocent();
+    const S = asTed ? tedTurner : visitorAvatar;
+    visitorNav.subject = S;
+    if (asTed) {
+      tedPatrol.state = 'player';
+    } else if (!visitorAvatar.visible) {
+      // The guest takes their body at the villa threshold, facing the
+      // gallery — every visitor's walk begins where a visitor enters.
+      visitorAvatar.position.set(2, getVisitorHeight(2, 11.5), 11.5);
+      visitorAvatar.rotation.y = Math.PI;
+      visitorAvatar.visible = true;
+    }
     visitorNav.walking = false;
-    visitorNav.yaw = tedTurner.rotation.y;
+    visitorNav.yaw = S.rotation.y;
     visitorNav.lastT = null;
     if (b) { b.textContent = '🐾 walking'; b.classList.add('on'); }
-    showNavLabel('click the ground — ted goes');
+    showNavLabel(asTed ? 'click the ground — ted goes' : 'click the ground — you go');
   } else {
     visitorNav.walking = false;
     visitorMarker.visible = false;
-    // Hand Ted back to the patrol at the nearest waypoint (photo-exit logic)
-    let ni = 0, nd = Infinity;
-    tedPatrol.waypoints.forEach((w, i) => {
-      const d = (w.x - tedTurner.position.x) * (w.x - tedTurner.position.x) + (w.z - tedTurner.position.z) * (w.z - tedTurner.position.z);
-      if (d < nd) { nd = d; ni = i; }
-    });
-    tedPatrol.currentWP = ni; tedPatrol.nextWP = (ni + 1) % tedPatrol.waypoints.length;
-    tedPatrol.progress = 0; tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5;
+    if (visitorNav.subject === tedTurner) {
+      // Hand Ted back to the patrol at the nearest waypoint (photo-exit logic)
+      let ni = 0, nd = Infinity;
+      tedPatrol.waypoints.forEach((w, i) => {
+        const d = (w.x - tedTurner.position.x) * (w.x - tedTurner.position.x) + (w.z - tedTurner.position.z) * (w.z - tedTurner.position.z);
+        if (d < nd) { nd = d; ni = i; }
+      });
+      tedPatrol.currentWP = ni; tedPatrol.nextWP = (ni + 1) % tedPatrol.waypoints.length;
+      tedPatrol.progress = 0; tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5;
+    } else {
+      // The guest's borrowed body dissolves back into the visitor's eye.
+      visitorAvatar.visible = false;
+    }
     if (b) { b.textContent = '🐾 Walk'; b.classList.remove('on'); }
   }
 }
@@ -9088,6 +9117,25 @@ function renderFeedInto(key) {
 const ASSIGNABLE = ['trout', 'seal', 'y2k', 'otter', 'petra', 'kyle', 'diddy',
                     'alrik', 'julia', 'emilia', 'adlib', 'austin'];
 
+// ── THE INVITE (2026-08-04, Sailor) ──────────────────────────────────
+// "Each URL I send corresponds to the beta user." A friend does not choose
+// who they are — the link Sailor sent them already knows. ?meet=y2k brings
+// Y2K to the arriving visitor, and the identity panel greets them as Y2K
+// instead of offering a picker of twelve unfamiliar animals.
+//
+// The URL is a NAME, never a credential. It is pasted into texts and group
+// chats and lives in browser histories, so it must prove nothing — the
+// passcode does that, and with a per-person code in GUESTS the server
+// ignores even this hint and names the author itself (the same rule that
+// guards Ted). Reserved residents are excluded here for symmetry, though
+// the gate would refuse them anyway.
+const INVITE = (function () {
+  try {
+    const k = new URLSearchParams(location.search).get('meet');
+    return (k && ASSIGNABLE.indexOf(k) !== -1) ? k : null;
+  } catch (e) { return null; }
+})();
+
 function openIdentityPanel() {
   const panel = document.getElementById('identity-panel');
   const wrap = document.getElementById('ip-avatars');
@@ -9107,6 +9155,27 @@ function openIdentityPanel() {
     };
     wrap.appendChild(d);
   });
+  // The picker is the fallback, not the greeting (2026-08-04). It only
+  // appears when a shared house code has admitted someone the gate cannot
+  // name AND no invite link named them either — the one case where the
+  // choice is genuinely the visitor's. Everyone else sees a passcode field
+  // and, if they came by invite, the resident who is expecting them.
+  wrap.style.display = 'none';
+  const inviteEl = document.getElementById('ip-invite');
+  if (inviteEl) {
+    const known = current && current.avatar && PROFILES[current.avatar];
+    const key = known ? current.avatar : INVITE;
+    if (key && PROFILES[key]) {
+      inviteEl.innerHTML = '<span class="ip-emoji"></span><span></span>';
+      inviteEl.querySelector('.ip-emoji').textContent = PROFILES[key].emoji;
+      inviteEl.querySelector('span + span').textContent = known
+        ? 'you are ' + PROFILES[key].name + ' here'
+        : PROFILES[key].name + ' is expecting you';
+      inviteEl.style.display = '';
+    } else {
+      inviteEl.style.display = 'none';
+    }
+  }
   // The passcode is never re-displayed. A held one shows as a placeholder and
   // an empty field; saving with the field empty keeps it. A password input is
   // one devtools attribute away from being plain text.
@@ -9124,6 +9193,14 @@ function openIdentityPanel() {
       : 'the villa is listening but its door is not open yet — ask Sailor.';
   }
   panel.classList.add('open');
+}
+
+// The house code admitted someone the gate could not name and no invite
+// named them either — only now does the picker appear.
+function revealPicker(note) {
+  const wrap = document.getElementById('ip-avatars');
+  if (wrap) wrap.style.display = '';
+  if (note) note.textContent = 'the villa opened the door — now choose who you are';
 }
 
 // No shape test any more, and that is the point: a passcode has no shape. What
@@ -9160,11 +9237,17 @@ function saveIdentityFromPanel() {
     if (typeof refreshDocentBtn === 'function') refreshDocentBtn();
     if (followAnimal.key) renderFeedInto(followAnimal.key);
   };
-  // Used when the gate has not named anyone: the choice is the visitor's.
+  // Used when the gate has not named anyone. The invite link answers first
+  // (2026-08-04) — the URL Sailor sent already says who this is, so a house
+  // code plus an invite never sees the picker. Only with neither does the
+  // choice fall to the visitor, and only then does the grid appear.
   const finishChosen = () => {
-    if (!sel) { if (note) note.textContent = 'choose who you are in the villa first'; return false; }
-    finish(sel.dataset.key);
-    return true;
+    if (sel) { finish(sel.dataset.key); return true; }
+    const held = current && current.avatar && ASSIGNABLE.indexOf(current.avatar) !== -1;
+    if (held) { finish(current.avatar); return true; }      // re-entering a known identity
+    if (INVITE) { finish(INVITE); return true; }
+    revealPicker(note);
+    return false;
   };
 
   if (!gateReady()) { finishChosen(); return; }   // no door yet — nothing to check against
@@ -9224,6 +9307,35 @@ function refreshDocentBtn() {
   if (id && b) b.textContent = '⚿ ' + (PROFILES[id.avatar] || { name: 'identity' }).name;
   refreshDocentBtn();
 })();
+
+// ── Arriving by invite ───────────────────────────────────────────────
+// The link is the welcome: the resident it names comes to meet the visitor,
+// and if this device has no identity yet, the door opens with their name
+// already on it. Deliberately AFTER the threshold's own timing — the intro
+// gates, the invite greets, and neither may pre-empt the other; the panel
+// waits until any address has finished or been skipped.
+// Runs on a timer because RESIDENTS and the toggles are declared further
+// down this file; by 3s the whole script has long since parsed.
+if (INVITE) setTimeout(function () {
+  try {
+    const r = RESIDENTS[INVITE];
+    if (r) {
+      if (r.state().mode === 'off') r.toggle();   // bring them, and watch
+      startFollow(INVITE);
+      if (typeof showNavLabel === 'function') {
+        showNavLabel(((PROFILES[INVITE] || {}).name || INVITE) + ' is expecting you');
+      }
+    }
+    // A fresh device gets the door held open — once the threshold is done.
+    const openWhenClear = function (tries) {
+      if (feedIdentity()) return;
+      const gating = (typeof threshold !== 'undefined') && threshold.showing;
+      if (gating && tries > 0) { setTimeout(function () { openWhenClear(tries - 1); }, 2000); return; }
+      openIdentityPanel();
+    };
+    openWhenClear(60);
+  } catch (e) {}
+}, 3000);
 
 // ============================================================
 // THE STATEMENT FIELD (§6.1) — 2026-07-30
