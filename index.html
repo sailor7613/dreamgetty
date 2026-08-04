@@ -15367,11 +15367,27 @@ const PIERCE_BODIES = [
   ['austin', pelicanAustin],
 ];
 
-// The lights must be told they can still see the pierce layer or the residents
-// stop casting shadows the moment they cross into it — the shadow pass tests
-// object.layers against light.layers, and both default to layer 0 only.
-lights.sun.layers.enable(PIERCE_LAYER);
-lights.moonBeam.layers.enable(PIERCE_LAYER);
+// EVERY light sees the pierce layer — not just the two directionals.
+//
+// This was a real regression in the engineering pass, and Sailor caught it by
+// eye: the residents went to near-silhouette, black shapes on a lit lawn.
+// The original note here worried only about SHADOW CASTING and enabled the sun
+// and the moon. But three.js collects lights per camera layer as well — a
+// light whose layers do not include the camera's simply is not gathered for
+// that render. Pass 2 sets `camera.layers.set(PIERCE_LAYER)`, so the residents
+// were being lit by two directionals and nothing else: no ambient, no
+// hemisphere, none of the soft fill that makes a body read as a body rather
+// than a hole in the picture.
+//
+// THE RULE: pass 2 must be lit exactly like pass 1, or the residents stop
+// belonging to the world they are standing in. Traversing the scene rather
+// than naming lights means every light added later inherits this — the same
+// idiom as the shadow budget and the attention budget.
+(function lightThePierceLayer() {
+  let n = 0;
+  scene.traverse(function (o) { if (o.isLight) { o.layers.enable(PIERCE_LAYER); n++; } });
+  return n;
+})();
 
 function setSubtreeLayer(root, layer) {
   root.traverse(function (o) { o.layers.set(layer); });
