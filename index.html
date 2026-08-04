@@ -171,6 +171,32 @@
   body.light .nav-menu-label { color: rgba(20,18,14,0.5); }
 
   /* Identity panel */
+  /* The threshold covers the viewport, and that is what holds the controls:
+     no pointer reaches the canvas, so orbit, click-to-go and walk are all
+     inert without touching a single input handler. */
+  #docent-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 950; display: none; width: min(680px, 90vw);
+    background: rgba(12,14,18,0.96); color: #e8e4dc; border: 1px solid rgba(140,150,165,0.3);
+    border-radius: 10px; padding: 22px 24px; }
+  #docent-panel.open { display: block; }
+  #dc-title { font-family: Georgia, serif; letter-spacing: .14em; font-size: 15px; }
+  #dc-sub { font-style: italic; opacity: .55; font-size: 12px; margin: 3px 0 14px; }
+  #dc-text { width: 100%; background: rgba(0,0,0,0.4); color: #e8e4dc;
+    border: 1px solid rgba(140,150,165,0.3); border-radius: 5px; padding: 10px;
+    font: 14px/1.55 Georgia, serif; resize: vertical; }
+  #dc-row { margin-top: 14px; }
+  #dc-note { margin-top: 10px; font-size: 12px; opacity: .7; }
+  #threshold { position: fixed; inset: 0; z-index: 900; display: none;
+    align-items: flex-end; justify-content: center; padding: 0 0 6vh;
+    background: linear-gradient(to top, rgba(8,10,14,.92) 0%, rgba(8,10,14,.72) 38%, rgba(8,10,14,0) 78%); }
+  #threshold.open { display: flex; }
+  #th-inner { max-width: 720px; width: 88%; color: #e8e4dc; text-align: left; }
+  #th-who { font-family: Georgia, serif; letter-spacing: .18em; font-size: 15px; opacity: .95; }
+  #th-role { font-style: italic; opacity: .55; font-size: 12px; margin: 2px 0 14px; }
+  #th-text { font-family: Georgia, serif; font-size: 17px; line-height: 1.62;
+    max-height: 42vh; overflow-y: auto; white-space: pre-wrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+  #th-skip { margin-top: 18px; }
   #identity-panel {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     z-index: 20; width: 270px; display: none;
@@ -685,6 +711,7 @@
   <button class="ui-btn" id="adlib-btn" onclick="tapResident('adlib')" title="Adlib \u2014 tap to lock the camera on him. A house cat, and he sits on the pedestal, the easel and the G4 in rotation">🐈 Adlib</button>
   <div class="nav-menu-label">You</div>
   <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
+  <button class="ui-btn" id="docent-btn" style="display:none" onclick="openDocentConsole()">🐾 address</button>
 </div>
 
 <!-- Follow card — appears when the camera locks onto a resident. The
@@ -702,6 +729,26 @@
     <div id="fc-feed-list"></div>
     <div id="fc-feed-body"></div>
     <input id="fc-post" placeholder="">
+  </div>
+</div>
+
+<!-- The docent's console — appears only for an assigned Ted -->
+<div id="docent-panel">
+  <div id="dc-title">Address the house</div>
+  <div id="dc-sub">every visitor hears this on arrival, before they can wander</div>
+  <textarea id="dc-text" rows="10" placeholder="Hello and welcome to the Dream Getty. Allow me to introduce myself…"></textarea>
+  <div id="dc-row"><button class="ui-btn" onclick="postAddress()">say it to the house</button>
+  <button class="ui-btn" onclick="document.getElementById('docent-panel').classList.remove('open')">later</button></div>
+  <div id="dc-note"></div>
+</div>
+
+<!-- The threshold — the docent's address, played on arrival -->
+<div id="threshold">
+  <div id="th-inner">
+    <div id="th-who">TED TURNER</div>
+    <div id="th-role">the docent, addressing the house</div>
+    <div id="th-text"></div>
+    <button class="ui-btn" id="th-skip" onclick="endThreshold()">enter the villa &rarr;</button>
   </div>
 </div>
 
@@ -6697,8 +6744,27 @@ const visitorNav = {
   lastT: null,
 };
 
+// ── BUG #2, fixed 2026-08-03 — the veil had no collision ──
+// The west intercolumniation is veiled, and the veil's entire meaning is
+// "see through, cannot cross" (§2¾). But onVillaStone extends the walkable
+// terrace to |x| < 38 and nothing read userData.isVeil, so a visitor strolled
+// straight through the one surface in the villa whose only job is to stop
+// them. The wings were built to state that rule and the rule was decorative.
+//
+// TED STILL CROSSES. That is the ruled staff privilege (§2.3), and it is what
+// makes the veil legible without a word of explanation: someone passes through
+// it in front of you, and you cannot follow. Blocking him too would turn a
+// statement about authority into a wall.
+function veilBlocks(x, z, subject) {
+  if (subject === tedTurner) return false;              // staff privilege
+  const veilX = -(WING_INNER + 0.18);                   // the west veil plane
+  return x < veilX && x > -(WING_OUTER + 0.5) && Math.abs(z) < WING_HD;
+}
+
 function visitorClampDestination(pt) {
   const p = pt.clone();
+  // The veil: step to its court face rather than through it.
+  if (veilBlocks(p.x, p.z, visitorNav.subject)) p.x = -(WING_INNER + 0.18) + 0.6;
   // Stay out of the reflection pool basin — step to the nearest walkway
   // edge instead (pool is 6 × 14 centred (0, 20)). Ted fords; you don't.
   if (Math.abs(p.x) < 3.4 && p.z > 13.2 && p.z < 26.8) {
@@ -8511,9 +8577,13 @@ function sanitizeFeedEntry(e) {
   const when = Number.isFinite(new Date(ts).getTime()) ? ts : '';
   return {
     id: safeStr(e.id, 80) || (author + '-' + Math.random().toString(36).slice(2)),
+    // An address is the docent speaking to the house; anything else is a
+    // statement standing where it was said. Unknown kinds become statements —
+    // the boundary decides, not the file.
+    kind: safeStr(e.kind, 20) === 'address' ? 'address' : 'statement',
     author: author,
     to: to || null,
-    text: safeStr(e.text, 400),
+    text: safeStr(e.text, safeStr(e.kind, 20) === 'address' ? 6000 : 400),
     t: when,
     pos: [safeNum(pos[0]), safeNum(pos[1]), safeNum(pos[2])],
     place: safeStr(e.place, 60),
@@ -8533,6 +8603,7 @@ function loadFeed() {
       feedState.loaded = true;
       if (followAnimal.key) renderFeedInto(followAnimal.key);
       if (typeof renderStatementField === 'function') renderStatementField();
+      if (typeof considerThreshold === 'function') considerThreshold();
     })
     .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; });
 }
@@ -8540,12 +8611,138 @@ loadFeed();
 setInterval(loadFeed, 5 * 60 * 1000);   // the villa settles — refresh on its own clock
 
 // ── Write: statement file + manifest update, contents API, ruled shape ──
+// ── The docent's console ────────────────────────────────────────────
+// Visible only when the gate has NAMED you Ted — not when you have picked him
+// in a menu, because he is not in the menu. So the button's presence is not a
+// permission check, it is a consequence of one that already happened at the
+// door. The server refuses an address from anyone else regardless of what the
+// client shows, which is the only reason it is safe to put a button here.
+function isDocent() {
+  const id = feedIdentity();
+  return !!(id && id.avatar === 'ted' && id.pass);
+}
+function openDocentConsole() {
+  if (!isDocent()) return;
+  const el = document.getElementById('docent-panel');
+  if (!el) return;
+  const a = newestAddress();
+  document.getElementById('dc-text').value = a ? a.text : '';
+  const note = document.getElementById('dc-note');
+  if (note) note.textContent = a
+    ? 'replacing the address every visitor hears. they will hear the new one, even if they have been before.'
+    : 'the villa has no introduction yet. this will be the first thing anyone hears.';
+  el.classList.add('open');
+}
+function postAddress() {
+  const box = document.getElementById('dc-text');
+  const note = document.getElementById('dc-note');
+  const text = (box.value || '').trim();
+  if (!text) { if (note) note.textContent = 'an address with nothing in it is not an address'; return; }
+  if (note) note.textContent = 'the villa is listening…';
+  postStatement(text, null, null, 'address')
+    .then(function () {
+      document.getElementById('docent-panel').classList.remove('open');
+      // Hearing your own new address immediately is the point — it is how you
+      // know what a visitor will get, and the only way to judge the pacing.
+      try { localStorage.removeItem(HEARD_KEY); } catch (e) {}
+      considerThreshold();
+    })
+    .catch(function (err) { if (note) note.textContent = err.message; });
+}
+
+// ============================================================
+// THE THRESHOLD (2026-08-03) — the docent's address, on arrival
+//
+// RULED (Sailor): the intro gates. A visitor arrives, Ted speaks, and the
+// villa waits. This is a door you cross rather than a sound playing over a
+// place you are already wandering.
+//
+// Three things this must not become:
+//   1. A toll. It is remembered PER ADDRESS, not per visitor — so it plays
+//      once, but rewriting it reaches everyone again, including people who
+//      have already been. The introduction is allowed to change its mind.
+//   2. A wall. If there is no address, or the feed never loads, or speech
+//      synthesis is missing, the threshold does not exist and the villa opens
+//      exactly as before. It can only ever ADD a pause, never withhold entry.
+//   3. A cutscene. The villa renders behind it the whole time, camera on Ted,
+//      and the skip is visible from the first second — not revealed after ten.
+// ============================================================
+const threshold = { showing: false, entry: null };
+
+const HEARD_KEY = 'dg_heard_address';
+function alreadyHeard(id) {
+  try { return localStorage.getItem(HEARD_KEY) === id; } catch (e) { return false; }
+}
+function markHeard(id) {
+  try { localStorage.setItem(HEARD_KEY, id); } catch (e) {}
+}
+
+function newestAddress() {
+  const a = (feedState.entries || []).filter(e => e && e.kind === 'address');
+  if (!a.length) return null;
+  return a.slice().sort((x, y) => (x.t < y.t ? 1 : -1))[0];
+}
+
+function endThreshold() {
+  if (!threshold.showing) return;
+  threshold.showing = false;
+  if (typeof tedStopSpeaking === 'function') tedStopSpeaking();
+  const el = document.getElementById('threshold');
+  if (el) el.classList.remove('open');
+  if (threshold.entry) markHeard(threshold.entry.id);
+}
+
+function openThreshold(entry) {
+  const el = document.getElementById('threshold');
+  if (!el || !entry) return;
+  threshold.showing = true;
+  threshold.entry = entry;
+  document.getElementById('th-text').textContent = entry.text;
+  el.classList.add('open');
+
+  // The villa keeps rendering behind the panel, with the camera on the speaker.
+  // Ted talking to an empty frame would be a loading screen with a voice.
+  if (typeof tapResident === 'function') { try { tapResident('ted'); } catch (e) {} }
+
+  const done = function () { endThreshold(); };
+  // Ask whether the browser can ACTUALLY speak, not merely whether tedSpeak
+  // exists. With no synthesiser tedSpeak invokes its callback immediately and
+  // politely — which, used naively here, made the address flash for a single
+  // frame and vanish on any browser without a voice. Found by the test, and
+  // the difference between a threshold and a glitch.
+  const canSpeak = typeof tedSpeak === 'function' &&
+                   typeof tedNarration !== 'undefined' && !!tedNarration.synth;
+  // A reading pace for the silent path — roughly 200 words a minute, floored so
+  // a one-line address is not gone before it is seen, capped so nobody is ever
+  // held for long.
+  const readingMs = Math.max(6000, Math.min(90000, 4000 + entry.text.length * 55));
+  if (canSpeak) {
+    tedSpeak(entry.text, done);
+    // A failsafe: if synthesis never fires onend — a muted tab, a browser that
+    // refuses to speak before a gesture — the threshold must still lift. It is
+    // better to open early than to trap someone at the door.
+    setTimeout(function () { if (threshold.showing) endThreshold(); },
+               Math.min(12 * 60 * 1000, 6000 + entry.text.length * 90));
+  } else {
+    setTimeout(done, readingMs);
+  }
+}
+
+// Called once the feed has loaded, which is also why the threshold cannot
+// block a cold start: no feed, no address, no pause.
+function considerThreshold() {
+  if (threshold.showing) return;
+  const a = newestAddress();
+  if (!a || alreadyHeard(a.id)) return;
+  openThreshold(a);
+}
+
 // ── Write: through the gate. No credential, no api.github.com. ──
 // ghPut and ghGetSha are GONE. They were the only two functions in this file
 // that touched api.github.com, and they needed a real GitHub token in the
 // browser to work. Deleting them is the actual security change; everything
 // else this session was defence around the hole they left open.
-function postStatement(text, toKey, replyTo) {
+function postStatement(text, toKey, replyTo, kind) {
   const id = feedIdentity();
   if (!id || !id.pass) { openIdentityPanel(); return Promise.reject(new Error('no key')); }
   if (!gateReady()) {
@@ -8568,7 +8765,8 @@ function postStatement(text, toKey, replyTo) {
   const optimistic = {
     id: tempId, author: id.avatar,
     to: toKey && toKey !== id.avatar ? toKey : null,
-    text: text.slice(0, 400), t: new Date().toISOString(),
+    kind: kind === 'address' ? 'address' : 'statement',
+    text: text.slice(0, kind === 'address' ? 6000 : 400), t: new Date().toISOString(),
     pos: [+pos.x.toFixed(1), +pos.y.toFixed(1), +pos.z.toFixed(1)],
     place: place, replyTo: replyTo || null,
   };
@@ -8583,7 +8781,9 @@ function postStatement(text, toKey, replyTo) {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
-      pass: id.pass, avatar: id.avatar, text: text.slice(0, 400),
+      pass: id.pass, avatar: id.avatar,
+      kind: kind === 'address' ? 'address' : 'statement',
+      text: text.slice(0, kind === 'address' ? 6000 : 400),
       to: toKey && toKey !== id.avatar ? toKey : null,
       replyTo: replyTo || null, place: place, pos: optimistic.pos,
     }),
@@ -8957,6 +9157,7 @@ function saveIdentityFromPanel() {
     document.getElementById('identity-panel').classList.remove('open');
     const b = document.getElementById('identity-btn');
     if (b) b.textContent = '\u269a ' + ((PROFILES[avatar] || {}).name || avatar);
+    if (typeof refreshDocentBtn === 'function') refreshDocentBtn();
     if (followAnimal.key) renderFeedInto(followAnimal.key);
   };
   // Used when the gate has not named anyone: the choice is the visitor's.
@@ -9007,15 +9208,21 @@ function forgetIdentity() {
   if (t) { t.value = ''; t.placeholder = 'the passcode Sailor gave you'; }
   const f = document.getElementById('ip-forget'); if (f) f.style.display = 'none';
   const b = document.getElementById('identity-btn'); if (b) b.textContent = '\u269a identity';
+  if (typeof refreshDocentBtn === 'function') refreshDocentBtn();
   const note = document.getElementById('ip-note');
   if (note) note.textContent = 'forgotten. the villa will not remember you on this device.';
   if (followAnimal.key) renderFeedInto(followAnimal.key);
 }
 document.getElementById('ip-token').addEventListener('keydown', function (e) { e.stopPropagation(); });
+function refreshDocentBtn() {
+  const b = document.getElementById('docent-btn');
+  if (b) b.style.display = (typeof isDocent === 'function' && isDocent()) ? '' : 'none';
+}
 (function initIdentityBtn() {
   const id = feedIdentity();
   const b = document.getElementById('identity-btn');
   if (id && b) b.textContent = '⚿ ' + (PROFILES[id.avatar] || { name: 'identity' }).name;
+  refreshDocentBtn();
 })();
 
 // ============================================================
@@ -9167,7 +9374,12 @@ function stelePlacement(entry, ordinal) {
 }
 
 function renderStatementField() {
-  const entries = (feedState.entries || []).filter(e => e && e.id && e.pos);
+  // Addresses are excluded on purpose. A statement is a thing said in a place
+  // and becomes a stone there; an address is said to the house and belongs to
+  // no spot in it. Erecting a stele for the introduction would put a monument
+  // to the welcome mat in the middle of the lawn.
+  const entries = (feedState.entries || [])
+    .filter(e => e && e.id && e.pos && e.kind !== 'address');
   const seen = new Set();
   const spots = new Map();     // rounded spot → how many already stand there
   const placed = new Map();    // entry id → world position, for reply aiming
@@ -11913,9 +12125,18 @@ function tedPhotoGroundHit() {
   const v = new THREE.Vector3();
   const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -BUILDING_Y);
   if (ray.intersectPlane(plane, v)) {
-    const onStylo = Math.abs(v.x) < 14 && v.z > -9 && v.z < 12;
-    const onPool = Math.abs(v.x) < 4 && v.z >= 12 && v.z < 28;
-    if (onStylo || onPool) best = { point: v.clone(), dist: ray.origin.distanceTo(v) };
+    // BUG #1, fixed 2026-08-03. This tested a hand-copied PRE-WINGS stylobate
+    // (|x| < 14, z −9…12) rather than asking onVillaStone. So a click on the
+    // library, the exedra or either court missed the stone plane entirely and
+    // fell through to the terrain far below — in the villa's two newest rooms,
+    // in photo mode, walk mode AND click-to-go, which all share this function.
+    //
+    // The predicate already existed; this call site simply never adopted it.
+    // That is the whole bug class getTedHeight was fixed for a week ago, and
+    // the reason the rule is: ONE PREDICATE ANSWERS "IS THIS THE HOUSE". If a
+    // future room changes the footprint, it changes in onVillaStone and
+    // nowhere else.
+    if (onVillaStone(v.x, v.z)) best = { point: v.clone(), dist: ray.origin.distanceTo(v) };
   }
   const th = raycaster.intersectObject(terrain);
   if (th.length > 0 && (!best || th[0].distance < best.dist)) best = { point: th[0].point, dist: th[0].distance };
