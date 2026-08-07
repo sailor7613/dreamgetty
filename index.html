@@ -686,7 +686,6 @@
   <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
   <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa — click the ground and you go there. Sailor's own key takes Ted's wheel; everyone else walks as the villa's guest, whom the veil refuses. Objects still focus on click">🐾 Walk</button>
   <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
-  <button class="ui-btn" id="austin-btn" onclick="tapResident('austin')" title="Austin \u2014 tap to lock the camera on him. A brown pelican working the coast; glides low over the swell and goes in bill first">🦢 Austin</button>
   <div class="nav-menu-label">Go</div>
   <button class="ui-btn" onclick="goToPlace('galleria')">The Galleria</button>
   <button class="ui-btn" onclick="goToPlace('court')">The West Court</button>
@@ -716,6 +715,11 @@
   <button class="ui-btn" id="julia-btn" onclick="tapResident('julia')" title="Julia \u2014 tap to lock the camera on her. A great blue heron working the pool and the river shallows; the only resident who flies">🪶 Julia</button>
   <button class="ui-btn" id="emilia-btn" onclick="tapResident('emilia')" title="Emilia \u2014 tap to lock the camera on her. A snow stoat: dart, freeze, dart">🐁 Emilia</button>
   <button class="ui-btn" id="adlib-btn" onclick="tapResident('adlib')" title="Adlib \u2014 tap to lock the camera on him. A house cat, and he sits on the pedestal, the easel and the G4 in rotation">🐈 Adlib</button>
+  <button class="ui-btn" id="austin-btn" onclick="tapResident('austin')" title="Austin \u2014 tap to lock the camera on him. A brown pelican working the coast; glides low over the swell and goes in bill first">🦢 Austin</button>
+  <button class="ui-btn" id="houston-btn" onclick="tapResident('houston')" title="Houston \u2014 tap to lock the camera on him. A greyhound: the length of the terrace flat out, then flat out on his side for a minute">🦮 Houston</button>
+  <button class="ui-btn" id="turtle-btn" onclick="tapResident('turtle')" title="The Sea Turtle \u2014 tap to lock the camera on him. Grazes the kelp with the Princess, swims the bay, and hauls himself up the beach to bask on the dry sand">🐢 the turtle</button>
+  <button class="ui-btn" id="edburg-btn" onclick="tapResident('edburg')" title="Edburg \u2014 tap to lock the camera on him. A ginger house cat who lives on the back range with Alrik and Diddy, usually at the wizard’s feet">🐈‍⬛ Edburg</button>
+  <button class="ui-btn" id="luke-btn" onclick="tapResident('luke')" title="Luke \u2014 tap to lock the camera on him. A wandering albatross on Austin’s coast: banks the troughs of the swell without flapping, and cannot land">🕊 Luke</button>
   <div class="nav-menu-label">You</div>
   <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
   <button class="ui-btn" id="docent-btn" style="display:none" onclick="openDocentConsole()">🐾 address</button>
@@ -7204,7 +7208,11 @@ function updateTrout(t) {
 //   guest  — the capped sailor figure: default for tokenless visitors.
 //   pending: kantbot (Diddy Kong — needs an original-homage design pass),
 //            matt-mondanile (seal + headphones + Walkman),
-//            y2k (his call — circle back), edburg (his call — ask him).
+//            y2k (his call — circle back).
+//   2026-08-07: edburg answered — a second house cat, and he lives on the
+//            back range with the wizard and KB. Houston's greyhound is
+//            restored from 9555882 rather than rebuilt. Luke and Sailor's
+//            brother arrive the same night: an albatross and a sea turtle.
 // ============================================================
 const AVATARS = {
   ted:   () => tedTurner,
@@ -7221,6 +7229,10 @@ const AVATARS = {
   emilia: () => stoatEmilia,
   adlib: () => catAdlib,
   austin: () => pelicanAustin,
+  houston: () => greyhoundHouston,
+  turtle: () => seaTurtle,
+  edburg: () => catEdburg,
+  luke: () => albatrossLuke,
   guest: () => visitorAvatar,
 };
 
@@ -9144,6 +9156,54 @@ const PROFILES = {
         float: 'sitting the swell', perch: 'hunched on the coast' })[austinState.mode] || 'somewhere on the coast';
     },
   },
+  houston: {
+    emoji: '🦮', name: 'Houston',
+    bio: 'A greyhound, and the fastest thing at the villa by a distance nobody else is close to. Runs the full length of the terrace flat out, and then lies down on his side for the better part of a minute. There is no third speed.',
+    status: function () {
+      const S = houstonState;
+      if (S.mode === 'sprint') return 'flat out down the terrace';
+      if (S.mode === 'settle') return 'trotting off to lie down';
+      const f = HOUSTON_FLOPS[S.flop];
+      return 'flat out on ' + ((f && f.name) || 'the stone');
+    },
+  },
+  turtle: {
+    emoji: '🐢', name: 'the Sea Turtle',
+    bio: "Sailor's little brother. A green turtle, and the only resident who leaves the water under his own steam — he grazes the kelp bed with the Otter Princess, swims the bay, and drags himself up the beach face onto the dry sand to lie in the sun. Watching him cross the waterline is the point of him.",
+    status: function () {
+      const S = turtleState;
+      if (S.mode === 'entering') return 'coming in from the open sea';
+      if (S.mode === 'travel') {
+        return turtleAfloat(seaTurtle.position.x, seaTurtle.position.z) ? 'swimming' : 'hauling up the sand';
+      }
+      if (S.mode === 'bask') return 'basking on the dry sand';
+      const s = TURTLE_SPOTS[S.spot];
+      return 'grazing ' + ((s && s.name) || 'the kelp');
+    },
+  },
+  edburg: {
+    emoji: '🐈‍⬛', name: 'Edburg',
+    bio: 'A ginger house cat who does not live at the house. Keeps to the back range with Alrik and Diddy Kong, and more often than not is sitting at the wizard’s feet — when Alrik walks the ridge, the place Edburg is going to moves with him.',
+    status: function () {
+      const S = edburgState;
+      const where = (EDBURG_SPOTS[S.spot] || {}).name || 'you';   // spot −1 = summoned
+      if (S.mode === 'zoom') return 'bolting across the ridge';
+      if (S.mode === 'walk') return 'picking his way to ' + where;
+      if (S.mode === 'groom') return 'washing, at ' + where;
+      return 'sat at ' + ((EDBURG_SPOTS[S.spot] || {}).name || 'your feet');
+    },
+  },
+  luke: {
+    emoji: '🕊', name: 'Luke',
+    bio: 'A wandering albatross, on the same coast as Austin and nothing like him. Rides the troughs of the swell on eleven feet of wing, banks up across the wind and falls off the top of the turn, and does not flap once from the river mouth to the horizon. Then he tries to land on the beach, and goes over.',
+    status: function () {
+      const S = lukeState;
+      if (S.mode === 'soar') return S.spot < 0 ? 'on his way in to you' : ('soaring out to ' + ((LUKE_SPOTS[S.spot] || {}).name || 'sea'));
+      if (S.mode === 'land') return 'coming in far too fast';
+      if (S.mode === 'stand') return 'stood on the beach, recovering';
+      return 'sitting the swell';
+    },
+  },
   ted: {
     emoji: '🐾', name: 'Ted Turner',
     bio: "Sailor's avatar and the villa's docent. Walks where you point, faces who's watching.",
@@ -9270,7 +9330,13 @@ function renderFeedInto(key) {
 // cannot be summoned, so neither is assignable; SPEAKABLE in the gate is the
 // same list, and the gate refuses anything outside it.
 const ASSIGNABLE = ['trout', 'seal', 'y2k', 'otter', 'petra', 'kyle', 'diddy',
-                    'alrik', 'julia', 'emilia', 'adlib', 'austin'];
+                    'alrik', 'julia', 'emilia', 'adlib', 'austin',
+                    'houston', 'turtle', 'edburg', 'luke'];
+// NOTE (2026-08-07): the gate's SPEAKABLE list is the mirror of this one and
+// it refuses anything outside itself. Four new keys here means four new keys
+// THERE, in villa-gate, or Houston, the turtle, Edburg and Luke can each be
+// assigned an identity in the panel and then be refused the moment they try
+// to say anything. Deploy is not done until both lists match.
 
 // ── THE INVITE (2026-08-04, Sailor) ──────────────────────────────────
 // "Each URL I send corresponds to the beta user." A friend does not choose
@@ -10278,13 +10344,24 @@ function animateStoat(t) {
 // entire genius is for sitting on the thing you are working on. He is
 // the only resident who interacts with the working surfaces at all.
 // ============================================================
-function buildCat() {
+// PALETTE AS A PARAMETER (2026-08-07) — the villa now has two house cats,
+// and a second cat is a coat, not a second builder. Called with nothing this
+// is exactly Adlib as he was: the defaults ARE his palette, so his colours
+// and his silhouette are untouched by the refactor. Everything else about a
+// cat — the head pivot, the whiskers, the tail that does all the emoting —
+// is the same animal twice, and copying ninety lines to recolour five
+// materials is how two cats quietly drift apart under maintenance.
+function buildCat(p) {
+  p = p || {};
   const g = new THREE.Group();
-  const coat = new THREE.MeshStandardMaterial({ color: 0x4c4740, roughness: 0.88 });
-  const saddle = new THREE.MeshStandardMaterial({ color: 0x332f2a, roughness: 0.9 });
-  const pale = new THREE.MeshStandardMaterial({ color: 0x8a8378, roughness: 0.85 });
+  const coat = new THREE.MeshStandardMaterial({ color: p.coat !== undefined ? p.coat : 0x4c4740, roughness: 0.88 });
+  const saddle = new THREE.MeshStandardMaterial({ color: p.saddle !== undefined ? p.saddle : 0x332f2a, roughness: 0.9 });
+  const pale = new THREE.MeshStandardMaterial({ color: p.pale !== undefined ? p.pale : 0x8a8378, roughness: 0.85 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x14120e, roughness: 0.75 });
-  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x9aa83c, roughness: 0.3, emissive: 0x2a3008, emissiveIntensity: 0.5 });
+  const eyeMat = new THREE.MeshStandardMaterial({
+    color: p.eye !== undefined ? p.eye : 0x9aa83c, roughness: 0.3,
+    emissive: p.eyeGlow !== undefined ? p.eyeGlow : 0x2a3008, emissiveIntensity: 0.5,
+  });
 
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 8), coat);
   body.scale.set(0.86, 0.92, 1.5);
@@ -10722,6 +10799,1074 @@ function austinDepart(t) {
   S.mode = 'glide';
 }
 
+// ============================================================
+// RESIDENTS V (2026-08-07, Sailor) — four friends. Houston, the turtle,
+// Edburg and Luke. Written against the residents pipeline handoff's
+// checklist, and every one of them grounds through getVisitorHeight —
+// never getTerrainHeight — because that is the bug class this file keeps.
+//
+// The four were asked for together and they are deliberately NOT four
+// variations on a patrol: a sprinter who then does nothing for a minute, a
+// grazer who leaves the water, a cat who lives on someone else, and a bird
+// whose whole character is that he cannot land. What separates residents is
+// their relationship to rest, not their top speed.
+// ============================================================
+
+// ============================================================
+// 11. HOUSTON — a greyhound (Sailor's friend Houston)
+//
+// RESTORED, not rebuilt. The greyhound was built on 2026-07-31 and removed
+// the same week when Petra took his slot — the roster has carried him as
+// "TO REBUILD · the model is GONE from index.html" ever since. It was not
+// gone, it was one commit back: 9555882, `buildGreyhound` and the whole
+// sprint-and-flop loop, intact. Recovered verbatim and re-keyed grey →
+// houston, because the animal was never the problem; the assignment was.
+//
+// The character, unchanged and still the best thing about him: he runs the
+// full length of the terrace flat out, and then he lies down for the better
+// part of a minute. Two speeds and nothing in between. Anyone who has met
+// a retired racing greyhound will recognise the ratio.
+// ============================================================
+// GROUNDING, AND WHY THE MODEL IS NESTED (2026-08-07). The restored model
+// came back from a commit that predates this file's grounding convention,
+// and it showed the moment it was measured: every other land resident's
+// lowest vertex sits 0.00–0.08 above the floor it is standing on (ted
+// 0.011, adlib 0.005, alrik 0.013, austin 0.058) and the greyhound's sat at
+// 0.453. He was levitating a third of his own height, because the builder
+// authors his parts around the CHEST at y ≈ 1.10 and nothing ever
+// subtracted the distance down to his paws. So the parts hang off two
+// nested groups now:
+//
+//   returned group — placed on the ground; its origin is HIS PAWS
+//     roll         — pivot on the spine, at HOUSTON_AXIS; the flop turns this
+//       core       — the parts, at their original authored numbers
+//
+// The second group is not tidiness. The flop rolls him 76° onto his side,
+// and rolling the outer group would pivot that about his feet, throwing the
+// whole dog a body-length sideways as he lies down. Rolling `roll` instead
+// turns him about his own spine, which is where an animal's roll axis is.
+// Not one authored coordinate below this comment changed.
+const HOUSTON_FOOT = 0.4125;   // measured: paw underside, in the builder's own units
+const HOUSTON_AXIS = 1.10;     // the chest sphere's centre — his long axis
+function buildGreyhound() {
+  const core = new THREE.Group();
+  const g = core;              // the body of the builder is untouched; `g` is the core
+  const coat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.72 });
+  const pale = new THREE.MeshStandardMaterial({ color: 0x8a7a62, roughness: 0.7 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x141010, roughness: 0.78 });
+
+  // Deep chest, hard tuck — the whole silhouette of the breed
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.32, 12, 10), coat);
+  chest.scale.set(0.62, 1.05, 1.05);
+  chest.position.set(0, 1.10, 0.34);
+  chest.castShadow = true;
+  g.add(chest);
+  const loin = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), coat);
+  loin.scale.set(0.62, 0.62, 1.15);
+  loin.position.set(0, 1.14, -0.30);
+  g.add(loin);
+  const waist = new THREE.Mesh(new THREE.SphereGeometry(0.17, 8, 6), coat);
+  waist.scale.set(0.72, 0.62, 1.1);
+  waist.position.set(0, 1.12, 0.02);
+  g.add(waist);
+  const bib = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), pale);
+  bib.scale.set(0.7, 1.0, 0.5);
+  bib.position.set(0, 1.02, 0.62);
+  g.add(bib);
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.13, 0.52, 8), coat);
+  neck.rotation.x = 0.62;
+  neck.position.set(0, 1.42, 0.55);
+  g.add(neck);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), coat);
+  head.scale.set(0.85, 0.85, 1.5);
+  head.position.set(0, 1.64, 0.80);
+  g.add(head);
+  g.userData.head = head;
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 5), dark);
+  nose.position.set(0, 1.60, 0.99);
+  g.add(nose);
+  [-1, 1].forEach(s => {
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 5), coat);
+    ear.scale.set(0.4, 0.8, 0.7);
+    ear.position.set(s * 0.075, 1.71, 0.68);
+    ear.rotation.z = s * 0.4;
+    g.add(ear);
+  });
+
+  // Long thin legs, front pair and back pair
+  const legs = [];
+  [[-1, 0.40], [1, 0.40], [-1, -0.34], [1, -0.34]].forEach(([s, z]) => {
+    const leg = new THREE.Group();
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.032, 0.58, 6), coat);
+    upper.position.y = -0.29;
+    leg.add(upper);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 5), coat);
+    paw.scale.set(0.8, 0.55, 1.2);
+    paw.position.y = -0.58;
+    leg.add(paw);
+    leg.position.set(s * 0.14, 1.02, z);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.012, 0.78, 6), coat);
+  tail.position.set(0, 1.06, -0.66);
+  tail.rotation.x = 1.15;
+  g.add(tail);
+  g.userData.tail = tail;
+
+  // Hang the core off the roll pivot, and the roll off the group that gets
+  // placed on the ground. userData carries across so animateHouston still
+  // reads legs/tail/head off the object it is given.
+  const outer = new THREE.Group();
+  const roll = new THREE.Group();
+  roll.position.y = HOUSTON_AXIS - HOUSTON_FOOT;
+  core.position.y = -HOUSTON_AXIS;
+  roll.add(core);
+  outer.add(roll);
+  outer.userData = core.userData;
+  outer.userData.roll = roll;
+  outer.scale.set(1.05, 1.05, 1.05);   // taller than Ted, and much finer
+  return outer;
+}
+
+const greyhoundHouston = buildGreyhound();
+greyhoundHouston.visible = false;
+scene.add(greyhoundHouston);
+
+// The terrace run: z ≈ 10 clears both wings (they stop at z 8), so there
+// is one straight 68-unit gallop from the library end to the exedra end.
+const HOUSTON_RUN_Z = 10.2, HOUSTON_RUN_X = 34;
+const HOUSTON_FLOP_SINK = 0.39;   // see the flop branch: measured on screen, not derived
+const HOUSTON_FLOPS = [
+  { name: 'the west court', x: -13.5, z: 8.0 },
+  { name: 'the pool walk', x: 2.6, z: 16 },
+  { name: 'the exedra steps', x: 17, z: 9.5 },
+  { name: 'the galleria', x: -6, z: 2 },
+];
+const houstonState = { mode: 'off', t0: -1, dur: 0, from: null, to: null, until: 0, flop: 0, dir: 1, hold: false, summonUntil: 0 };
+function houstonGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+
+function toggleHouston() {
+  const b = document.getElementById('houston-btn');
+  if (houstonState.mode === 'off') {
+    greyhoundHouston.position.copy(houstonGround(HOUSTON_RUN_X, HOUSTON_RUN_Z));
+    greyhoundHouston.visible = true;
+    houstonState.mode = 'sprint';
+    houstonState.t0 = -1;
+    houstonState.hold = false;
+    houstonState.from = greyhoundHouston.position.clone();
+    houstonState.to = houstonGround(-HOUSTON_RUN_X + 6, HOUSTON_RUN_Z);
+    houstonState.dur = 9;
+    if (b) { b.classList.add('active'); b.textContent = '🦮 arriving'; }
+  } else {
+    houstonState.mode = 'off';
+    greyhoundHouston.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦮 Houston'; }
+  }
+}
+
+function animateHouston(t) {
+  const S = houstonState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 6; }
+
+  if (S.mode === 'sprint') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    // Fast out, fast in — a greyhound accelerates hard and does not coast
+    const e = u < 0.15 ? (u / 0.15) * (u / 0.15) * 0.15 : u;
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + Math.abs(Math.sin(t * 9)) * 0.11;   // double-suspension bound
+    greyhoundHouston.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    greyhoundHouston.rotation.y = Math.atan2(v.x, v.z);
+    greyhoundHouston.rotation.x = -0.13;
+    // Legs reach fore and aft together, not diagonally — that is the gallop
+    greyhoundHouston.userData.legs.forEach((leg, i) => {
+      const front = i < 2;
+      leg.rotation.x = Math.sin(t * 9 + (front ? 0 : Math.PI)) * (front ? 0.95 : 0.8);
+    });
+    greyhoundHouston.userData.tail.rotation.x = 1.15 - 0.5;
+    if (u >= 1) {
+      S.t0 = t;
+      S.from = greyhoundHouston.position.clone();
+      if (S.hold) {
+        // Summoned: he stops where he was sent instead of choosing a flop
+        // spot of his own. The lie-down is the same; the destination is yours.
+        S.hold = false;
+        S.to = S.from.clone();
+        S.until = Math.max(t + 26, S.summonUntil || 0);
+      } else {
+        S.until = t + 22 + (Math.abs(Math.sin(t * 43.7)) * 26);   // a long, long lie-down
+        S.flop = Math.floor(Math.abs(Math.sin(t * 17.3)) * HOUSTON_FLOPS.length) % HOUSTON_FLOPS.length;
+        const f = HOUSTON_FLOPS[S.flop];
+        S.to = houstonGround(f.x, f.z);
+      }
+      S.dur = 3.2;
+      S.mode = 'settle';
+    }
+    return;
+  }
+
+  if (S.mode === 'settle') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const p = S.from.clone().lerp(S.to, u * u * (3 - 2 * u));
+    p.y = getVisitorHeight(p.x, p.z) + 0.02;
+    greyhoundHouston.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) greyhoundHouston.rotation.y = Math.atan2(v.x, v.z);
+    greyhoundHouston.rotation.x += (0 - greyhoundHouston.rotation.x) * 0.08;
+    greyhoundHouston.userData.legs.forEach((leg, i) => {
+      leg.rotation.x = Math.sin(t * 3.4 + i * 1.6) * 0.32;
+    });
+    if (u >= 1) { S.mode = 'flop'; S.t0 = t; }
+    return;
+  }
+
+  if (S.mode === 'flop') {
+    // Down on one side, dead to the world, ribs moving.
+    // The roll is on `roll` (his spine), not on the group (his feet) — see
+    // the builder's header. Rolling about the spine leaves his flank in the
+    // air, so the group sinks by HOUSTON_FLOP_SINK. That number is measured
+    // ON SCREEN and not derived: the arithmetic on the chest ellipse says
+    // 0.50, and 0.50 buried him, because at 76° the lowest thing on him is
+    // not his ribs but his outstretched legs. Settled roll 75.5°, lowest
+    // vertex +0.02 above the stone — the same band as Diddy and Austin.
+    // The old code's −0.12 was this instinct fighting a pivot at the feet,
+    // where the problem has no solution.
+    greyhoundHouston.userData.roll.rotation.z += (Math.PI * 0.42 - greyhoundHouston.userData.roll.rotation.z) * 0.05;
+    greyhoundHouston.position.y += (getVisitorHeight(greyhoundHouston.position.x, greyhoundHouston.position.z) - HOUSTON_FLOP_SINK - greyhoundHouston.position.y) * 0.05;
+    greyhoundHouston.userData.legs.forEach((leg) => { leg.rotation.x += (0.9 - leg.rotation.x) * 0.05; });
+    greyhoundHouston.userData.tail.rotation.x += (1.5 - greyhoundHouston.userData.tail.rotation.x) * 0.04;
+    // A summoned Houston must STAY — the flop timer is his own, and it must
+    // not out-vote a lease. Same guard as Diddy's, on the mover that has the
+    // shortest patience in the villa.
+    if (t > S.until && t > (S.summonUntil || 0)) {
+      greyhoundHouston.userData.roll.rotation.z = 0;
+      S.dir = -S.dir;
+      S.mode = 'sprint';
+      S.t0 = t;
+      S.dur = 8 + Math.abs(Math.sin(t * 11.1)) * 3;
+      S.from = greyhoundHouston.position.clone();
+      S.to = houstonGround(S.dir * (HOUSTON_RUN_X - 2), HOUSTON_RUN_Z);
+      greyhoundHouston.userData.legs.forEach(l => { l.rotation.x = 0; });
+    }
+  }
+}
+
+// ============================================================
+// 12. THE SEA TURTLE — a green turtle (Sailor's little brother)
+//
+// RULED (Sailor, 2026-08-07): the kelp bed and the bay, and he hauls out
+// onto the dry sand to bask. Aquatic medium with the beach as its one
+// exception — which makes him the only resident who crosses the swash line
+// under his own steam. The otter comes ashore when called; the turtle comes
+// ashore because that is what turtles do.
+//
+// He is the reason the coast pass's dry sand is load-bearing. The berm was
+// widened on 08-05 so that a gathering could stand above the high-tide line;
+// the first thing to actually USE it is a turtle lying on it.
+//
+// THE HEIGHT RULE, and why it is a max() and not a branch: Austin picks
+// sea-or-ground with `sharkInWater`, which is a step function — fine for a
+// bird, who is never in contact with the boundary. A turtle crawls THROUGH
+// it, and a step function there teleports him a unit and a quarter in the
+// two units of z where the foreshore crosses the waterline. So instead:
+// take the higher of the walkable ground and the sea surface. Over the deep
+// that is the surface, on the berm that is the sand, and in the wash it is a
+// continuous ramp — he crawls out of the sea instead of stepping out of it.
+// It is also, for free, the guarantee the Otter Princess cost us a session
+// to learn: max(ground, …) cannot put him under the floor. Anywhere.
+// ============================================================
+function buildTurtle() {
+  const g = new THREE.Group();
+  // Saturate hard — the villa's ambient bleaches anything mid-toned, and a
+  // turtle read from a photograph goes straight to pastel here.
+  //
+  // AND HE IS BROWN. A green turtle's shell is not green; the green is its
+  // fat. The first cut had the carapace at 0x2f4a24 and on screen he
+  // disappeared into the lawn — same hue, near enough the same value, a
+  // turtle-shaped hill. Olive-brown separates him from the grass he crosses
+  // AND from the kelp he sits in, and it is what the animal actually is.
+  const shell = new THREE.MeshStandardMaterial({ color: 0x4a3616, roughness: 0.62 });
+  const scute = new THREE.MeshStandardMaterial({ color: 0x2a1d08, roughness: 0.7 });
+  const rim = new THREE.MeshStandardMaterial({ color: 0x8a6a22, roughness: 0.66 });
+  const skin = new THREE.MeshStandardMaterial({ color: 0x39422a, roughness: 0.8 });
+  const plastron = new THREE.MeshStandardMaterial({ color: 0x9a8a54, roughness: 0.78 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x100e0a, roughness: 0.7 });
+
+  // The carapace — a low dome, longer than it is wide. Everything else on
+  // the animal is small; the shell is the read at any distance.
+  const carapace = new THREE.Mesh(new THREE.SphereGeometry(0.52, 14, 10), shell);
+  carapace.scale.set(0.86, 0.40, 1.12);
+  carapace.position.set(0, 0.34, 0);
+  carapace.castShadow = true;
+  g.add(carapace);
+  // Marginal scutes — the serrated rim that makes it a shell and not a bowl
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(0.085, 5, 4), rim);
+    m.scale.set(1, 0.42, 1);
+    m.position.set(Math.sin(a) * 0.44, 0.30, Math.cos(a) * 0.57);
+    g.add(m);
+  }
+  // Central and lateral scutes — a few plates, not a texture map.
+  // They have to sit ON the dome, so their height is solved from the
+  // carapace ellipsoid rather than eyeballed: the first cut used a linear
+  // falloff (0.46 − |x|·0.18) which put every one of them INSIDE the shell,
+  // and the turtle rendered as a smooth bowl with no plates at all.
+  const CARA_Y = 0.34, CARA_RX = 0.52 * 0.86, CARA_RY = 0.52 * 0.40, CARA_RZ = 0.52 * 1.12;
+  [[0, 0.22], [0, -0.02], [0, -0.26], [-0.24, 0.10], [0.24, 0.10], [-0.24, -0.16], [0.24, -0.16]].forEach(([x, z]) => {
+    const k = 1 - (x / CARA_RX) * (x / CARA_RX) - (z / CARA_RZ) * (z / CARA_RZ);
+    const surface = CARA_Y + CARA_RY * Math.sqrt(Math.max(0, k));
+    const s = new THREE.Mesh(new THREE.SphereGeometry(0.12, 6, 5), scute);
+    s.scale.set(0.9, 0.16, 1.0);
+    s.position.set(x, surface - 0.012, z);   // proud of the dome by a hair
+    g.add(s);
+  });
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.44, 10, 7), plastron);
+  belly.scale.set(0.82, 0.20, 1.02);
+  belly.position.set(0, 0.16, 0);
+  g.add(belly);
+
+  // Head on a pivot — it comes up to breathe and goes down to graze, and
+  // those two motions are most of what he does.
+  const neck = new THREE.Group();
+  neck.position.set(0, 0.28, 0.50);
+  g.add(neck);
+  g.userData.neck = neck;
+  const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.095, 0.20, 7), skin);
+  stalk.rotation.x = Math.PI / 2.2;
+  stalk.position.set(0, 0.02, 0.08);
+  neck.add(stalk);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 9, 7), skin);
+  head.scale.set(0.9, 0.82, 1.25);
+  head.position.set(0, 0.04, 0.24);
+  neck.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.10, 5), rim);
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, -0.005, 0.37);
+  neck.add(beak);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 5, 4), dark);
+    eye.position.set(s * 0.075, 0.07, 0.27);
+    neck.add(eye);
+    // The yellow cheek stripe — the one flash of colour on him
+    const stripe = new THREE.Mesh(new THREE.SphereGeometry(0.03, 5, 4), rim);
+    stripe.scale.set(0.5, 0.5, 1.5);
+    stripe.position.set(s * 0.085, 0.005, 0.22);
+    neck.add(stripe);
+  });
+
+  // Flippers on pivots. The front pair are wings — a sea turtle FLIES, it
+  // does not paddle — and the rear pair are rudders that barely move.
+  const fore = [];
+  [-1, 1].forEach(s => {
+    const f = new THREE.Group();
+    const blade = new THREE.Mesh(new THREE.SphereGeometry(0.30, 8, 6), skin);
+    blade.scale.set(1.55, 0.13, 0.46);
+    blade.position.set(s * 0.42, 0, 0.02);
+    f.add(blade);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.085, 0.30, 5), skin);
+    tip.scale.set(1, 1, 0.34);
+    tip.rotation.z = s * Math.PI / 2;
+    tip.rotation.y = -s * 0.22;
+    tip.position.set(s * 0.86, 0, -0.03);
+    f.add(tip);
+    f.position.set(0, 0.26, 0.24);
+    g.add(f); fore.push(f);
+  });
+  g.userData.fore = fore;
+
+  const hind = [];
+  [-1, 1].forEach(s => {
+    const h = new THREE.Group();
+    const paddle = new THREE.Mesh(new THREE.SphereGeometry(0.17, 7, 5), skin);
+    paddle.scale.set(1.15, 0.16, 0.85);
+    paddle.position.set(s * 0.17, 0, -0.04);
+    h.add(paddle);
+    h.position.set(s * 0.26, 0.22, -0.40);
+    g.add(h); hind.push(h);
+  });
+  g.userData.hind = hind;
+
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.20, 5), skin);
+  tail.rotation.x = -Math.PI / 2;
+  tail.position.set(0, 0.22, -0.60);
+  g.add(tail);
+
+  // Sit the plastron ON the sand. He measured 0.092 above the floor before
+  // this line — small, but a basking turtle is defined by being in contact
+  // with the ground, and 0.09 of daylight under a shell only 0.50 tall
+  // reads as hovering. The convention every land resident here follows is
+  // that the group's origin is the underside; this makes him keep it.
+  g.children.forEach(c => { c.position.y -= 0.072; });
+
+  g.scale.set(1.0, 1.0, 1.0);
+  return g;
+}
+
+const seaTurtle = buildTurtle();
+seaTurtle.visible = false;
+scene.add(seaTurtle);
+
+// His range: the kelp bed, the bay, and two places on the dry sand. Water
+// entries are where he grazes and rests; land entries are where he basks.
+const TURTLE_SPOTS = [
+  { name: 'the kelp bed', x: KELP_X, z: KELP_Z, land: false },
+  { name: 'the bay', x: -7, z: 96, land: false },
+  { name: 'the shallows off the river mouth', x: 3, z: 90, land: false },
+  { name: 'the dry sand', x: 11, z: 77, land: true },
+  { name: 'the top of the beach', x: -9, z: 74, land: true },
+];
+const turtleState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, summonTarget: null };
+
+// See the height rule in this section's header. The higher of the walkable
+// ground and the sea surface, everywhere, always.
+const TURTLE_SURFACE = OCEAN_Y - 0.18;   // shell awash: his back breaks it
+function turtleY(x, z) {
+  return Math.max(getVisitorHeight(x, z) + 0.02, TURTLE_SURFACE);
+}
+function turtleGround(x, z) { return new THREE.Vector3(x, turtleY(x, z), z); }
+function turtleAfloat(x, z) { return getVisitorHeight(x, z) + 0.02 < TURTLE_SURFACE - 0.05; }
+
+function toggleTurtle() {
+  const b = document.getElementById('turtle-btn');
+  if (turtleState.mode === 'off') {
+    // In from the open sea, past the kelp — the same door the otter uses
+    seaTurtle.position.copy(turtleGround(KELP_X + 5, KELP_Z + 18));
+    seaTurtle.visible = true;
+    turtleState.mode = 'entering';
+    turtleState.t0 = -1;
+    turtleState.spot = 0;
+    turtleState.dur = 30;
+    turtleState.from = seaTurtle.position.clone();
+    turtleState.to = turtleGround(KELP_X, KELP_Z);
+    if (b) { b.classList.add('active'); b.textContent = '🐢 arriving'; }
+  } else {
+    turtleState.mode = 'off';
+    seaTurtle.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐢 the turtle'; }
+  }
+}
+
+function animateTurtle(t) {
+  const S = turtleState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 20; }
+  const W = seaTurtle.userData;
+  const afloat = turtleAfloat(seaTurtle.position.x, seaTurtle.position.z);
+
+  // A summon outranks the patrol, and he goes where he is called — onto the
+  // stone included. He is slow about it, which is the whole joke.
+  if (S.summonTarget && t < S.summonUntil && S.mode !== 'travel') {
+    S.from = seaTurtle.position.clone();
+    S.to = S.summonTarget.clone();
+    S.dur = Math.max(6, S.from.distanceTo(S.to) / 1.5);
+    S.t0 = t; S.mode = 'travel'; S.spot = -1;
+    // Consume it. The target has been copied into S.to and the HOLD is
+    // summonUntil, not the target — leaving it set here re-triggers this
+    // branch the instant he arrives and he travels zero units, forever,
+    // never settling at the place he was called to.
+    S.summonTarget = null;
+  }
+
+  if (S.mode === 'entering' || S.mode === 'travel') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const e = u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = turtleY(p.x, p.z);
+    seaTurtle.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - seaTurtle.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      seaTurtle.rotation.y += dy * 0.05;
+    }
+    if (afloat) {
+      // Flying. Both front flippers together on a long downbeat, and the
+      // body pitches with the stroke — the single thing that separates a sea
+      // turtle from a tortoise at a glance.
+      const beat = Math.sin(t * 1.15);
+      W.fore.forEach((f, i) => { f.rotation.z = (i ? -1 : 1) * (0.10 + beat * 0.85); });
+      W.hind.forEach((h, i) => { h.rotation.z = (i ? -1 : 1) * 0.12; h.rotation.x = beat * 0.10; });
+      seaTurtle.rotation.x = beat * 0.09;
+      seaTurtle.rotation.z = 0;
+      W.neck.rotation.x = -0.10;
+    } else {
+      // Hauling. On sand the same flippers become crutches: he drags on
+      // alternate sides, the shell rocks, and he stops to breathe.
+      const drag = Math.sin(t * 1.5);
+      W.fore.forEach((f, i) => { f.rotation.z = (i ? -1 : 1) * (0.30 + Math.max(0, (i ? -drag : drag)) * 0.75); });
+      W.hind.forEach((h, i) => { h.rotation.z = (i ? -1 : 1) * 0.05; });
+      seaTurtle.rotation.z = drag * 0.07;
+      seaTurtle.rotation.x = 0.04;
+      W.neck.rotation.x = 0.18 + Math.max(0, -drag) * 0.22;
+    }
+    if (u >= 1) {
+      const spot = TURTLE_SPOTS[S.spot];
+      const onLand = !turtleAfloat(seaTurtle.position.x, seaTurtle.position.z);
+      S.mode = onLand ? 'bask' : 'graze';
+      S.t0 = t;
+      S.until = Math.max(t + (onLand ? 34 : 22) + Math.abs(Math.sin(t * 19.3)) * 30, S.summonUntil || 0);
+      const b = document.getElementById('turtle-btn');
+      if (b && b.classList.contains('active')) {
+        b.textContent = '🐢 ' + (onLand ? 'basking' : (spot ? 'at ' + spot.name : 'in the water'));
+      }
+      if (S.mode === 'bask' && spot) showNavLabel('the turtle hauls out on ' + spot.name);
+    }
+    return;
+  }
+
+  seaTurtle.position.y += (turtleY(seaTurtle.position.x, seaTurtle.position.z) - seaTurtle.position.y) * 0.08;
+
+  if (S.mode === 'bask') {
+    // Dead still on the sand. Every so often one flipper comes up over the
+    // carapace — throwing sand over his own back, which is the actual
+    // behaviour and reads, correctly, as doing nothing.
+    const throwSand = Math.max(0, Math.sin(t * 0.23) - 0.955) * 22;
+    W.fore.forEach((f, i) => {
+      const want = 0.34 + (i === 0 ? throwSand * 0.9 : 0);
+      f.rotation.z += ((i ? -1 : 1) * want - f.rotation.z) * 0.08;
+    });
+    W.hind.forEach((h, i) => { h.rotation.z += ((i ? -0.06 : 0.06) - h.rotation.z) * 0.08; });
+    seaTurtle.rotation.x += (0.03 - seaTurtle.rotation.x) * 0.06;
+    seaTurtle.rotation.z += (0 - seaTurtle.rotation.z) * 0.06;
+    W.neck.rotation.x += ((0.16 + Math.sin(t * 0.31) * 0.10) - W.neck.rotation.x) * 0.04;
+    W.neck.rotation.y = Math.sin(t * 0.19) * 0.35;
+  } else {
+    // Grazing. Head down in the kelp, drifting on the swell, a slow stroke
+    // now and then to hold station. He rides the same surface the otter's
+    // raft is pinned to, so the two of them read as one bed of animals.
+    const swell = Math.sin(t * 0.55) * 0.06;
+    seaTurtle.position.y += swell * 0.12;
+    const idle = Math.max(0, Math.sin(t * 0.42)) * 0.35;
+    W.fore.forEach((f, i) => { f.rotation.z += ((i ? -1 : 1) * (0.12 + idle) - f.rotation.z) * 0.06; });
+    W.hind.forEach((h, i) => { h.rotation.z += ((i ? -0.10 : 0.10) - h.rotation.z) * 0.06; });
+    seaTurtle.rotation.x += ((0.22 + Math.sin(t * 0.37) * 0.14) - seaTurtle.rotation.x) * 0.03;   // nose down, grazing
+    seaTurtle.rotation.z += (Math.sin(t * 0.29) * 0.08 - seaTurtle.rotation.z) * 0.03;
+    W.neck.rotation.x += ((0.30 + Math.sin(t * 0.9) * 0.18) - W.neck.rotation.x) * 0.05;
+    W.neck.rotation.y = Math.sin(t * 0.24) * 0.22;
+  }
+
+  if (t > S.until && t > (S.summonUntil || 0)) {
+    S.summonTarget = null;
+    // Alternate: a bask is paid for by a swim. He does not do two of either
+    // in a row, which is what keeps him crossing the swash line where you
+    // can watch him do it — the one thing he has that nobody else here does.
+    const wantLand = S.mode !== 'bask';
+    const pool = TURTLE_SPOTS.map((s, i) => [s, i]).filter(([s]) => !!s.land === wantLand);
+    const pick = pool[Math.floor(Math.abs(Math.sin(t * 53.1)) * pool.length) % pool.length];
+    S.spot = pick[1];
+    S.from = seaTurtle.position.clone();
+    S.to = turtleGround(pick[0].x, pick[0].z);
+    S.dur = Math.max(10, S.from.distanceTo(S.to) / (wantLand ? 0.9 : 1.7));   // slower up the sand
+    S.t0 = t;
+    S.mode = 'travel';
+    const b = document.getElementById('turtle-btn');
+    if (b && b.classList.contains('active')) b.textContent = '🐢 ' + (wantLand ? 'hauling out' : 'swimming');
+  }
+}
+
+// ============================================================
+// 13. EDBURG — the villa's second house cat (Sailor's friend Edburg, who
+// does research with Kantbot).
+//
+// RULED (Sailor, 2026-08-07): he lives with the wizard and KB. That is the
+// back range — Alrik's ridge and Diddy Kong's, the only address in the
+// villa that is already shared. Adlib has the terrace; Edburg has the
+// mountain, and the two cats never occupy the same ground.
+//
+// He is built from buildCat with a different coat (see the palette
+// parameter added there today) because a second cat is a colour, not a
+// second builder. What is genuinely his is where he sits: ONE OF HIS SPOTS
+// IS A PERSON. `follow: 'alrik'` resolves each time he chooses, so "with
+// the wizard" is not a fixed coordinate on the ridge — it is wherever Alrik
+// has walked to. He is the first resident whose range is another resident,
+// which is exactly what "he should live with the wizard and KB" asks for.
+// ============================================================
+const catEdburg = buildCat({
+  coat: 0x8a4a16,      // ginger, and hard — mid-orange bleaches to apricot here
+  saddle: 0x5c2c08,    // the darker tabby mantle over the shoulders
+  pale: 0xa89060,      // chest, muzzle, paws
+  eye: 0x2f7a6a,       // green, against all that orange
+  eyeGlow: 0x08281f,
+});
+catEdburg.visible = false;
+scene.add(catEdburg);
+
+// The back range. Two of these are people — see the header.
+const EDBURG_SPOTS = [
+  { name: 'the saddle', x: -6, z: -80 },
+  { name: 'the west peak', x: -25, z: -77 },
+  { name: 'the high river', x: 0, z: -60 },
+  { name: 'the treeline', x: 11, z: -48 },
+  { name: 'the east peak', x: 20, z: -72 },
+  { name: "Alrik's feet", follow: 'alrik', dx: 0.9, dz: -0.7 },
+  { name: 'a rock near Diddy', follow: 'diddy', dx: -1.2, dz: -0.9 },
+];
+const edburgState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
+
+// A spot may be a person. Resolve it at the moment he decides to go, not
+// once at startup — otherwise "with the wizard" means "where the wizard
+// stood when the page loaded", which is the same class of mistake as the
+// Otter Princess reading her height at her target's position.
+function edburgSpotPoint(spot) {
+  if (spot && spot.follow) {
+    const av = AVATARS[spot.follow] && AVATARS[spot.follow]();
+    if (av && av.visible) {
+      return diddyGround(av.position.x + (spot.dx || 0), av.position.z + (spot.dz || 0));
+    }
+    // Not arrived yet — the ridge itself is the fallback, never the origin
+    return diddyGround(EDBURG_SPOTS[0].x, EDBURG_SPOTS[0].z);
+  }
+  return diddyGround(spot.x, spot.z);
+}
+
+function toggleEdburg() {
+  const b = document.getElementById('edburg-btn');
+  if (edburgState.mode === 'off') {
+    catEdburg.position.copy(diddyGround(EDBURG_SPOTS[0].x, EDBURG_SPOTS[0].z));
+    catEdburg.visible = true;
+    edburgState.mode = 'loaf';
+    edburgState.t0 = -1; edburgState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🐈‍⬛ on the saddle'; }
+  } else {
+    edburgState.mode = 'off';
+    catEdburg.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐈‍⬛ Edburg'; }
+  }
+}
+
+function animateEdburg(t) {
+  const S = edburgState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 16; }
+  const W = catEdburg.userData;
+
+  // Ears on their own clock, as Adlib's are — it is the same animal
+  const flick = Math.max(0, Math.sin(t * 0.39) - 0.985) * 40;
+  W.ears.forEach((e, i) => { e.rotation.z = (i ? -1 : 1) * 0.18 + flick * (i ? -0.5 : 0.5); });
+
+  if (S.mode === 'walk' || S.mode === 'zoom') {
+    const fast = S.mode === 'zoom';
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const e = fast ? u : u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + (fast ? Math.abs(Math.sin(u * Math.PI * 9)) * 0.09 : 0);
+    catEdburg.position.copy(p);
+    const rate = fast ? 15 : 6;
+    W.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * rate + (i % 2 ? Math.PI : 0)) * (fast ? 0.75 : 0.4); });
+    W.tail.rotation.x = fast ? -0.5 : Math.sin(t * 2.2) * 0.18;
+    W.tail.rotation.y = fast ? 0 : Math.sin(t * 1.4) * 0.22;
+    W.headGroup.rotation.x = 0;
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - catEdburg.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      catEdburg.rotation.y += dy * (fast ? 0.3 : 0.12);
+    }
+    if (u >= 1) {
+      S.mode = Math.abs(Math.sin(t * 61.7)) < 0.30 ? 'groom' : 'loaf';
+      S.t0 = t;
+      S.until = Math.max(t + 20 + Math.abs(Math.sin(t * 13.9)) * 40, S.summonUntil || 0);
+      const spot = EDBURG_SPOTS[S.spot];
+      const b = document.getElementById('edburg-btn');
+      if (b && b.classList.contains('active')) b.textContent = '🐈‍⬛ ' + (spot ? 'at ' + spot.name : 'with you');
+    }
+    return;
+  }
+
+  catEdburg.position.y = getVisitorHeight(catEdburg.position.x, catEdburg.position.z) + 0.02;
+
+  if (S.mode === 'groom') {
+    W.headGroup.rotation.x = 0.85 + Math.sin(t * 5.5) * 0.18;
+    W.headGroup.rotation.y = 0.55;
+    W.tail.rotation.y = Math.sin(t * 0.8) * 0.1;
+    W.legs.forEach(l => { l.rotation.x *= 0.9; });
+    if (t > S.t0 + 8) { S.mode = 'loaf'; S.t0 = t; }
+    return;
+  }
+
+  // Loafed on a mountain. Slower than Adlib and much more still — there is
+  // nothing up here he is being kept off, so he has no reason to move at all.
+  W.headGroup.rotation.x += (Math.sin(t * 0.17) * 0.07 - W.headGroup.rotation.x) * 0.04;
+  W.headGroup.rotation.y += (Math.sin(t * 0.13) * 0.5 - W.headGroup.rotation.y) * 0.04;
+  W.tail.rotation.y = Math.sin(t * 0.42) * 0.38;
+  W.tail.rotation.x += (0.15 - W.tail.rotation.x) * 0.05;
+  W.legs.forEach(l => { l.rotation.x *= 0.92; });
+
+  if (t > S.until && t > (S.summonUntil || 0)) {
+    let next = Math.floor(Math.abs(Math.sin(t * 71.3)) * EDBURG_SPOTS.length) % EDBURG_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % EDBURG_SPOTS.length;
+    S.spot = next;
+    S.from = catEdburg.position.clone();
+    S.to = edburgSpotPoint(EDBURG_SPOTS[next]);
+    const far = S.from.distanceTo(S.to);
+    // He bolts far less than Adlib does. A cat on a mountain has nowhere in
+    // particular to be, and the sprint is Adlib's joke, not his.
+    const zoom = Math.abs(Math.sin(t * 97.1)) > 0.88;
+    S.mode = zoom ? 'zoom' : 'walk';
+    S.dur = Math.max(zoom ? 0.8 : 4.5, far / (zoom ? 9 : 1.6));
+    S.t0 = t;
+  }
+}
+
+// ============================================================
+// 14. LUKE — a wandering albatross (Sailor's friend Luke)
+//
+// RULED (Sailor, 2026-08-07): the coast, sharing Austin's beat. Two birds
+// on one stretch of water is a real risk — the villa does not need a second
+// pelican — so the whole design of him is CONTRAST at the same address:
+//
+//   wingspan   Austin's outer primary reaches x 1.32. Luke's reaches 2.9,
+//              and the wing is a third the chord. He is a glider; the
+//              pelican is a bomber.
+//   the bank   Austin rolls ±0.10 and holds a line. Luke rolls to ±1.0 and
+//              never holds one: he flies the trough of the swell, banks up
+//              across the wind, falls off the top and does it again. That is
+//              dynamic soaring, it is why an albatross can cross an ocean
+//              without flapping, and it is legible from any distance.
+//   the flap   Austin flaps a little. Luke does not flap at all in a soar —
+//              his wings only move to land.
+//   the ground THE POINT OF HIM. An albatross is the best flier in the
+//              world and cannot land: he comes in too fast, puts his feet
+//              down, and goes over. He is the only resident who is bad at
+//              something, and he does it in front of everybody.
+// ============================================================
+function buildAlbatross() {
+  const g = new THREE.Group();
+  const white = new THREE.MeshStandardMaterial({ color: 0x9a958a, roughness: 0.78 });   // "white" reads as paper unless it is knocked down
+  const upper = new THREE.MeshStandardMaterial({ color: 0x2b2822, roughness: 0.8 });
+  const tipMat = new THREE.MeshStandardMaterial({ color: 0x14120e, roughness: 0.78 });
+  const billMat = new THREE.MeshStandardMaterial({ color: 0xa8895e, roughness: 0.45 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x0e0c09, roughness: 0.7 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.27, 12, 9), white);
+  body.scale.set(0.88, 0.90, 1.75);
+  body.position.set(0, 0.44, -0.04);
+  body.castShadow = true;
+  g.add(body);
+  const mantle = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 7), upper);
+  mantle.scale.set(0.92, 0.42, 1.5);
+  mantle.position.set(0, 0.56, -0.06);
+  g.add(mantle);
+
+  const neck = new THREE.Group();
+  neck.position.set(0, 0.58, 0.24);
+  g.add(neck);
+  g.userData.neck = neck;
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.11, 0.26, 7), white);
+  col.position.set(0, 0.12, 0.03);
+  neck.add(col);
+
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.26, 0.06);
+  neck.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 10, 8), white);
+  head.scale.set(1, 0.95, 1.05);
+  headGroup.add(head);
+  [-1, 1].forEach(s => {
+    const patch = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6, 5), upper);
+    patch.scale.set(0.6, 0.7, 1.0);
+    patch.position.set(s * 0.075, 0.015, 0.04);
+    headGroup.add(patch);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.019, 5, 4), dark);
+    eye.position.set(s * 0.082, 0.025, 0.07);
+    headGroup.add(eye);
+  });
+  // The bill: heavy, pink-horn, plated, and hooked hard at the tip. Shorter
+  // than the pelican's and twice as deep — no pouch anywhere on him.
+  const bill = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.062, 0.34, 7), billMat);
+  bill.rotation.x = Math.PI / 2;
+  bill.position.set(0, -0.012, 0.24);
+  headGroup.add(bill);
+  const hook = new THREE.Mesh(new THREE.ConeGeometry(0.048, 0.12, 6), billMat);
+  hook.rotation.x = Math.PI / 2 + 0.72;
+  hook.position.set(0, -0.035, 0.41);
+  headGroup.add(hook);
+  // Tubenose — the paired nostril tubes along the bill. Nobody will see it
+  // and it is the correct detail; the family is called the tubenoses.
+  [-1, 1].forEach(s => {
+    const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.11, 5), upper);
+    tube.rotation.x = Math.PI / 2;
+    tube.position.set(s * 0.038, 0.030, 0.16);
+    headGroup.add(tube);
+  });
+
+  // THE WINGS. Three segments so the span reads as a span and not a plank,
+  // and so the taper is visible edge-on when he banks — which is most of
+  // the time he is on screen.
+  const wings = [];
+  [-1, 1].forEach(s => {
+    const w = new THREE.Group();
+    // Chord tapers outboard, and the inner panel is deliberately wider than
+    // the arithmetic wants: at true albatross aspect ratio the wing renders
+    // as a stick with a black wedge on the end, which is accurate and reads
+    // as scenery rather than as a bird. Widening the root by a third buys
+    // back the shape of a wing without touching the span, which is the
+    // measurement that actually distinguishes him from Austin.
+    const inner = new THREE.Mesh(new THREE.SphereGeometry(0.20, 8, 6), upper);
+    inner.scale.set(3.4, 0.11, 0.86);
+    inner.position.set(s * 0.62, 0, 0.01);
+    w.add(inner);
+    const mid = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), upper);
+    mid.scale.set(4.2, 0.10, 0.62);
+    mid.position.set(s * 1.62, 0, -0.03);
+    w.add(mid);
+    const tip = new THREE.Mesh(new THREE.ConeGeometry(0.105, 0.95, 4), tipMat);
+    tip.scale.set(1, 1, 0.22);
+    tip.rotation.z = s * Math.PI / 2;
+    tip.rotation.y = -s * 0.14;
+    tip.position.set(s * 2.42, 0, -0.07);
+    w.add(tip);
+    // The underwing is pale — it flashes every time he rolls, which is the
+    // signal that tells you at 60 units which bird you are looking at.
+    const under = new THREE.Mesh(new THREE.SphereGeometry(0.19, 8, 5), white);
+    under.scale.set(3.9, 0.05, 0.55);
+    under.position.set(s * 1.05, -0.035, 0);
+    w.add(under);
+    w.position.set(0, 0.54, -0.01);
+    g.add(w); wings.push(w);
+  });
+  g.userData.wings = wings;
+
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.10, 0.34, 5), upper);
+  tail.scale.set(1, 1, 0.30);
+  tail.rotation.x = -Math.PI / 2 - 0.18;
+  tail.position.set(0, 0.46, -0.60);
+  g.add(tail);
+
+  const legs = [];
+  [-1, 1].forEach(s => {
+    const leg = new THREE.Group();
+    const shank = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.028, 0.20, 5), billMat);
+    shank.position.y = -0.10;
+    leg.add(shank);
+    const web = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.014, 0.18), billMat);
+    web.position.set(0, -0.20, 0.05);
+    leg.add(web);
+    leg.position.set(s * 0.10, 0.28, -0.05);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  // Same correction as the turtle's, for the same reason — his webbed feet
+  // measured 0.108 clear of the sand, and the one place he is ever still
+  // enough to look at closely is standing on it.
+  g.children.forEach(c => { c.position.y -= 0.09; });
+
+  g.scale.set(1.2, 1.2, 1.2);
+  return g;
+}
+
+const albatrossLuke = buildAlbatross();
+albatrossLuke.visible = false;
+scene.add(albatrossLuke);
+
+// Austin's beat plus one that is only Luke's: the open sea, far enough out
+// that going there is a commitment. The pelican has an inland perch; the
+// albatross has an offshore one. Same coast, opposite ends of it.
+const LUKE_SPOTS = [
+  { name: 'the break', x: -11, z: 106 },
+  { name: 'the open sea', x: 24, z: 132 },
+  { name: 'the river mouth', x: 2, z: 89 },
+  { name: 'the beach', x: -14, z: 78, land: true },
+  { name: 'the outer swell', x: -26, z: 118 },
+];
+// arcs/width are the soar's shape, recomputed per leg in lukeDepart. They
+// are initialised here because a summon out of 'sit' enters 'soar' without
+// passing through lukeDepart — and an undefined in that expression puts NaN
+// into a Vector3, which three.js does not throw on: the bird would simply
+// stop being drawn, with no error anywhere to find it by.
+const lukeState = { mode: 'off', t0: -1, spot: 0, from: null, to: null, dur: 0, until: 0, summonUntil: 0, arcs: 2, width: 6, landing: false };
+
+// Same max() idiom as the turtle: the higher of the walkable ground and the
+// sea surface. A bird never needs the continuity, but it means he cannot be
+// put under the stylobate by a summon into the galleria either.
+function lukeSurfaceY(x, z) {
+  return Math.max(getVisitorHeight(x, z) + 0.02, OCEAN_Y + 0.06);
+}
+function lukeGround(x, z) { return new THREE.Vector3(x, lukeSurfaceY(x, z), z); }
+
+function toggleLuke() {
+  const b = document.getElementById('luke-btn');
+  if (lukeState.mode === 'off') {
+    albatrossLuke.position.copy(lukeGround(LUKE_SPOTS[1].x, LUKE_SPOTS[1].z));
+    albatrossLuke.visible = true;
+    lukeState.mode = 'sit';
+    lukeState.t0 = -1; lukeState.spot = 1;
+    if (b) { b.classList.add('active'); b.textContent = '🕊 on the swell'; }
+  } else {
+    lukeState.mode = 'off';
+    albatrossLuke.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🕊 Luke'; }
+  }
+}
+
+function animateLuke(t) {
+  const S = lukeState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 8; }
+  const W = albatrossLuke.userData;
+
+  if (S.mode === 'soar') {
+    const u = Math.min(1, (t - S.t0) / S.dur);
+    const p = S.from.clone().lerp(S.to, u);
+    // DYNAMIC SOARING, and it is one expression. `cycle` is the phase of the
+    // sinusoid he flies; the SAME phase drives roll, height and heading
+    // offset, which is exactly the physical coupling — he banks, and the
+    // bank is what climbs him; he rolls level, and levelling is what drops
+    // him back into the trough. Driving them from three separate clocks is
+    // what makes CG birds look like they are on rails.
+    const cycle = Math.sin(u * Math.PI * 2 * S.arcs);
+    const rise = (1 - Math.cos(u * Math.PI * 2 * S.arcs)) * 0.5;   // 0 at the trough, 1 at the top
+    p.y = lukeSurfaceY(p.x, p.z) + 1.1 + rise * 7.4 + Math.sin(u * Math.PI) * 1.2;
+    // The arc also takes him off the straight line between the two spots —
+    // a wanderer does not commute.
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    const side = new THREE.Vector3(-v.z, 0, v.x).normalize();
+    p.addScaledVector(side, cycle * S.width);
+    albatrossLuke.position.copy(p);
+    albatrossLuke.rotation.z = -cycle * 1.0;             // the bank, to 57°
+    albatrossLuke.rotation.x = -rise * 0.16 + 0.05;
+    // Wings locked out flat. No flap in a soar, at all — a slight dihedral
+    // and a tip flex from the load, and nothing else.
+    W.wings.forEach((w, i) => {
+      w.rotation.z = (i ? -1 : 1) * (0.05 + rise * 0.05);
+      w.rotation.x = Math.sin(t * 0.8 + i) * 0.02;
+      w.rotation.y += (0 - w.rotation.y) * 0.15;   // opening out of the fold
+      w.scale.x += (1 - w.scale.x) * 0.15;
+    });
+    W.neck.rotation.x = 0.18;
+    W.legs.forEach(l => { l.rotation.x = 1.5; });        // tucked
+    if (v.lengthSq() > 1e-4) {
+      albatrossLuke.rotation.y = Math.atan2(v.x, v.z) + cycle * 0.22;
+    }
+    if (u >= 1) {
+      const spot = LUKE_SPOTS[S.spot];
+      albatrossLuke.position.copy(S.to);
+      if ((spot && spot.land) || S.landing) { S.landing = false; S.mode = 'land'; S.t0 = t; }
+      else {
+        S.mode = 'sit'; S.t0 = t; S.until = Math.max(t + 10 + Math.abs(Math.sin(t * 9.3)) * 20, S.summonUntil || 0);
+        albatrossLuke.rotation.z = 0; albatrossLuke.rotation.x = 0;
+      }
+    }
+    return;
+  }
+
+  if (S.mode === 'land') {
+    // Feet down, wings hard back, still doing about twice the speed he
+    // should be — and then he trips. 1.6s of it, and it is the only time
+    // all day he looks like anything other than the best flier alive.
+    const u = Math.min(1, (t - S.t0) / 1.6);
+    const p = albatrossLuke.position.clone();
+    p.y += (lukeSurfaceY(p.x, p.z) - p.y) * 0.22;
+    p.z -= (1 - u) * 0.10;
+    albatrossLuke.position.copy(p);
+    const brake = Math.min(1, u / 0.55);
+    W.wings.forEach((w, i) => {
+      w.rotation.z = (i ? -1 : 1) * (0.10 + brake * 1.15);
+      w.rotation.y = (i ? -1 : 1) * brake * 0.55;
+      w.scale.x += (1 - w.scale.x) * 0.2;
+    });
+    W.legs.forEach(l => { l.rotation.x = 0.2 + (1 - brake) * 0.9; });
+    // The stumble: a pitch forward that overshoots and recovers
+    const trip = u < 0.62 ? Math.sin((u / 0.62) * Math.PI) : 0;
+    albatrossLuke.rotation.x = 0.10 + trip * 0.72;
+    albatrossLuke.rotation.z = trip * 0.34;
+    W.neck.rotation.x = -0.35 - trip * 0.35;
+    if (u >= 1) {
+      S.mode = 'stand'; S.t0 = t;
+      S.until = Math.max(t + 16 + Math.abs(Math.sin(t * 7.7)) * 20, S.summonUntil || 0);
+      albatrossLuke.rotation.x = 0; albatrossLuke.rotation.z = 0;
+      showNavLabel('Luke lands, more or less');
+    }
+    return;
+  }
+
+  if (S.mode === 'stand') {
+    // On the sand, upright, wings mostly folded, opening them now and then
+    // because there is nothing else to do with them on land.
+    albatrossLuke.position.y += (lukeSurfaceY(albatrossLuke.position.x, albatrossLuke.position.z) - albatrossLuke.position.y) * 0.2;
+    // THE FOLD, and it matters more on him than on any other bird here.
+    // A standing albatross puts eleven feet of wing away along its flanks;
+    // holding them out is a bird about to take off. Two passes to get here:
+    // the first only set rotation.z, which left him on the sand with the
+    // full span out like a weathervane; the second swept the wings back on
+    // Y, which turned him into a dart with three metres trailing behind.
+    //
+    // A real wing folds by BENDING — elbow and wrist — and this one is a
+    // rigid group, so what folding does to it is shorten it. scale.x is the
+    // honest model of that: the segments are laid out along local x at
+    // 0.62 / 1.62 / 2.42, so scaling x collapses the whole wing in toward
+    // the shoulder exactly as a fold does. Sweep and shorten together.
+    //
+    // The sweep sign is backwards-on-Y, which is +1 for the wing built on
+    // +x and −1 for the other — the opposite of the sign the stretch wants.
+    const stretch = Math.max(0, Math.sin(t * 0.27) - 0.9) * 9;
+    const open = Math.min(1, stretch);
+    W.wings.forEach((w, i) => {
+      w.rotation.z += ((i ? -1 : 1) * (0.06 + stretch * 0.5) - w.rotation.z) * 0.08;
+      w.rotation.y += ((i ? 1 : -1) * 1.15 * (1 - open) - w.rotation.y) * 0.08;
+      w.scale.x += ((0.30 + open * 0.70) - w.scale.x) * 0.08;
+    });
+    W.legs.forEach(l => { l.rotation.x *= 0.88; });
+    W.neck.rotation.x += ((0.10 + Math.sin(t * 0.4) * 0.12) - W.neck.rotation.x) * 0.05;
+    W.headGroup.rotation.y = Math.sin(t * 0.33) * 0.5;
+    if (t > S.until && t > (S.summonUntil || 0)) lukeDepart(t);
+    return;
+  }
+
+  // Sitting the swell — high in the water, wings closed, riding it
+  albatrossLuke.position.y = lukeSurfaceY(albatrossLuke.position.x, albatrossLuke.position.z) + Math.sin(t * 0.9) * 0.09;
+  albatrossLuke.rotation.z += (Math.sin(t * 0.6) * 0.06 - albatrossLuke.rotation.z) * 0.06;
+  albatrossLuke.rotation.x += (Math.sin(t * 0.77) * 0.05 - albatrossLuke.rotation.x) * 0.06;
+  // Folded away on the water too — swept and shortened, as in 'stand'.
+  W.wings.forEach((w, i) => {
+    w.rotation.z += ((i ? -0.04 : 0.04) - w.rotation.z) * 0.08;
+    w.rotation.y += ((i ? 1 : -1) * 1.15 - w.rotation.y) * 0.08;
+    w.scale.x += (0.30 - w.scale.x) * 0.08;
+  });
+  W.legs.forEach(l => { l.rotation.x *= 0.9; });
+  W.neck.rotation.x += ((0.22 + Math.sin(t * 0.5) * 0.1) - W.neck.rotation.x) * 0.05;
+  W.headGroup.rotation.y = Math.sin(t * 0.36) * 0.45;
+  if (t > S.until && t > (S.summonUntil || 0)) lukeDepart(t);
+}
+
+function lukeDepart(t) {
+  const S = lukeState;
+  let next = Math.floor(Math.abs(Math.sin(t * 41.3)) * LUKE_SPOTS.length) % LUKE_SPOTS.length;
+  if (next === S.spot) next = (next + 1) % LUKE_SPOTS.length;
+  S.spot = next;
+  S.from = albatrossLuke.position.clone();
+  S.to = lukeGround(LUKE_SPOTS[next].x, LUKE_SPOTS[next].z);
+  const far = S.from.distanceTo(S.to);
+  S.dur = Math.max(7, far / 9);
+  // One full soaring cycle per ~26 units, and the arc widens with the leg —
+  // a short hop is nearly straight, an ocean crossing wanders.
+  S.arcs = Math.max(1, Math.round(far / 26));
+  S.width = Math.min(16, 4 + far * 0.12);
+  S.t0 = t;
+  S.mode = 'soar';
+  const b = document.getElementById('luke-btn');
+  if (b && b.classList.contains('active')) b.textContent = '🕊 out to ' + LUKE_SPOTS[next].name;
+}
+
+// ── Arrivals, continuing the staggered cadence ──
+// Houston runs the terrace, so he comes in late enough that the camera is
+// not still on the threshold when a dog goes past it at speed.
+setTimeout(function () { if (houstonState.mode === 'off') toggleHouston(); }, 47500);
+setTimeout(function () { if (turtleState.mode === 'off') toggleTurtle(); }, 51000);
+setTimeout(function () { if (edburgState.mode === 'off') toggleEdburg(); }, 54500);
+setTimeout(function () { if (lukeState.mode === 'off') toggleLuke(); }, 58000);
+
 // ── GOING PLACES (Sailor, 2026-08-01) ───────────────────────
 // Orbiting a 3D scene with a scroll wheel is a bad way to get anywhere,
 // and the villa is now 76 units across with residents at the top of a
@@ -10776,6 +11921,10 @@ const RESIDENTS = {
   emilia:{ state: function () { return emiliaState; }, toggle: toggleEmilia },
   adlib: { state: function () { return adlibState; }, toggle: toggleAdlib },
   austin:{ state: function () { return austinState; }, toggle: toggleAustin },
+  houston:{ state: function () { return houstonState; }, toggle: toggleHouston },
+  turtle:{ state: function () { return turtleState; }, toggle: toggleTurtle },
+  edburg:{ state: function () { return edburgState; }, toggle: toggleEdburg },
+  luke:  { state: function () { return lukeState; },   toggle: toggleLuke },
 };
 
 function tapResident(key) {
@@ -11175,6 +12324,58 @@ function summonResident(key, silent, at) {
     adlibState.dur = Math.max(3.5, adlibState.from.distanceTo(adlibState.to) / 1.9);
     adlibState.t0 = t; adlibState.mode = 'walk';
     adlibState.summonUntil = t + adlibState.dur + 90;
+  } else if (key === 'houston') {
+    if (houstonState.mode === 'off') toggleHouston();
+    // He does not walk over. He runs, at his one speed, and then he lies
+    // down at your feet for as long as the lease holds — `hold` tells the
+    // sprint's arrival to stop where it was sent instead of choosing one of
+    // his own flop spots, which is the only summon-shaped thing about him.
+    houstonState.from = greyhoundHouston.position.clone();
+    houstonState.to = houstonGround(here.x + 1.3, here.z + 1.1);
+    houstonState.dur = Math.max(1.6, houstonState.from.distanceTo(houstonState.to) / 13);
+    houstonState.t0 = t;
+    houstonState.mode = 'sprint';
+    houstonState.hold = true;
+    greyhoundHouston.userData.roll.rotation.z = 0;
+    houstonState.summonUntil = t + houstonState.dur + 90;
+    houstonState.until = houstonState.summonUntil;
+  } else if (key === 'turtle') {
+    if (turtleState.mode === 'off') toggleTurtle();
+    // He goes where he is called, ashore included — turtleY guarantees he
+    // arrives ON the floor rather than through it, whether that floor is the
+    // sea surface, the beach, or the stylobate. He is very slow, and being
+    // waited for is part of what he is.
+    turtleState.summonTarget = turtleGround(here.x - 1.2, here.z + 1.0);
+    turtleState.summonUntil = t + 120;
+    turtleState.until = turtleState.summonUntil;
+    if (!turtleAfloat(here.x, here.z)) showNavLabel('the turtle is coming out of the water — give him a minute');
+  } else if (key === 'edburg') {
+    if (edburgState.mode === 'off') toggleEdburg();
+    // A very long way down off the range, and he takes it at a cat's pace.
+    edburgState.from = catEdburg.position.clone();
+    edburgState.to = diddyGround(here.x - 1.0, here.z + 1.1);
+    edburgState.spot = -1;
+    edburgState.dur = Math.max(6, edburgState.from.distanceTo(edburgState.to) / 2.6);
+    edburgState.t0 = t; edburgState.mode = 'walk';
+    edburgState.summonUntil = t + edburgState.dur + 90;
+    edburgState.until = edburgState.summonUntil;
+  } else if (key === 'luke') {
+    if (lukeState.mode === 'off') toggleLuke();
+    lukeState.from = albatrossLuke.position.clone();
+    lukeState.to = lukeGround(here.x + 1.6, here.z - 1.3);
+    const legLen = lukeState.from.distanceTo(lukeState.to);
+    lukeState.dur = Math.max(5, legLen / 11);
+    // Called in, he flies a straighter line than he ever would on patrol —
+    // one arc, and narrow. He is coming to you, not wandering past.
+    lukeState.arcs = 1;
+    lukeState.width = Math.min(6, legLen * 0.06);
+    // Not a spot — you. `landing` makes the arrival a landing wherever it is,
+    // rather than borrowing the beach's index and lying about where he went.
+    lukeState.spot = -1;
+    lukeState.landing = true;
+    lukeState.t0 = t; lukeState.mode = 'soar';
+    lukeState.summonUntil = t + lukeState.dur + 90;
+    lukeState.until = lukeState.summonUntil;
   } else if (key === 'trout') {
     if (troutState.mode === 'off') toggleTrout();
     // Trout keeps to the water: nearest point on the river course
@@ -13225,6 +14426,10 @@ container.addEventListener('pointerup', e => {
     if (stoatEmilia.visible) critters.push({ key: 'emilia', mesh: stoatEmilia });
     if (catAdlib.visible) critters.push({ key: 'adlib', mesh: catAdlib });
     if (pelicanAustin.visible) critters.push({ key: 'austin', mesh: pelicanAustin });
+    if (greyhoundHouston.visible) critters.push({ key: 'houston', mesh: greyhoundHouston });
+    if (seaTurtle.visible) critters.push({ key: 'turtle', mesh: seaTurtle });
+    if (catEdburg.visible) critters.push({ key: 'edburg', mesh: catEdburg });
+    if (albatrossLuke.visible) critters.push({ key: 'luke', mesh: albatrossLuke });
     if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
     for (const c of critters) {
       if (raycaster.intersectObject(c.mesh, true).length > 0) {
@@ -15963,7 +17168,8 @@ const PIERCE_BODIES = [
   ['otter', otterPrincess], ['petra', sharkPetra], ['kyle', dolphinKyle],
   ['diddy', diddyKong], ['alrik', wizardAlrik], ['raven', ravenHornedSphere],
   ['julia', heronJulia], ['emilia', stoatEmilia], ['adlib', catAdlib],
-  ['austin', pelicanAustin],
+  ['austin', pelicanAustin], ['houston', greyhoundHouston], ['turtle', seaTurtle],
+  ['edburg', catEdburg], ['luke', albatrossLuke],
 ];
 
 // EVERY light sees the pierce layer — not just the two directionals.
@@ -16260,6 +17466,10 @@ function animate() {
   residentBudget.run('emilia',  animateStoat,   t, stoatEmilia);
   residentBudget.run('adlib',   animateCat,     t, catAdlib);
   residentBudget.run('austin',  animateAustin,  t, pelicanAustin);
+  residentBudget.run('houston', animateHouston, t, greyhoundHouston);
+  residentBudget.run('turtle',  animateTurtle,  t, seaTurtle);
+  residentBudget.run('edburg',  animateEdburg,  t, catEdburg);
+  residentBudget.run('luke',    animateLuke,    t, albatrossLuke);
   residentBudget.end();
   animateBoats(t);
 
