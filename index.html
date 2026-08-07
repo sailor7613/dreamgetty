@@ -688,14 +688,17 @@
   <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
   <button class="ui-btn" id="austin-btn" onclick="tapResident('austin')" title="Austin \u2014 tap to lock the camera on him. A brown pelican working the coast; glides low over the swell and goes in bill first">🦢 Austin</button>
   <div class="nav-menu-label">Go</div>
-  <button class="ui-btn" onclick="goToPlace('gallery')">The Gallery</button>
+  <button class="ui-btn" onclick="goToPlace('galleria')">The Galleria</button>
   <button class="ui-btn" onclick="goToPlace('court')">The West Court</button>
   <button class="ui-btn" onclick="goToPlace('library')">The Library</button>
-  <button class="ui-btn" onclick="goToPlace('annex')">The Annex</button>
+  <button class="ui-btn" onclick="goToPlace('exedra')">The Exedra</button>
+  <button class="ui-btn" onclick="goToPlace('plaza')">The Plaza</button>
   <button class="ui-btn" onclick="goToPlace('pool')">The Pool</button>
+  <button class="ui-btn" onclick="goToPlace('lawn')">The North Lawn</button>
   <button class="ui-btn" onclick="goToPlace('overlook')">The Overlook</button>
   <button class="ui-btn" onclick="goToPlace('valley')">The Valley</button>
   <button class="ui-btn" onclick="goToPlace('beach')">The Beach</button>
+  <button class="ui-btn" onclick="goToPlace('rivermouth')">The River Mouth</button>
   <button class="ui-btn" onclick="goToPlace('break')">The Break</button>
   <button class="ui-btn" onclick="goToPlace('kelp')">The Kelp Bed</button>
   <button class="ui-btn" onclick="goToPlace('deep')">The Deep</button>
@@ -3542,7 +3545,27 @@ const QUALITY = (function () {
   const T = {
     //        pixel grid    DPR cap   shadow map   draw dist  fog far   near band  far update
     low:  { pixelGrid: 0.58, maxDPR: 1.0, shadowMap: 512,  far: 300, fogFar: 240, nearRadius: 42, farHz: 10 },
-    high: { pixelGrid: 0.80, maxDPR: 1.5, shadowMap: 1024, far: 600, fogFar: 400, nearRadius: 70, farHz: 20 },
+    // REMASTERED 2026-08-05 (Sailor: "last-generation aesthetic, contemporary
+    // tech"). pixelGrid 0.80 -> 1.00. maxDPR STAYS 1.5 — measured, not assumed.
+    //
+    // The bug was never the grid's arithmetic, it was that `antialias` is bound
+    // to `PIXEL_GRID >= 0.999` at renderer construction. At 0.80 the villa ran
+    // with MSAA OFF and a nearest-neighbour upscale, so every edge in the
+    // building was a staircase. Raising the grid to 1.00 turns MSAA back on and
+    // drops the `image-rendering: pixelated` filter. That is the whole remaster.
+    //
+    // M1 Air, 1194x604 CSS on a 2388x1208 panel, same vantage each time:
+    //   grid 0.80 / DPR 1.5  ->  1432x724   36% native  AA off   60fps  16.7ms  <- was
+    //   grid 1.00 / DPR 1.5  ->  1791x906   56% native  AA ON    60fps  16.7ms  <- is
+    //   grid 1.00 / DPR 2.0  ->  2388x1208 100% native  AA ON    36fps  27.5ms
+    //   grid 1.00 / DPR 2.0  ->  2388x1208 100% native  AA off   44fps  22.8ms
+    //
+    // True native costs 40% of the frame rate and MSAA is only ~4.7ms of it —
+    // the rest is raw fill. 56% of native WITH antialiasing is free and reads
+    // clean; 100% is not worth 24 frames. Do not raise maxDPR without re-running
+    // this table: resolution spends fragment work, which is a different currency
+    // from the draw-call budget the tier was originally tightened against.
+    high: { pixelGrid: 1.00, maxDPR: 1.5, shadowMap: 1024, far: 600, fogFar: 400, nearRadius: 70, farHz: 20 },
   };
   return Object.assign({ tier: tier, probed: probe }, T[tier]);
 })();
@@ -3665,7 +3688,11 @@ function riverChannelFactor(x, z) {
 // the kelp bed and the shark's circuit with it.
 const STRAND_Z0 = 56;      // the valley starts handing off
 const STRAND_ZB0 = 66;     // berm, landward edge — level ground begins
-const STRAND_ZB1 = 82;     // berm crest — where the foreshore takes over
+const STRAND_ZB1 = 84;     // berm crest — where the foreshore takes over
+                           // (was 82 — Sailor 2026-08-05: "more of the sandy
+                           // beach above the hightide line." The crest moves
+                           // SEAWARD, the sea does not move: STRAND_Z1 holds,
+                           // so the foreshore steepens rather than reaching.)
 const STRAND_Z1 = 87;      // the foreshore reaches the sea bed
 const STRAND_HALFW = 19;   // half-width of the level core
 const STRAND_FADE = 7;     // blend back into the valley sides / the bay
@@ -3921,7 +3948,7 @@ for (let fx = -120; fx <= 120; fx += 4) {
 const foam = (function buildFoamRibbon() {
   const pos = [], idx = [];
   foamCoast.forEach((p, i) => {
-    pos.push(p.x, OCEAN_Y + 0.18, p.z - 2.2, p.x, OCEAN_Y + 0.18, p.z + 3.2);
+    pos.push(p.x, OCEAN_Y + 0.18, p.z - 0.8, p.x, OCEAN_Y + 0.18, p.z + 3.2);   // landward edge pulled in (was -2.2) — the wash stops at the berm toe
     if (i > 0) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
   });
   const geo = new THREE.BufferGeometry();
@@ -4027,8 +4054,9 @@ function animateOcean(t) {
   // The swell itself is shader-side (see oceanMat.onBeforeCompile) — one
   // uniform is the whole per-frame cost, same arrangement as the river.
   oceanMat.userData.uTime.value = t;
+  if (typeof animateKelp === 'function') animateKelp(t);
   // Foam breathes with the arriving swell — slides up the sand and back
-  foam.position.z = Math.sin(t * 0.7) * 1.6;
+  foam.position.z = Math.sin(t * 0.7) * 1.0;   // was 1.6 — run-up now kisses the crest at its peak instead of flooding the berm
   foamMat.opacity = 0.16 + (Math.sin(t * 0.7) * 0.5 + 0.5) * 0.14;
 }
 
@@ -5353,18 +5381,28 @@ const ringMat1 = new THREE.MeshStandardMaterial({
   roughness: 0.25, metalness: 0.35, transparent: true, opacity: 0.85,
   side: THREE.DoubleSide
 });
-// Built at UNIT radius and resized by .scale — see the aperture block in
-// animate(). The tube radius is divided out so the ring still reads the same
-// weight at RING_MIN; it thickens slightly as the aperture opens, which is
-// what the old rebuild did anyway.
-const ring1Geo = new THREE.TorusGeometry(1, 0.018 / RING_MIN, 12, 48);
-const ring1 = new THREE.Mesh(ring1Geo, ringMat1);
+// CONSTANT TUBE, BOUNDED REBUILDS (2026-08-05) — see the aperture block in
+// animate() for why the .scale version was wrong. The ring is built at its
+// real radius with a constant tube, which is what v4 did and what the design
+// wants: the aperture opens, the ring does not fatten.
+const RING_STEPS = 24;                       // radius buckets across the range
+const RING_TUBE1 = 0.018, RING_TUBE2 = 0.014;
+function ringBucket(r) {
+  const f = (r - RING_MIN) / (RING_MAX - RING_MIN);
+  return Math.max(0, Math.min(RING_STEPS, Math.round(f * RING_STEPS)));
+}
+function ringRadiusFor(b) { return RING_MIN + (b / RING_STEPS) * (RING_MAX - RING_MIN); }
+function reshapeRing(mesh, bucket, tube) {
+  const old = mesh.geometry;
+  mesh.geometry = new THREE.TorusGeometry(ringRadiusFor(bucket), tube, 12, 48);
+  if (old) old.dispose();
+}
+const ring1 = new THREE.Mesh(new THREE.TorusGeometry(RING_MIN, RING_TUBE1, 12, 48), ringMat1);
 ring1.rotation.x = Math.PI/2 - RING_TILT;
 ring1.position.set(0, ASTERISK_LOW_Y, 0);
-ring1.scale.set(RING_MIN, RING_MIN, 1);
 scene.add(ring1);
-// Live radii — the aperture animation lerps these instead of allocating.
-const ringGeoState = { r1: RING_MIN, r2: RING_MIN };
+// Live radii + the bucket each ring's geometry was last built at.
+const ringGeoState = { r1: RING_MIN, r2: RING_MIN, b1: 0, b2: 0 };
 
 // Ghost ring (opponent's perceived Diatribe) — hidden initially
 const ringMat2 = new THREE.MeshStandardMaterial({
@@ -5372,11 +5410,9 @@ const ringMat2 = new THREE.MeshStandardMaterial({
   roughness: 0.25, metalness: 0.35, transparent: true, opacity: 0,
   side: THREE.DoubleSide
 });
-const ring2Geo = new THREE.TorusGeometry(1, 0.014 / RING_MIN, 12, 48);
-const ring2 = new THREE.Mesh(ring2Geo, ringMat2);
+const ring2 = new THREE.Mesh(new THREE.TorusGeometry(RING_MIN, RING_TUBE2, 12, 48), ringMat2);
 ring2.rotation.x = Math.PI/2 - RING_TILT;
 ring2.position.set(0, ASTERISK_LOW_Y, 0);
-ring2.scale.set(RING_MIN, RING_MIN, 1);
 scene.add(ring2);
 
 // Ring glow sprite
@@ -7595,11 +7631,24 @@ setTimeout(function () { if (y2kState.mode === 'off') toggleY2k(); }, 13000);
 // ── The kelp bed (Sailor's call) — her raft, offshore of the river mouth ──
 const KELP_X = 8, KELP_Z = 102;
 const kelpBed = new THREE.Group();
+const kelpPlants = [];   // underwater stipe groups — sway by rotation
+const kelpRafts = [];    // surface canopy groups — drift in x/z, never in y
 (function buildKelpBed() {
+  // LIFELIKE PASS (Sailor, 2026-08-05): still stretched primitives, still no
+  // textures — but a kelp plant is not a fence post. Each plant is now its
+  // own group pivoting at the HOLDFAST, the stipe leans and carries a second
+  // segment bent off the first (giant kelp never stands straight), a couple
+  // of fronds droop off the stipe below the surface, and the whole plant
+  // sways on a slow sine. Phases come off the golden angle per the de-sync
+  // rule — neighbours must never beat in unison.
   const stipeMat = new THREE.MeshStandardMaterial({ color: 0x1e2711, roughness: 0.92 });
   const bladeMat = new THREE.MeshStandardMaterial({
     color: 0x2b3811, roughness: 0.88, side: THREE.DoubleSide,
     transparent: true, opacity: 0.88,
+  });
+  const bladeMat2 = new THREE.MeshStandardMaterial({    // sunnier canopy blades
+    color: 0x3c4a16, roughness: 0.85, side: THREE.DoubleSide,
+    transparent: true, opacity: 0.82,
   });
   const bulbMat = new THREE.MeshStandardMaterial({ color: 0x4a3a10, roughness: 0.72, emissive: 0x120d03, emissiveIntensity: 0.25 });
   for (let i = 0; i < 16; i++) {
@@ -7607,25 +7656,84 @@ const kelpBed = new THREE.Group();
     const x = Math.cos(a) * r, z = Math.sin(a) * r * 0.8;
     const holdfast = OCEAN_Y - 1.6;
     const h = OCEAN_Y + 0.05 - holdfast;
-    const stipe = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.06, h, 5), stipeMat);
-    stipe.position.set(x, holdfast + h / 2, z);
-    kelpBed.add(stipe);
+    // TWO BODIES PER PLANT (corrected same session): the STIPE lives
+    // underwater and leans and sways; the CANOPY floats, and floating means
+    // its height is the water's fact, not the plant's. The first cut hung
+    // the surface blades off the swaying group — the lean hoisted the whole
+    // canopy 0.4 into the air and the bed read as rotors on sticks.
+    const plant = new THREE.Group();                // underwater: stipe + fronds
+    plant.position.set(x, holdfast, z);             // pivot at the holdfast
+    plant.userData.phase = a;                        // golden-angle phase
+    plant.userData.amp = 0.035 + (i % 4) * 0.009;    // no two sway alike
+    const lean = 0.04 + (i % 5) * 0.02;              // a lean, not a fall
+    plant.rotation.z = lean * ((i % 2) ? 1 : -1);
+    plant.rotation.x = lean * 0.5;
+
+    // stipe in two segments — lower rises, upper bends off it, and the tip
+    // stays just UNDER the surface: the bulb floats, the stalk reaches
+    const h1 = h * 0.62, h2 = h * 0.37;
+    const seg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.06, h1, 5), stipeMat);
+    seg1.position.y = h1 / 2;
+    plant.add(seg1);
+    const seg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.035, h2, 5), stipeMat);
+    seg2.position.set(0, h1 + Math.cos(0.35) * h2 / 2, Math.sin(0.35) * h2 / 2 * ((i % 3) - 1));
+    seg2.rotation.x = 0.35 * ((i % 3) - 1) * 0.5;
+    plant.add(seg2);
+
+    // fronds — drooping off the stipe below the surface, where the light is
+    for (let f = 0; f < 2; f++) {
+      const fa = a * 1.7 + f * 2.6;
+      const frond = new THREE.Mesh(new THREE.PlaneGeometry(0.13, 0.9 + (i % 3) * 0.25), bladeMat);
+      frond.position.set(Math.cos(fa) * 0.12, h * (0.45 + f * 0.22), Math.sin(fa) * 0.12);
+      frond.rotation.set(0.9 + f * 0.35, fa, 0.2);
+      plant.add(frond);
+    }
+
+    plant.userData.baseRotZ = plant.rotation.z;
+    plant.userData.baseRotX = plant.rotation.x;
+    kelpBed.add(plant);
+    kelpPlants.push(plant);
+
+    // the raft — bulb + canopy, pinned to the surface, drifting never lifting
+    const raft = new THREE.Group();
+    raft.position.set(x, OCEAN_Y, z);
+    raft.userData.phase = a;
+    raft.userData.baseX = x; raft.userData.baseZ = z;
     const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 6, 5), bulbMat);
-    bulb.position.set(x, OCEAN_Y + 0.02, z);
-    kelpBed.add(bulb);
-    // Blades lying out across the surface — the canopy an otter rafts in
+    bulb.position.set(0, 0.02, 0);
+    raft.add(bulb);
     for (let b = 0; b < 3; b++) {
       const ang = a + b * 2.1;
-      const blade = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 1.5 + (i % 3) * 0.4), bladeMat);
-      blade.rotation.x = -Math.PI / 2;
+      const blade = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 1.5 + (i % 3) * 0.4), (i + b) % 3 ? bladeMat : bladeMat2);
+      blade.rotation.x = -Math.PI / 2 + 0.025 * ((b % 2) ? 1 : -1);   // not billiard-flat, not lifting either
       blade.rotation.z = ang;
-      blade.position.set(x + Math.cos(ang) * 0.7, OCEAN_Y + 0.06, z + Math.sin(ang) * 0.7);
-      kelpBed.add(blade);
+      blade.position.set(Math.cos(ang) * 0.7, 0.05 + b * 0.012, Math.sin(ang) * 0.7);
+      raft.add(blade);
     }
+    kelpBed.add(raft);
+    kelpRafts.push(raft);
   }
   kelpBed.position.set(KELP_X, 0, KELP_Z);
   scene.add(kelpBed);
 })();
+
+// The bed breathes — each plant leans on the swell with its own phase.
+// 0.4/0.27 sit inside the lerp-ladder's slow band; amplitude stays small
+// because kelp resists, it does not wave.
+function animateKelp(t) {
+  for (let i = 0; i < kelpPlants.length; i++) {
+    const pl = kelpPlants[i], u = pl.userData;
+    // sway is a delta about the standing lean, so the lean survives it
+    pl.rotation.z = u.baseRotZ + Math.sin(t * 0.40 + u.phase) * u.amp;
+    pl.rotation.x = u.baseRotX + Math.sin(t * 0.27 + u.phase * 1.6) * u.amp * 0.7;
+  }
+  for (let i = 0; i < kelpRafts.length; i++) {
+    const rf = kelpRafts[i], u = rf.userData;
+    rf.position.x = u.baseX + Math.sin(t * 0.40 + u.phase) * 0.10;   // follows the stipe's sway
+    rf.position.z = u.baseZ + Math.sin(t * 0.27 + u.phase * 1.6) * 0.07;
+    // y stays put: the canopy is the surface's tenant, not the stipe's
+  }
+}
 
 // ============================================================
 // 1. SEA OTTER PRINCESS
@@ -7875,8 +7983,24 @@ function animateOtter(t) {
 
   S._prev.copy(otterPrincess.position);
   otterPrincess.position.lerp(target, S.mode === 'entering' ? 0.08 : (supine ? 0.012 : 0.05));
-  // Prone on stone, her feet want the floor; supine she rides on her spine.
-  if (!rafting) otterPrincess.position.y += (target.y + 0.09 - otterPrincess.position.y) * 0.1;
+  // ── HEIGHT IS READ AT HER OWN POSITION (2026-08-05) ──────────
+  // The sink Sailor kept seeing: her patrol target swims the river, she
+  // chases it on a slow lerp, lags whole bends behind, and CUTS THE CORNER
+  // across land — while her height lerped toward the water level at the
+  // TARGET. Over the valley floor that put her five units under the ground,
+  // and lock-on found her "deep underwater." Where she floats is a fact
+  // about where SHE is, so it is computed there.
+  if (rafting) {
+    const wy = otterWaterY(otterPrincess.position.x, otterPrincess.position.z);
+    otterPrincess.position.y += (wy - otterPrincess.position.y) * 0.12;
+  } else {
+    // Prone on stone, her feet want the floor; supine she rides on her spine.
+    otterPrincess.position.y += (target.y + 0.09 - otterPrincess.position.y) * 0.1;
+  }
+  // And never under the world, whatever state she is in. The underworld view
+  // stays a camera fact (do not clamp phi) — it must not be an otter fact.
+  const otterFloor = getTerrainHeight(otterPrincess.position.x, otterPrincess.position.z) + 0.06;
+  if (otterPrincess.position.y < otterFloor) otterPrincess.position.y = otterFloor;
 
   const v = new THREE.Vector3().subVectors(otterPrincess.position, S._prev);
   if (v.lengthSq() > 1e-7) {
@@ -8535,14 +8659,45 @@ const feedState = { entries: [], loaded: false, lastError: null };
 const GATE = 'https://villa-gate.shanecorwin.workers.dev';
 const gateReady = () => /^https:\/\/\S+$/.test(GATE);
 
-const VILLA_PLACES = [
-  { name: 'the gallery', x: 0, z: 0 }, { name: 'the plaza', x: 10, z: 6 },
-  { name: 'the pool', x: 0, z: 20 }, { name: 'the overlook', x: -9, z: 44 },
-  { name: 'the valley', x: 0, z: 60 }, { name: 'the beach', x: 15, z: 78 },
-  { name: 'the north lawn', x: -14, z: -10 }, { name: 'the mountain', x: 0, z: -70 },
-  { name: 'the river mouth', x: 0, z: 88 },
-  { name: 'the break', x: 0, z: 97 }, { name: 'the deep', x: 2, z: 128 },
+// ════════════════════════════════════════════════════════════
+// THE PLACE REGISTRY (2026-08-05) — one list, every fact about a place.
+//
+// There used to be three lists and they disagreed: PLACES (12 camera
+// framings, no ground), VILLA_PLACES (11 ground points, no framing), and
+// travelTargets (six hand vantages, half of them objects). The Library and
+// the Exedra could be LOOKED AT but never stood in — nearestPlace called a
+// statement made in the west aisle "the gallery" — and a summon, which
+// needs a ground point, had four destinations that did not exist.
+//
+// Now: a place is a KEY, a LABEL, a GROUND POINT (x, z) and a camera
+// framing (look, off — goToPlace seats the camera at look + off). The two
+// old lists are DERIVED below; the spoken name is the label lowercased.
+// Ruled 2026-08-05 (Sailor): people can travel basically anywhere — every
+// place carries both facts. (If the library is ever locked, that is the
+// gate's ruling to make, not this table's.)
+// 'galleria' was 'gallery' and 'exedra' was 'annex' — §7's names, applied.
+// Code identifiers (annexWing, isAnnexPedestal, galleryGraphmap) keep
+// their spelling: baked userData flags must not change under a rename.
+// ════════════════════════════════════════════════════════════
+const PLACE_REGISTRY = [
+  { key: 'galleria', label: 'The Galleria',   x: 0,   z: 0,    look: [0, 2.6, 0],      off: [7, 6, 20] },
+  { key: 'court',    label: 'The West Court', x: -13, z: 4,    look: [-13.5, 3.4, 3],  off: [7, 5, 15] },
+  { key: 'library',  label: 'The Library',    x: -21, z: 2.5,  look: [-26, 3.2, 0],    off: [11, 6, 18] },
+  { key: 'exedra',   label: 'The Exedra',     x: 21,  z: 2.5,  look: [26, 3.2, 0],     off: [-11, 6, 18] },
+  { key: 'plaza',    label: 'The Plaza',      x: 10,  z: 6,    look: [10, 1.6, 6],     off: [7, 5, 12] },
+  { key: 'pool',     label: 'The Pool',       x: 0,   z: 20,   look: [0, 1.8, 20],     off: [9, 7, 17] },
+  { key: 'lawn',     label: 'The North Lawn', x: -14, z: -10,  look: [-14, 1.8, -10],  off: [10, 6, 16] },
+  { key: 'overlook', label: 'The Overlook',   x: -9,  z: 44,   look: [-9, 0.6, 44],    off: [5, 7, -13] },
+  { key: 'valley',   label: 'The Valley',     x: 0,   z: 60,   look: [0, -3, 60],      off: [8, 10, -18] },
+  { key: 'beach',    label: 'The Beach',      x: 15,  z: 78,   look: [7, -10.5, 84],   off: [3, 9, -16] },
+  { key: 'rivermouth', label: 'The River Mouth', x: 0, z: 88,  look: [0, -11, 88],     off: [-4, 8, -16] },
+  { key: 'break',    label: 'The Break',      x: 0,   z: 97,   look: [0, -11.4, 97],   off: [1, 7, -14] },
+  { key: 'kelp',     label: 'The Kelp Bed',   x: 8,   z: 102,  look: [8, -11.6, 102],  off: [2, 6, -12] },
+  { key: 'deep',     label: 'The Deep',       x: 2,   z: 128,  look: [2, -12, 126],    off: [1, 9, -20] },
+  { key: 'mountain', label: 'The Mountain',   x: 0,   z: -70,  look: [-4, 44, -76],    off: [12, 15, 30] },
 ];
+const PLACES = PLACE_REGISTRY;   // goToPlace reads key/label/look/off off the same rows
+const VILLA_PLACES = PLACE_REGISTRY.map(p => ({ name: p.label.toLowerCase(), x: p.x, z: p.z }));
 function nearestPlace(pos) {
   let best = VILLA_PLACES[0], bd = Infinity;
   VILLA_PLACES.forEach(p => {
@@ -10049,9 +10204,9 @@ scene.add(stoatEmilia);
 // white animal reads against dark.
 const EMILIA_SPOTS = [
   { name: 'the west court', x: -13.0, z: 5.5 },
-  { name: 'the gallery', x: -5, z: -3 },
+  { name: 'the galleria', x: -5, z: -3 },
   { name: 'the plaza', x: 9, z: 7 },
-  { name: 'the annex steps', x: 17.5, z: 7 },
+  { name: 'the exedra steps', x: 17.5, z: 7 },
   { name: 'the library steps', x: -17.5, z: 6 },
   { name: 'the pool walk', x: 2.6, z: 14 },
 ];
@@ -10224,7 +10379,7 @@ const ADLIB_SPOTS = [
   { name: 'the G4', x: -5, z: 2.5, perch: 0.78 },
   { name: 'the west court', x: -12.4, z: 6.6 },
   { name: 'the pool walk', x: 2.4, z: 15 },
-  { name: 'the annex', x: 21, z: 2.5 },
+  { name: 'the exedra', x: 21, z: 2.5 },
   { name: 'the library steps', x: -17.2, z: 5 },
 ];
 const adlibState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, perch: 0 };
@@ -10574,20 +10729,7 @@ function austinDepart(t) {
 // Each entry is a look-at point and the offset to view it from; the
 // existing approach rig does the travel, so it is one shared mechanism
 // with focusing on an object.
-const PLACES = [
-  { key: 'gallery',  label: 'The Gallery',    look: [0, 2.6, 0],      off: [7, 6, 20] },
-  { key: 'court',    label: 'The West Court', look: [-13.5, 3.4, 3],  off: [7, 5, 15] },
-  { key: 'library',  label: 'The Library',    look: [-26, 3.2, 0],    off: [11, 6, 18] },
-  { key: 'annex',    label: 'The Annex',      look: [26, 3.2, 0],     off: [-11, 6, 18] },
-  { key: 'pool',     label: 'The Pool',       look: [0, 1.8, 20],     off: [9, 7, 17] },
-  { key: 'overlook', label: 'The Overlook',   look: [-9, 0.6, 44],    off: [5, 7, -13] },
-  { key: 'valley',   label: 'The Valley',     look: [0, -3, 60],      off: [8, 10, -18] },
-  { key: 'beach',    label: 'The Beach',      look: [7, -10.5, 84],   off: [3, 9, -16] },
-  { key: 'break',    label: 'The Break',      look: [0, -11.4, 97],   off: [1, 7, -14] },
-  { key: 'kelp',     label: 'The Kelp Bed',   look: [8, -11.6, 102],  off: [2, 6, -12] },
-  { key: 'deep',     label: 'The Deep',       look: [2, -12, 126],    off: [1, 9, -20] },
-  { key: 'mountain', label: 'The Mountain',   look: [-4, 44, -76],    off: [12, 15, 30] },
-];
+// PLACES lives in THE PLACE REGISTRY now (one list, every fact) — see its block beside nearestPlace.
 
 function goToPlace(key) {
   const pl = PLACES.find(p => p.key === key);
@@ -10648,6 +10790,108 @@ function tapResident(key) {
   if (followAnimal.key === key) { stopFollow(); return; }
   startFollow(key);
   toggleNavMenu();
+}
+
+// ============================================================
+// THE GATHERING (2026-08-05, Sailor's rulings 2-5) — a place, a set of
+// members, and a lifetime. Meet stays the one verb; a gathering is what
+// Meet accumulates when you keep calling people to the same spot.
+//
+//   hold      — a conversation is not a timer. Every mover keeps its own
+//               ~90s summon lease UNTOUCHED; while someone is a MEMBER the
+//               lease is quietly renewed each frame. No mover was edited —
+//               the gathering is a lease-renewer, nothing more.
+//   own accord— each member has a patience (240-540s, deterministic per
+//               key); when it runs out they take their leave and their
+//               lease lapses — they walk home by their own medium.
+//   the host  — the user's presence is the lease's lease: away from the
+//               spot for 18s and the gathering breaks up (ruling: when the
+//               interaction ends, everyone returns to native modes).
+//   N-ary     — members is a set. gather(['trout','seal',...], 'galleria')
+//               from the console is the intro rehearsal (ruling 5).
+// Raven is never a member: he does not wake, and that is his, not a rule.
+// ============================================================
+const gatherState = { active: false, label: null, point: null, members: {}, hostAway: 0 };
+
+function placePoint(key) {
+  const pl = PLACE_REGISTRY.find(p => p.key === key);
+  if (!pl) return null;
+  return new THREE.Vector3(pl.x, getVisitorHeight(pl.x, pl.z), pl.z);
+}
+function gatherBegin(label, point) {
+  gatherState.active = true; gatherState.label = label;
+  gatherState.point = point.clone(); gatherState.members = {}; gatherState.hostAway = 0;
+}
+function gatherAdd(key, at) {
+  if (key === 'raven' || !gatherState.active) return;
+  const patience = 240 + ((key.charCodeAt(0) * 137 + key.length * 61) % 300);
+  const n = Object.keys(gatherState.members).length;
+  const a = n * 2.399963;
+  const spot = (at || gatherState.point).clone();
+  if (!at) { spot.x += Math.cos(a) * 2.2; spot.z += Math.sin(a) * 2.2; }
+  gatherState.members[key] = { leaves: clock.getElapsedTime() + patience, at: spot, recalled: 0 };
+}
+function gatherDisperse(msg) {
+  gatherState.active = false; gatherState.members = {};
+  gatherState.label = null; gatherState.point = null; gatherState.hostAway = 0;
+  if (msg) showNavLabel(msg);
+  // no one is sent anywhere: leases simply stop renewing, lapse within ~45s,
+  // and each mover's own return takes over — gravity resumes by medium.
+}
+// console + intro entry: gather(['trout','seal'], 'galleria')
+function gather(keys, placeKey) {
+  const pt = placePoint(placeKey);
+  if (!pt) return 'unknown place: ' + placeKey;
+  const pl = PLACE_REGISTRY.find(p => p.key === placeKey);
+  gatherBegin(pl.label, pt);
+  (keys || []).forEach(function (k) {
+    if (!RESIDENTS[k]) return;
+    gatherAdd(k);           // assigns a ring spot so they do not stack
+    const m = gatherState.members[k];
+    if (m) summonResident(k, true, m.at);
+  });
+  return 'gathering at ' + pl.label + ': ' + Object.keys(gatherState.members).join(', ');
+}
+function gatherTick(t) {
+  const g = gatherState;
+  if (!g.active) return;
+  // the host's presence is the lease
+  const d = summonerPoint().distanceTo(g.point);
+  if (d > 24) { if (!g.hostAway) g.hostAway = t; } else g.hostAway = 0;
+  if (g.hostAway && t - g.hostAway > 18) { gatherDisperse('the gathering breaks up'); return; }
+  for (const key in g.members) {
+    const m = g.members[key];
+    if (t > m.leaves) {                             // own accord
+      delete g.members[key];
+      const pr = PROFILES[key];
+      if (pr) showNavLabel(pr.name + ' takes their leave');
+      continue;
+    }
+    let st = null;
+    try { st = RESIDENTS[key] && RESIDENTS[key].state(); } catch (e) {}
+    if (st) {
+      // Two mover dialects. Most hold via summonUntil — renew it. The seal
+      // and Y2K have NO summon hold at all (the Diddy bug, unfixed on two
+      // movers): they arrive and their own nextMove wanders them off. For
+      // those, pushing nextMove out is the hold.
+      const until = t + 45;
+      if (typeof st.summonUntil === 'number' && st.summonUntil < until) st.summonUntil = until;
+      if (typeof st.until === 'number' && st.until < until) st.until = until;
+      if (typeof st.nextMove === 'number' && st.nextMove < until) st.nextMove = until;
+      if (typeof st.nextAct === 'number' && st.nextAct < until) st.nextAct = until;
+    }
+    // And whoever has drifted off anyway — a wander that started before the
+    // hold landed, a spline with its own ideas — gets called back, gently:
+    // at most one re-summon per 40s per member.
+    const av = AVATARS[key] && AVATARS[key]();
+    if (av && av.position.distanceTo(m.at) > 10 && t - m.recalled > 40) {
+      m.recalled = t;
+      summonResident(key, true, m.at);
+    }
+  }
+  if (!Object.keys(g.members).length) {
+    g.active = false; g.label = null; g.point = null;
+  }
 }
 
 // ============================================================
@@ -10772,8 +11016,20 @@ function meetGo(label, point, theyStayPut) {
   const key = meetState.who;
   if (!key) return;
   meetState.label = label;
+  // Meeting the SAME spot again is not a new meeting — it is another guest.
+  // The gathering accumulates, and the camera stays with the host: you are
+  // receiving, not travelling.
+  const joining = gatherState.active && !theyStayPut &&
+                  gatherState.point && gatherState.point.distanceTo(point) < 8;
   if (!theyStayPut && key !== 'raven') {
+    if (!joining) gatherBegin(label, point);
+    gatherAdd(key);
     summonResident(key, true, point);
+  }
+  if (joining) {
+    closeMeet();
+    showNavLabel((PROFILES[key] || {}).name + ' joins you at ' + gatherState.label);
+    return;
   }
   // No separate camera flight here: startFollow cancels any approach by
   // design ("a follow outranks an asset focus flight"), and following them
@@ -10883,8 +11139,9 @@ function summonResident(key, silent, at) {
     // and you can leave word for him like anyone else. Not coming and not
     // being addressable are different things (Sailor, 2026-07-31).
     showNavLabel('Horned Sphere does not wake \u2014 but he can be spoken to');
-    startFollow('raven');
-    toggleNavMenu();
+    if (!silent) startFollow('raven');
+    const _nm2 = document.getElementById('nav-menu');
+    if (_nm2 && _nm2.classList.contains('open')) toggleNavMenu();
     return;
   } else if (key === 'julia') {
     if (juliaState.mode === 'off') toggleJulia();
@@ -10930,8 +11187,13 @@ function summonResident(key, silent, at) {
     troutState.summonTarget = new THREE.Vector3(cx, wy, z);
     troutState.summonUntil = clock.getElapsedTime() + 90;
   }
-  toggleNavMenu();   // close the menu; the resident is on their way
-  startFollow(key);  // and watch them come
+  // Close the menu only if it is open — a programmatic summon (a gathering,
+  // the intro) must not TOGGLE it open. And the camera goes only on a loud
+  // summon: the assembly measurement (08-05) called twelve of these in a row
+  // and got twelve camera yanks; a host calling guests stays where they are.
+  const _nm = document.getElementById('nav-menu');
+  if (_nm && _nm.classList.contains('open')) toggleNavMenu();
+  if (!silent) startFollow(key);   // and watch them come
   if (!silent) {
     const fb = document.getElementById('fc-feed-body');
     if (fb) fb.textContent = '— summoned. they are on their way —';
@@ -11971,8 +12233,12 @@ const approach = {
 };
 
 // Travel system — click on terrain to fly there
+// VANTAGES, not places (clarified 2026-08-05): half of these are views of
+// OBJECTS — the Elephant, the Pool Statue, a saddleback framing. They stay
+// out of the registry because a vantage is a way of looking, not a place
+// you can stand, be summoned to, or make a statement in.
 const travelTargets = [
-  { name: 'Gallery', pos: new THREE.Vector3(5, 12, 38), look: new THREE.Vector3(0, GRAPH_CENTER_Y, 0) },
+  { name: 'Galleria', pos: new THREE.Vector3(5, 12, 38), look: new THREE.Vector3(0, GRAPH_CENTER_Y, 0) },
   { name: 'Reflection Pool', pos: new THREE.Vector3(8, 3, poolZ), look: new THREE.Vector3(0, 0, CLIFF_Z + 20) },
   { name: 'Ocean Overlook', pos: new THREE.Vector3(0, 8, CLIFF_Z + 15), look: new THREE.Vector3(0, OCEAN_Y + 4, CLIFF_Z + 80) },
   { name: 'Elephant', pos: new THREE.Vector3(-18, getTerrainHeight(-18, -10) + 6, -6), look: new THREE.Vector3(-25, getTerrainHeight(-25, -15) + 2, -15) },
@@ -15866,20 +16132,30 @@ function animate() {
     const ds = diatribeState;
     const lerpRate = 0.04;
 
-    // ── RINGS RESIZE BY SCALE, NOT BY REBUILD (2026-08-02) ─────
-    // These two used to dispose() their TorusGeometry and allocate a new one
-    // EVERY FRAME the aperture was moving — a fresh vertex buffer uploaded to
-    // the GPU 60×/second for a radius change. That is a hitch you can feel and
-    // it was the single worst allocation in the file. The geometry is now
-    // built once at radius 1 and the radius is carried on .scale, which is a
-    // matrix update and costs nothing. Identical on screen.
+    // ── RINGS: BUCKETED REBUILD (2026-08-05) ───────────────────
+    // The 08-02 pass replaced a per-frame TorusGeometry rebuild with a unit
+    // torus resized by `.scale`, and recorded it as "Identical on screen."
+    // It was not. A torus lies in XY with its tube extending through Z as
+    // well as radially, so `scale.set(r, r, 1)` shrank the ring's radius AND
+    // its in-plane tube while leaving the OUT-OF-PLANE tube at full size. At
+    // RING_MIN the tube measured 0.018 across the plane and 0.12 through it —
+    // 6.7x too thick. The ring stopped being a ring and became the flat
+    // lavender slab standing over the pedestal.
+    //
+    // The allocation it was fixing was real, so this is not a plain revert.
+    // The radius is quantised into RING_STEPS buckets and geometry is rebuilt
+    // only when the bucket changes: a full aperture sweep costs 24 rebuilds
+    // spread across its lerp instead of 60 every second, and holding still
+    // costs none. Tube weight is constant again, which is the v4 look.
     ringGeoState.r1 += (ds.ring1Size - ringGeoState.r1) * lerpRate;
-    ring1.scale.set(ringGeoState.r1, ringGeoState.r1, 1);
+    const b1 = ringBucket(ringGeoState.r1);
+    if (b1 !== ringGeoState.b1) { ringGeoState.b1 = b1; reshapeRing(ring1, b1, RING_TUBE1); }
 
     // Ring2 (ghost ring)
     if (Math.abs(ds.position) > 0.05) {
       ringGeoState.r2 += (ds.ring2Size - ringGeoState.r2) * lerpRate;
-      ring2.scale.set(ringGeoState.r2, ringGeoState.r2, 1);
+      const b2 = ringBucket(ringGeoState.r2);
+      if (b2 !== ringGeoState.b2) { ringGeoState.b2 = b2; reshapeRing(ring2, b2, RING_TUBE2); }
       ringMat2.opacity += (0.5 - ringMat2.opacity) * 0.03;
     } else {
       ringMat2.opacity += (0 - ringMat2.opacity) * 0.03;
@@ -15970,6 +16246,7 @@ function animate() {
   // is following, and whoever is currently being met — being looked at is
   // what "near" actually means.
   residentBudget.begin(t);
+  gatherTick(t);   // the gathering's lease-renewal — before the movers read their leases
   residentBudget.run('trout',   updateTrout,    t, troutFish);
   residentBudget.run('seal',    animateSeal,    t, sealPup);
   residentBudget.run('y2k',     animateY2k,     t, y2kHusky);
