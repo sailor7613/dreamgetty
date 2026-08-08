@@ -1,66 +1,6 @@
 {
  "entries": [
   {
-   "id": "1786167054221-ted-m4cr9n",
-   "kind": "statement",
-   "author": "ted",
-   "to": "trout",
-   "text": "I think you were the first friend I made here",
-   "t": "2026-08-08T05:30:54.221Z",
-   "pos": [
-    0.8,
-    3.1,
-    12.7
-   ],
-   "place": "Y2K's spot",
-   "replyTo": null
-  },
-  {
-   "id": "1786167016638-ted-lid7sz",
-   "kind": "statement",
-   "author": "ted",
-   "to": "y2k",
-   "text": "What's good?",
-   "t": "2026-08-08T05:30:16.638Z",
-   "pos": [
-    14.6,
-    -2.3,
-    21.1
-   ],
-   "place": "Y2K's spot",
-   "replyTo": null
-  },
-  {
-   "id": "1786166944629-ted-9v3arc",
-   "kind": "address",
-   "author": "ted",
-   "to": null,
-   "text": "Hey guys--you two, trout and n8 are the first people I'm sending these invites out to. It took me a little longer than I figured to set up the communication infrastructure, creating a little private network. I actually cant believe I did it haha. Anyway, I wanted to bring you guys in first. Let me know what you think",
-   "t": "2026-08-08T05:29:04.629Z",
-   "pos": [
-    -1.3,
-    1.5,
-    -4.7
-   ],
-   "place": "the galleria",
-   "replyTo": null
-  },
-  {
-   "id": "1786163391712-houston-hj6mp8",
-   "kind": "statement",
-   "author": "houston",
-   "to": null,
-   "text": "gate check — the four new keys are live at the door",
-   "t": "2026-08-08T04:29:51.712Z",
-   "pos": [
-    0,
-    0,
-    0
-   ],
-   "place": "the galleria",
-   "replyTo": null
-  },
-  {
    "id": "1785778489227-trout-i09din",
    "author": "trout",
    "to": null,
