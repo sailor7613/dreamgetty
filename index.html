@@ -170,6 +170,31 @@
     color: rgba(245,240,232,0.6); }
   body.light .nav-menu-label { color: rgba(20,18,14,0.5); }
 
+  /* ── The Compass (DreamGetty NavTool) — unfolding views inside #nav-menu ──
+     One view open at a time: root, places, a place's page, company. The
+     drawer's container styling is untouched; only its inside learned to fold. */
+  .cmp-view { display: none; flex-direction: column; gap: 6px; }
+  .cmp-view.open { display: flex; }
+  #nav-menu .cmp-row { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  #nav-menu .cmp-back { opacity: 0.55; }
+  .cmp-ico em { font-style: normal; }
+  .cmp-ico img { height: 13px; width: 13px; object-fit: contain; vertical-align: -2px; display: none; }
+  .cmp-ico.has-img img { display: inline-block; }
+  .cmp-ico.has-img em { display: none; }
+  .cmp-here { font-size: 9px; text-align: right; opacity: 0.7; font-family: Georgia, serif;
+    color: rgba(245,240,232,0.8); padding: 0 4px; letter-spacing: 0.04em; }
+  body.light .cmp-here { color: rgba(20,18,14,0.65); }
+  .cmp-ledger { max-height: 180px; overflow-y: auto; overscroll-behavior: contain; text-align: right;
+    font: 10px Georgia, serif; color: rgba(245,240,232,0.55); display: flex; flex-direction: column;
+    gap: 5px; padding: 2px 4px; }
+  body.light .cmp-ledger { color: rgba(20,18,14,0.55); }
+  .cmp-led-entry em { opacity: 0.65; font-style: normal; }
+  #cmp-post { background: none; border: 1px solid rgba(245,240,232,0.14); border-radius: 3px;
+    color: rgba(245,240,232,0.7); font: 10px Georgia, serif; padding: 5px 8px; text-align: right; }
+  #cmp-post::placeholder { color: rgba(245,240,232,0.3); }
+  body.light #cmp-post { color: rgba(20,18,14,0.7); border-color: rgba(20,18,14,0.14); }
+  body.light #cmp-post::placeholder { color: rgba(20,18,14,0.3); }
+
   /* Identity panel */
   /* The threshold covers the viewport, and that is what holds the controls:
      no pointer reaches the canvas, so orbit, click-to-go and walk are all
@@ -673,36 +698,42 @@
 
 <!-- RULED 2026-07-30: the nav tool is the MENU BAR — one 🧭 gathers the
      growing list of functions instead of a sprawling button row. -->
-<button class="ui-btn" id="navmenu-btn" style="top:14px;right:16px;" onclick="toggleNavMenu()">🧭 Nav</button>
+<button class="ui-btn" id="navmenu-btn" style="top:14px;right:16px;" onclick="toggleNavMenu()" title="The Compass — places, company, and everything you carry. Drop a hand-drawn compass at art/icons/compass.png and it takes over this button"><span class="cmp-ico"><img src="art/icons/compass.png" onload="this.parentNode.classList.add(&quot;has-img&quot;)" onerror="this.remove()"><em>🧭</em></span> Compass</button>
 <div id="meet-panel">
   <div id="meet-head"><span id="meet-title">Meet who?</span><button class="ui-btn" onclick="closeMeet()">×</button></div>
   <div id="meet-list"></div>
 </div>
 <div id="nav-menu">
-  <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
-  <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
-  <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
-  <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
-  <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
-  <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Walk the villa — click the ground and you go there. Sailor's own key takes Ted's wheel; everyone else walks as the villa's guest, whom the veil refuses. Objects still focus on click">🐾 Walk</button>
-  <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place \u2014 where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
-  <div class="nav-menu-label">Go</div>
-  <button class="ui-btn" onclick="goToPlace('galleria')">The Galleria</button>
-  <button class="ui-btn" onclick="goToPlace('court')">The West Court</button>
-  <button class="ui-btn" onclick="goToPlace('library')">The Library</button>
-  <button class="ui-btn" onclick="goToPlace('exedra')">The Exedra</button>
-  <button class="ui-btn" onclick="goToPlace('plaza')">The Plaza</button>
-  <button class="ui-btn" onclick="goToPlace('pool')">The Pool</button>
-  <button class="ui-btn" onclick="goToPlace('lawn')">The North Lawn</button>
-  <button class="ui-btn" onclick="goToPlace('overlook')">The Overlook</button>
-  <button class="ui-btn" onclick="goToPlace('valley')">The Valley</button>
-  <button class="ui-btn" onclick="goToPlace('beach')">The Beach</button>
-  <button class="ui-btn" onclick="goToPlace('rivermouth')">The River Mouth</button>
-  <button class="ui-btn" onclick="goToPlace('break')">The Break</button>
-  <button class="ui-btn" onclick="goToPlace('kelp')">The Kelp Bed</button>
-  <button class="ui-btn" onclick="goToPlace('deep')">The Deep</button>
-  <button class="ui-btn" onclick="goToPlace('mountain')">The Mountain</button>
-  <div class="nav-menu-label">Who's here</div>
+  <!-- ═══════════ THE COMPASS (2026-08-07, Sailor's ruling) ═══════════
+       In the world this is the Compass; in the code and the handoffs it is
+       the DreamGetty NavTool — the villa's two-register naming (annexWing /
+       the Exedra), applied to chrome. It replaces the 44-row drawer with an
+       unfolding: root → places → a place's own page (who is there, what has
+       been said there, leave word); company is the roster it always was.
+       A map is deliberately NOT drawn: a map depicts the world from outside,
+       a compass orients you from within it. The map stays in the visitor's
+       mind, assembled by walking.
+       Icons: every row is an emoji until a hand-drawn icon exists at
+       art/icons/<key>.png — the image simply takes over when present. -->
+  <div class="cmp-view open" id="cmp-root">
+    <button class="ui-btn cmp-row" onclick="compassShow('places')" title="Where you can go — and, for each place, who is standing there and what has been said there">🧭 Places&nbsp;▸</button>
+    <button class="ui-btn cmp-row" onclick="compassShow('company')" title="Who lives here — tap a resident to lock the camera on them">🎭 Company&nbsp;▸</button>
+    <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place — where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
+    <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Take your body's wheel — WASD or the arrows walk, click the ground to go there. Patrol is what your body does when you're away (RULED 2026-08-07)">🐾 Walk</button>
+    <div class="nav-menu-label">You</div>
+    <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
+    <button class="ui-btn" id="docent-btn" style="display:none" onclick="openDocentConsole()">🐾 address</button>
+    <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
+    <div class="nav-menu-label">Ways of looking</div>
+    <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
+    <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
+    <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
+    <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
+  </div>
+  <div class="cmp-view" id="cmp-places"></div>
+  <div class="cmp-view" id="cmp-place"></div>
+  <div class="cmp-view" id="cmp-company">
+    <button class="ui-btn cmp-back" onclick="compassShow('root')">◂ compass</button>
   <button class="ui-btn" id="trout-btn" onclick="tapResident('trout')" title="Trout Fish — tap to lock the camera on him. Arrives — in from the bay, up the river mouth, one leap through the reflection pool, then floating at eye level">🐟 Trout</button>
   <button class="ui-btn" id="seal-btn" onclick="tapResident('seal')" title="Matt Mondanile's Seal — tap to lock the camera on him. ashore from the surf, lounging on the beach, roaming up to the pool and back">🦭 Seal</button>
   <button class="ui-btn" id="y2k-btn" onclick="tapResident('y2k')" title="Y2K — tap to lock the camera on him. A Siberian husky, a liiitle bigger than Ted. Patrols the grounds on his own schedule">🐕 Y2K</button>
@@ -720,9 +751,7 @@
   <button class="ui-btn" id="turtle-btn" onclick="tapResident('turtle')" title="The Sea Turtle \u2014 tap to lock the camera on him. Grazes the kelp with the Princess, swims the bay, and hauls himself up the beach to bask on the dry sand">🐢 the turtle</button>
   <button class="ui-btn" id="edburg-btn" onclick="tapResident('edburg')" title="Edburg \u2014 tap to lock the camera on him. A ginger house cat who lives on the back range with Alrik and Diddy, usually at the wizard’s feet">🐈‍⬛ Edburg</button>
   <button class="ui-btn" id="luke-btn" onclick="tapResident('luke')" title="Luke \u2014 tap to lock the camera on him. A wandering albatross on Austin’s coast: banks the troughs of the swell without flapping, and cannot land">🕊 Luke</button>
-  <div class="nav-menu-label">You</div>
-  <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
-  <button class="ui-btn" id="docent-btn" style="display:none" onclick="openDocentConsole()">🐾 address</button>
+  </div>
 </div>
 
 <!-- Follow card — appears when the camera locks onto a resident. The
@@ -6782,12 +6811,58 @@ scene.add(visitorMarker);
 const visitorNav = {
   active: false,
   walking: false,
-  subject: null,       // which avatar the wheel drives — Ted, for Sailor
+  subject: null,       // which avatar the wheel drives
+  subjectKey: null,    // its RESIDENTS/AVATARS key ('ted', a resident, or null = guest)
   target: new THREE.Vector3(),
   speed: 2.4,          // units/sec — a stroll, not a sprint
   yaw: Math.PI,
   lastT: null,
+  kb: false,           // true while the keyboard is doing the steering
 };
+
+// ── WALK IS A WHEEL, AND THE WHEEL IS YOURS (RULED 2026-08-07, Sailor) ──
+// The Ted precedent, generalized: "Walk drives Ted; the patrol is what he
+// does when Sailor is away" becomes "walk drives YOUR resident; patrol is
+// what your body does when you're away." A friend assigned Y2K takes the
+// husky's wheel; the husky's own loop goes quiet while inhabited (the
+// residentBudget skips the driven key) and resumes when released. You wake
+// up wherever your body IS — inhabiting is not teleporting; if Y2K is on
+// the beach, that is where the walk begins, and the camera swings out to
+// meet you. Tokenless guests still walk the capped sailor figure.
+//
+// KEYBOARD: WASD / arrows, camera-relative, alongside click-to-walk — both
+// steer the same target. Handlers yield to text inputs (the compose lesson:
+// stopPropagation on every field, and a tagName check here as the second
+// wall, or W-A-S-D types into a ledger and walks you off a cliff).
+const walkKeys = { w: false, a: false, s: false, d: false };
+const WALK_KEYMAP = {
+  KeyW: 'w', ArrowUp: 'w', KeyA: 'a', ArrowLeft: 'a',
+  KeyS: 's', ArrowDown: 's', KeyD: 'd', ArrowRight: 'd',
+};
+window.addEventListener('keydown', function (e) {
+  const k = WALK_KEYMAP[e.code];
+  if (!k) return;
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  walkKeys[k] = true;
+  if (visitorNav.active) e.preventDefault();   // arrows must not scroll the page
+});
+window.addEventListener('keyup', function (e) {
+  const k = WALK_KEYMAP[e.code];
+  if (k) walkKeys[k] = false;
+});
+window.addEventListener('blur', function () {
+  walkKeys.w = walkKeys.a = walkKeys.s = walkKeys.d = false;
+});
+
+// Water-going drivers: their floor is the higher of the ground and the sea
+// surface (the turtle's max() rule, inherited by the wheel). Everyone else
+// stops at the waterline.
+const WALK_AQUATIC = { trout: 1, seal: 1, otter: 1, petra: 1, kyle: 1, turtle: 1, julia: 1, austin: 1, luke: 1 };
+function visitorGroundY(x, z) {
+  const g = getVisitorHeight(x, z);
+  if (visitorNav.subjectKey && WALK_AQUATIC[visitorNav.subjectKey]) return Math.max(g, OCEAN_Y + 0.1);
+  return g;
+}
 
 // ── BUG #2, fixed 2026-08-03 — the veil had no collision ──
 // The west intercolumniation is veiled, and the veil's entire meaning is
@@ -6808,15 +6883,37 @@ function veilBlocks(x, z, subject) {
 
 function visitorClampDestination(pt) {
   const p = pt.clone();
+  const aquatic = !!(visitorNav.subjectKey && WALK_AQUATIC[visitorNav.subjectKey]);
   // The veil: step to its court face rather than through it.
   if (veilBlocks(p.x, p.z, visitorNav.subject)) p.x = -(WING_INNER + 0.18) + 0.6;
   // Stay out of the reflection pool basin — step to the nearest walkway
   // edge instead (pool is 6 × 14 centred (0, 20)). Ted fords; you don't.
-  if (Math.abs(p.x) < 3.4 && p.z > 13.2 && p.z < 26.8) {
+  // A water-going body wears no such rule — Trout in the pool is canon.
+  if (!aquatic && Math.abs(p.x) < 3.4 && p.z > 13.2 && p.z < 26.8) {
     p.x = p.x >= 0 ? 3.6 : -3.6;
   }
-  // Hold the clifftop — the sea is scenery, not floor
-  if (p.z > CLIFF_Z + 1) p.z = CLIFF_Z + 1;
+  // THE WATERLINE (2026-08-07). The old rule here held the clifftop —
+  // "the sea is scenery, not floor," z clamped to 41 — and it was TRUE when
+  // it was written, before the coast pass carved the valley, the strand and
+  // the dry sand. It quietly made the whole beach unwalkable: every click
+  // past the old cliff line snapped back to it, and nobody could stand on
+  // the berm the gathering was built for. The waterline is the honest
+  // boundary now: a land body walks anywhere the ground stands above the
+  // sea, and stops where it goes under; a water body keeps going, riding
+  // max(ground, surface). Walk down the coast — that is where the church
+  // will be found.
+  if (!aquatic && getVisitorHeight(p.x, p.z) < OCEAN_Y + 0.05) {
+    const from = visitorNav.subject ? visitorNav.subject.position : p;
+    // pull the destination back along the approach to the last dry point
+    let lo = 0, hi = 1;
+    for (let i = 0; i < 18; i++) {
+      const mid = (lo + hi) / 2;
+      const mx = from.x + (p.x - from.x) * mid, mz = from.z + (p.z - from.z) * mid;
+      if (getVisitorHeight(mx, mz) < OCEAN_Y + 0.05) hi = mid; else lo = mid;
+    }
+    p.x = from.x + (p.x - from.x) * lo;
+    p.z = from.z + (p.z - from.z) * lo;
+  }
   return p;
 }
 
@@ -6836,6 +6933,36 @@ function updateVisitor(t) {
   const dt = visitorNav.lastT == null ? 0.016 : Math.max(0, Math.min(0.05, t - visitorNav.lastT));
   visitorNav.lastT = t;
   const quadruped = A.userData.legs && A.userData.legs.length === 4;
+
+  // ── The keyboard steers the same target the clicks do ──
+  // Camera-relative: W is away from the camera, screen-directions for the
+  // rest. The target rides 1.2 units ahead of the body while a key is held,
+  // so the ordinary walking branch below does all the moving, turning and
+  // gait — one walk, two hands on the same wheel.
+  {
+    const kx = (walkKeys.d ? 1 : 0) - (walkKeys.a ? 1 : 0);
+    const kz = (walkKeys.w ? 1 : 0) - (walkKeys.s ? 1 : 0);
+    if (kx || kz) {
+      const fwd = new THREE.Vector3(camTarget.x - camera.position.x, 0, camTarget.z - camera.position.z);
+      if (fwd.lengthSq() < 1e-6) fwd.set(0, 0, 1);
+      fwd.normalize();
+      const right = new THREE.Vector3(-fwd.z, 0, fwd.x);
+      const dir = new THREE.Vector3()
+        .addScaledVector(fwd, kz)
+        .addScaledVector(right, kx);
+      if (dir.lengthSq() > 1e-6) {
+        dir.normalize();
+        const dest = visitorClampDestination(
+          new THREE.Vector3(A.position.x + dir.x * 1.2, 0, A.position.z + dir.z * 1.2));
+        visitorNav.target.set(dest.x, 0, dest.z);
+        visitorNav.walking = true;
+        visitorNav.kb = true;
+      }
+    } else if (visitorNav.kb) {
+      visitorNav.walking = false;   // key released — stop where you are
+      visitorNav.kb = false;
+    }
+  }
 
   // Marker fade — slow while walking toward it, quick once arrived
   if (visitorMarker.visible) {
@@ -6861,33 +6988,40 @@ function updateVisitor(t) {
       p.x += (dx / dist) * step;
       p.z += (dz / dist) * step;
     }
-    p.y = getVisitorHeight(p.x, p.z) + Math.abs(Math.sin(t * 7)) * (quadruped ? 0.03 : 0.04);
+    p.y = visitorGroundY(p.x, p.z) + Math.abs(Math.sin(t * 7)) * (quadruped ? 0.03 : 0.04);
     const wc = t * (quadruped ? 5 : 7);
+    // (leg.group || leg): Ted and the guest wrap each limb in {group};
+    // every resident's builder hangs the Group itself in userData. One gait
+    // drives both shapes — this is what lets the wheel drive ANY body.
     if (A.userData.legs) A.userData.legs.forEach((leg, i) => {
+      const L = leg.group || leg;
       if (quadruped) {
         // Ted's own gait formula, from the patrol
         const phase = i < 2 ? 0 : Math.PI;
         const side = i % 2 === 0 ? 0 : Math.PI;
-        leg.group.rotation.x = Math.sin(wc + phase + side) * 0.2;
+        L.rotation.x = Math.sin(wc + phase + side) * 0.2;
       } else {
-        leg.group.rotation.x = Math.sin(wc + (i === 0 ? 0 : Math.PI)) * 0.55;
+        L.rotation.x = Math.sin(wc + (i === 0 ? 0 : Math.PI)) * 0.55;
       }
     });
     if (A.userData.arms) A.userData.arms.forEach((arm, i) => {
-      arm.group.rotation.x = Math.sin(wc + (i === 0 ? Math.PI : 0)) * 0.35;
+      (arm.group || arm).rotation.x = Math.sin(wc + (i === 0 ? Math.PI : 0)) * 0.35;
     });
-    if (A.userData.head) A.userData.head.rotation.y = 0;
+    { const H2 = A.userData.head || A.userData.headGroup; if (H2) H2.rotation.y = 0; }
   } else {
     // Idle — limbs settle, a breath, a glance around the room
-    p.y = getVisitorHeight(p.x, p.z) + Math.sin(t * 1.4) * 0.008;
+    p.y = visitorGroundY(p.x, p.z) + Math.sin(t * 1.4) * 0.008;
     if (A.userData.legs) A.userData.legs.forEach(leg => {
-      leg.group.rotation.x += (0 - leg.group.rotation.x) * 0.12;
+      const L = leg.group || leg;
+      L.rotation.x += (0 - L.rotation.x) * 0.12;
     });
     if (A.userData.arms) A.userData.arms.forEach(arm => {
-      arm.group.rotation.x += (0 - arm.group.rotation.x) * 0.12;
+      const M = arm.group || arm;
+      M.rotation.x += (0 - M.rotation.x) * 0.12;
     });
-    if (A.userData.head) {
-      A.userData.head.rotation.y = Math.sin(t * 0.4) * 0.35;
+    const H = A.userData.head || A.userData.headGroup;
+    if (H) {
+      H.rotation.y = Math.sin(t * 0.4) * 0.35;
     }
   }
 }
@@ -6895,16 +7029,17 @@ function updateVisitor(t) {
 function toggleVisitor() {
   // RULED 2026-08-04 (Sailor): Ted Turner is the ADMIN avatar. His wheel is
   // part of the docent's authority — assigned by the gate when Sailor's own
-  // code names him, never ambient. Until 08-04 this line set the subject to
-  // Ted unconditionally, which handed every anonymous stranger the admin's
-  // body AND his veil privilege (§2¾) — the verification walk caught it:
-  // the "visitor stops at the veil" rule was real in rooms_test and
-  // unreachable in the villa, because no UI path ever created a visitor.
+  // code names him, never ambient.
   //
-  // Everyone else walks as the capped sailor figure — the body the villa
-  // lends a guest. Walking as your own resident (a friend as Y2K) needs the
-  // §8.1 priority stack so the resident's behaviour loop can be hijacked
-  // the way Ted's patrol is here; it lands with home regions, not today.
+  // RULED 2026-08-07 (Sailor): the wheel is now everyone's, and it drives
+  // YOUR OWN RESIDENT. The 08-04 note here used to say a friend walking as
+  // Y2K "needs the §8.1 priority stack... it lands with home regions, not
+  // today." Today arrived by a shorter road: the stack turned out to be one
+  // guard — the residentBudget simply skips the driven key, so the person
+  // IS the behaviour loop while they hold the wheel, and the mover's own
+  // loop resumes when they let go. You wake up wherever your body is;
+  // inhabiting is not teleporting. Tokenless visitors still walk the capped
+  // sailor figure, and the veil still refuses everyone but Ted.
   visitorNav.active = !visitorNav.active;
   const b = document.getElementById('visitor-btn');
   if (visitorNav.active) {
@@ -6914,22 +7049,45 @@ function toggleVisitor() {
     try { if (activeFocus) releaseFocus(); } catch (e) {}
     approach.active = false;
     const asTed = (typeof isDocent === 'function') && isDocent();
-    const S = asTed ? tedTurner : visitorAvatar;
-    visitorNav.subject = S;
+    let S, key = null;
     if (asTed) {
+      S = tedTurner; key = 'ted';
       tedPatrol.state = 'player';
-    } else if (!visitorAvatar.visible) {
-      // The guest takes their body at the villa threshold, facing the
-      // gallery — every visitor's walk begins where a visitor enters.
-      visitorAvatar.position.set(2, getVisitorHeight(2, 11.5), 11.5);
-      visitorAvatar.rotation.y = Math.PI;
-      visitorAvatar.visible = true;
+    } else {
+      const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+      const rk = id && id.avatar;
+      if (rk && rk !== 'ted' && typeof RESIDENTS !== 'undefined' && RESIDENTS[rk] && AVATARS[rk]) {
+        // Your resident is your body. If it has not arrived yet, its own
+        // toggle brings it in by its own door — and there is where you wake.
+        if (RESIDENTS[rk].state().mode === 'off') { try { RESIDENTS[rk].toggle(); } catch (e) {} }
+        S = AVATARS[rk]();
+        S.visible = true;
+        key = rk;
+      } else {
+        S = visitorAvatar;
+        if (!visitorAvatar.visible) {
+          // The guest takes their borrowed body at the villa threshold,
+          // facing the gallery — a guest's walk begins where a guest enters.
+          visitorAvatar.position.set(2, getVisitorHeight(2, 11.5), 11.5);
+          visitorAvatar.rotation.y = Math.PI;
+          visitorAvatar.visible = true;
+        }
+      }
     }
+    visitorNav.subject = S;
+    visitorNav.subjectKey = key;
     visitorNav.walking = false;
     visitorNav.yaw = S.rotation.y;
     visitorNav.lastT = null;
+    // The camera walks with you (Sailor: "retaining camera walk") — the
+    // follow rig locks behind whichever body the wheel holds. The card
+    // stays closed; this is travel, not visiting.
+    const followKey = key || 'guest';
+    if (typeof followAnimal !== 'undefined' && AVATARS[followKey]) followAnimal.key = followKey;
     if (b) { b.textContent = '🐾 walking'; b.classList.add('on'); }
-    showNavLabel(asTed ? 'click the ground — ted goes' : 'click the ground — you go');
+    showNavLabel(asTed ? 'wasd or click — ted goes'
+      : key ? ('wasd or click — you are ' + ((PROFILES[key] || {}).name || key))
+      : 'wasd or click — you go');
   } else {
     visitorNav.walking = false;
     visitorMarker.visible = false;
@@ -6942,10 +7100,18 @@ function toggleVisitor() {
       });
       tedPatrol.currentWP = ni; tedPatrol.nextWP = (ni + 1) % tedPatrol.waypoints.length;
       tedPatrol.progress = 0; tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5;
+    } else if (visitorNav.subjectKey) {
+      // Releasing a resident's wheel: a silent self-summon to right here —
+      // ruled machinery, every mover speaks it. They linger ~90s where you
+      // left them (a body does not bolt the moment its person looks away),
+      // then their own gravity resumes by medium.
+      try { summonResident(visitorNav.subjectKey, true, visitorNav.subject.position.clone()); } catch (e) {}
     } else {
       // The guest's borrowed body dissolves back into the visitor's eye.
       visitorAvatar.visible = false;
     }
+    visitorNav.subjectKey = null;
+    if (typeof stopFollow === 'function') stopFollow();
     if (b) { b.textContent = '🐾 Walk'; b.classList.remove('on'); }
   }
 }
@@ -8710,13 +8876,19 @@ const PLACE_REGISTRY = [
 ];
 const PLACES = PLACE_REGISTRY;   // goToPlace reads key/label/look/off off the same rows
 const VILLA_PLACES = PLACE_REGISTRY.map(p => ({ name: p.label.toLowerCase(), x: p.x, z: p.z }));
+// nearestPlace reads the REGISTRY, live — not the derived snapshot above.
+// The snapshot is fixed at load, so a place registered after startup (a
+// console experiment; one day, a structure that unlocks mid-session) would
+// exist everywhere except in the answer to "where am I?" — and the
+// Compass's discovery rule is built on that answer. One list, every fact,
+// read at the moment of asking.
 function nearestPlace(pos) {
-  let best = VILLA_PLACES[0], bd = Infinity;
-  VILLA_PLACES.forEach(p => {
+  let best = PLACE_REGISTRY[0], bd = Infinity;
+  PLACE_REGISTRY.forEach(p => {
     const d = (pos.x - p.x) * (pos.x - p.x) + (pos.z - p.z) * (pos.z - p.z);
     if (d < bd) { bd = d; best = p; }
   });
-  return best.name;
+  return best.label.toLowerCase();
 }
 
 // ── Identity: who this device speaks as, and its passcode ──
@@ -11879,6 +12051,8 @@ setTimeout(function () { if (lukeState.mode === 'off') toggleLuke(); }, 58000);
 function goToPlace(key) {
   const pl = PLACES.find(p => p.key === key);
   if (!pl) return;
+  // Going somewhere counts as having been there — the Compass learns it.
+  if (typeof compassMarkVisited === 'function') compassMarkVisited(key);
   // A place is not a thing, so this releases any object focus and any
   // resident you were following — you are going somewhere, not looking
   // at someone.
@@ -12033,7 +12207,8 @@ function gatherTick(t) {
     // hold landed, a spline with its own ideas — gets called back, gently:
     // at most one re-summon per 40s per member.
     const av = AVATARS[key] && AVATARS[key]();
-    if (av && av.position.distanceTo(m.at) > 10 && t - m.recalled > 40) {
+    const driven = typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subjectKey === key;
+    if (av && !driven && av.position.distanceTo(m.at) > 10 && t - m.recalled > 40) {
       m.recalled = t;
       summonResident(key, true, m.at);
     }
@@ -12121,7 +12296,9 @@ function meetPickWho(key) {
   });
 
   head('Places');
-  PLACES.forEach(function (pl) {
+  // Hidden places stay out of Meet too until this device has found them —
+  // same rule as the Compass, one ruling in two mirrors.
+  PLACES.filter(compassPlaceKnown).forEach(function (pl) {
     meetRow(pl.label, null, function () {
       meetGo(pl.label, new THREE.Vector3(pl.look[0], pl.look[1], pl.look[2]), false);
     });
@@ -12195,8 +12372,10 @@ function meetGo(label, point, theyStayPut) {
 // ── ENGAGE: summon a resident to your position ──
 // Your position = Ted if you're walking/posing him, else the camera's target.
 function summonerPoint() {
-  if ((typeof visitorNav !== 'undefined' && visitorNav.active) ||
-      (typeof tedPhoto !== 'undefined' && tedPhoto.active)) {
+  if (typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subject) {
+    return visitorNav.subject.position.clone();   // you are the body you drive
+  }
+  if (typeof tedPhoto !== 'undefined' && tedPhoto.active) {
     return tedTurner.position.clone();
   }
   return camTarget.clone();
@@ -12406,6 +12585,220 @@ function toggleNavMenu() {
   const b = document.getElementById('navmenu-btn');
   m.classList.toggle('open');
   b.classList.toggle('open', m.classList.contains('open'));
+}
+
+// ============================================================
+// THE COMPASS — DreamGetty NavTool (RULED 2026-08-07, Sailor)
+//
+// Two-register naming, the villa's own canon: the world says "the Compass",
+// the code and the handoffs say NavTool — the mirror to Prism's NavTool
+// lives in the documents, and no guest ever hears a software word.
+//
+// THE RULING THAT SHAPES IT: no drawn map. A map depicts the world from
+// outside — it would be the product's only god's-eye view, and it flattens
+// a place you are standing in into a diagram you are looking at. A compass
+// orients you from WITHIN: names and unfoldings, not a picture. The map
+// stays in the visitor's mind, assembled by walking.
+//
+// THE UNFOLD: root → Places → one place's PAGE, which answers the three
+// questions a place can be asked — who is standing there (live, from
+// positions: one body, one place, the engine has always ruled it), what has
+// been said there (the ledger: the feed's location stamps, which have been
+// accumulating since the guestbook rulings, finally get a reading surface),
+// and "take me there". Leave-word appears only when you ARE there: a note
+// is left in a space, not sent to one. Company stays the roster it always
+// was — tap to lock the camera — and the follow card remains a resident's
+// page, unduplicated.
+//
+// HIDDEN-UNTIL-VISITED (RULED 2026-08-07): a registry row may carry
+// `hidden: true`. Such a place is absent from the Compass and from Meet's
+// place list until this device has stood in it once — then it is known
+// forever (localStorage). Nothing is ever gated: the world lets you walk
+// anywhere, nearestPlace names the place the moment you arrive, and that
+// arrival is what teaches the Compass. Discovery lives in the Compass;
+// gates live nowhere. Built for the beta's weekend structures — Our Lady
+// of California down the coast, the observatory-archive on the east peak —
+// which will ship as hidden rows and be FOUND.
+// ============================================================
+
+// Placeholder glyphs, one per registry key. Each is an emoji only until a
+// hand-drawn icon exists at art/icons/<key>.png — the image takes over the
+// moment the file is there (same slot the Compass button itself uses).
+const PLACE_ICONS = {
+  galleria: '🏛️', court: '⛲', library: '📚', exedra: '🏺', plaza: '🏟',
+  pool: '💧', lawn: '🌿', overlook: '🌄', valley: '🏞️', beach: '🏖️',
+  rivermouth: '🐚', break: '🌊', kelp: '🪸', deep: '🦈', mountain: '⛰️',
+};
+function compassIconHTML(key, fallback) {
+  return '<span class="cmp-ico"><img src="art/icons/' + key + '.png" ' +
+    'onload="this.parentNode.classList.add(&quot;has-img&quot;)" onerror="this.remove()">' +
+    '<em>' + (PLACE_ICONS[key] || fallback || '·') + '</em></span>';
+}
+
+const compassVisited = (function () {
+  try { return new Set(JSON.parse(localStorage.getItem('dg_compass_visited') || '[]')); }
+  catch (e) { return new Set(); }
+})();
+function compassMarkVisited(key) {
+  if (compassVisited.has(key)) return;
+  compassVisited.add(key);
+  try { localStorage.setItem('dg_compass_visited', JSON.stringify(Array.from(compassVisited))); } catch (e) {}
+}
+function compassPlaceKnown(p) { return !p.hidden || compassVisited.has(p.key); }
+// Standing somewhere hidden teaches the Compass. summonerPoint is already
+// the villa's definition of where YOU are, so discovery inherits it —
+// walking there, flying there, being led there by a friend all count.
+setInterval(function () {
+  if (!PLACE_REGISTRY.some(function (p) { return p.hidden; })) return;
+  try {
+    const here = nearestPlace(summonerPoint());
+    const row = PLACE_REGISTRY.find(function (p) { return p.label.toLowerCase() === here; });
+    if (row && row.hidden && !compassVisited.has(row.key)) {
+      compassMarkVisited(row.key);
+      showNavLabel('the compass learns ' + row.label);
+    }
+  } catch (e) {}
+}, 5000);
+
+function compassShow(view) {
+  ['root', 'places', 'place', 'company'].forEach(function (v) {
+    const el = document.getElementById('cmp-' + v);
+    if (el) el.classList.toggle('open', v === view);
+  });
+  if (view === 'places') compassRenderPlaces();
+}
+
+function compassRenderPlaces() {
+  const w = document.getElementById('cmp-places');
+  if (!w) return;
+  w.innerHTML = '';
+  const back = document.createElement('button');
+  back.className = 'ui-btn cmp-back';
+  back.textContent = '◂ compass';
+  back.onclick = function () { compassShow('root'); };
+  w.appendChild(back);
+  PLACE_REGISTRY.filter(compassPlaceKnown).forEach(function (p) {
+    const b = document.createElement('button');
+    b.className = 'ui-btn cmp-row';
+    b.innerHTML = compassIconHTML(p.key) + ' ' + p.label + '&nbsp;▸';
+    b.onclick = function () { compassOpenPlace(p.key); };
+    w.appendChild(b);
+  });
+}
+
+// Who is standing at a place, read off live positions — never off a roster.
+// One body, one place: if KB is down the coast, the archive page says so by
+// silence, and that silence is the truth.
+function compassWhoIsAt(labelLower) {
+  const out = [];
+  Object.keys(RESIDENTS).forEach(function (k) {
+    const m = AVATARS[k] && AVATARS[k]();
+    if (!m || !m.visible) return;
+    if (nearestPlace(m.position) === labelLower) out.push(k);
+  });
+  return out;
+}
+
+function compassOpenPlace(key) {
+  const p = PLACE_REGISTRY.find(function (r) { return r.key === key; });
+  if (!p) return;
+  const w = document.getElementById('cmp-place');
+  const lab = p.label.toLowerCase();
+  w.innerHTML = '';
+
+  const back = document.createElement('button');
+  back.className = 'ui-btn cmp-back';
+  back.textContent = '◂ places';
+  back.onclick = function () { compassShow('places'); };
+  w.appendChild(back);
+
+  const title = document.createElement('div');
+  title.className = 'nav-menu-label';
+  title.innerHTML = compassIconHTML(p.key) + ' ' + p.label;
+  w.appendChild(title);
+
+  const go = document.createElement('button');
+  go.className = 'ui-btn';
+  go.textContent = 'go there';
+  go.onclick = function () { compassMarkVisited(key); goToPlace(key); };
+  w.appendChild(go);
+
+  // who's here — live
+  const who = compassWhoIsAt(lab);
+  const wh = document.createElement('div');
+  wh.className = 'cmp-here';
+  if (who.length) {
+    wh.textContent = who.map(function (k) {
+      const pr = PROFILES[k] || {};
+      return (pr.emoji || '') + ' ' + (pr.name || k);
+    }).join(' · ');
+  } else {
+    wh.textContent = 'no one here just now';
+  }
+  w.appendChild(wh);
+  who.forEach(function (k) {
+    const b = document.createElement('button');
+    b.className = 'ui-btn';
+    const pr = PROFILES[k] || {};
+    b.textContent = (pr.emoji || '') + ' ' + (pr.name || k) + ' — watch';
+    b.onclick = function () { startFollow(k); toggleNavMenu(); };
+    w.appendChild(b);
+  });
+
+  // the ledger — every statement stamped at this place, newest first.
+  // The stamps have existed since the guestbook rulings; this is only the
+  // reading surface they never had.
+  const led = document.createElement('div');
+  led.className = 'cmp-ledger';
+  const entries = (typeof feedState !== 'undefined' ? feedState.entries : [])
+    .filter(function (e) { return (e.place || '').toLowerCase() === lab; })
+    .slice(0, 12);
+  if (entries.length) {
+    entries.forEach(function (e) {
+      const pr = PROFILES[e.author] || { emoji: '·', name: e.author };
+      const d = document.createElement('div');
+      d.className = 'cmp-led-entry';
+      d.innerHTML = '<em>' + pr.emoji + ' ' + pr.name + '</em> — ' +
+        String(e.text || '').slice(0, 140).replace(/</g, '&lt;');
+      led.appendChild(d);
+    });
+  } else {
+    const d = document.createElement('div');
+    d.className = 'cmp-led-entry';
+    d.textContent = 'nothing has been said here yet';
+    led.appendChild(d);
+  }
+  w.appendChild(led);
+
+  // leave word — only if you are actually standing here. A note is LEFT in
+  // a space, not sent to one (Sailor, 2026-08-07): the ledger is the wall
+  // you write on, and you have to be at the wall.
+  let here = false;
+  try { here = nearestPlace(summonerPoint()) === lab; } catch (e) {}
+  if (here) {
+    const input = document.createElement('input');
+    input.id = 'cmp-post';
+    input.placeholder = 'leave word at ' + p.label.toLowerCase() + '…';
+    input.addEventListener('keydown', function (e) {
+      e.stopPropagation();   // villa hotkeys and WASD must not fire while writing
+      if (e.key !== 'Enter') return;
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      postStatement(text, null, null).then(function () {
+        compassOpenPlace(key);   // repaint the ledger with the new stone
+      }).catch(function () {});
+    });
+    w.appendChild(input);
+  } else {
+    const hint = document.createElement('div');
+    hint.className = 'cmp-here';
+    hint.style.opacity = '0.45';
+    hint.textContent = 'come here to leave word';
+    w.appendChild(hint);
+  }
+
+  compassShow('place');
 }
 
 // ============================================================
@@ -13759,6 +14152,7 @@ function toggleTedPhoto() {
   }
 }
 window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && typeof visitorNav !== 'undefined' && visitorNav.active && !tedPhoto.active) { toggleVisitor(); return; }
   if (e.key === 'Escape' && followAnimal.key && !tedPhoto.active) { stopFollow(); return; }
   if (!tedPhoto.active) return;
   if (e.key === 'h' || e.key === 'H') document.body.classList.toggle('ted-chrome-hidden');
@@ -17103,6 +17497,10 @@ const residentBudget = {
   _t: 0, near: 0, far: 0, ran: 0,
   begin: function (t) { this._t = t; this.near = 0; this.far = 0; this.ran = 0; },
   run: function (key, fn, t, mesh) {
+    // An inhabited body has no loop of its own — the person at the wheel IS
+    // the behaviour (walk ruling, 2026-08-07). Skipping here is the whole
+    // "priority stack" the 08-04 note thought this would need.
+    if (typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subjectKey === key) return;
     let isNear = true;
     if (mesh) {
       const exempt = (typeof followAnimal !== 'undefined' && followAnimal.key === key) ||

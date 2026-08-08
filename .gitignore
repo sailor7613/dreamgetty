@@ -5,3 +5,5 @@
 .Trashes
 Thumbs.db
 *.swp
+
+_to_delete/
