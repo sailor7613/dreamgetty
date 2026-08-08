@@ -212,6 +212,20 @@
   #dc-row { margin-top: 14px; display: flex; gap: 8px; }
   #dc-row .ui-btn { position: static; }
   #dc-note { margin-top: 10px; font-size: 12px; opacity: .7; }
+  #trout-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 950; display: none; width: min(560px, 90vw);
+    background: rgba(12,14,18,0.96); color: #e8e4dc; border: 1px solid rgba(140,150,165,0.3);
+    border-radius: 10px; padding: 22px 24px; }
+  #trout-panel.open { display: block; }
+  #tp-title { font-family: Georgia, serif; letter-spacing: .14em; font-size: 15px; }
+  #tp-sub { font-style: italic; opacity: .55; font-size: 12px; margin: 3px 0 14px; }
+  .tp-label { font-size: 10px; letter-spacing: .18em; opacity: .55; margin: 10px 0 4px; }
+  .tp-input { width: 100%; background: rgba(0,0,0,0.4); color: #e8e4dc;
+    border: 1px solid rgba(140,150,165,0.3); border-radius: 5px; padding: 10px;
+    font: 14px/1.55 Georgia, serif; resize: vertical; }
+  #tp-row { margin-top: 14px; display: flex; gap: 8px; }
+  #tp-row .ui-btn { position: static; }
+  #tp-note { margin-top: 10px; font-size: 12px; opacity: .7; }
   #threshold { position: fixed; inset: 0; z-index: 900; display: none;
     align-items: flex-end; justify-content: center; padding: 0 0 6vh;
     background: linear-gradient(to top, rgba(8,10,14,.92) 0%, rgba(8,10,14,.72) 38%, rgba(8,10,14,0) 78%); }
@@ -781,6 +795,19 @@
   <div id="dc-row"><button class="ui-btn" onclick="postAddress()">say it to the house</button>
   <button class="ui-btn" onclick="document.getElementById('docent-panel').classList.remove('open')">later</button></div>
   <div id="dc-note"></div>
+</div>
+
+<!-- Trout's stele — the first stone is his to author (RULED 2026-08-08) -->
+<div id="trout-panel">
+  <div id="tp-title">The stele on the beach is yours</div>
+  <div id="tp-sub">the villa's first stone carries your &ldquo;Hello&rdquo; from August 3rd, holding the spot. Say what it should really say &mdash; it has a front and a back.</div>
+  <div class="tp-label">FRONT</div>
+  <textarea id="tp-front" rows="4" class="tp-input"></textarea>
+  <div class="tp-label">BACK</div>
+  <textarea id="tp-back" rows="4" class="tp-input"></textarea>
+  <div id="tp-row"><button class="ui-btn" onclick="troutCarveStele()">carve it</button>
+  <button class="ui-btn" onclick="document.getElementById('trout-panel').classList.remove('open')">later</button></div>
+  <div id="tp-note"></div>
 </div>
 
 <!-- The threshold — the docent's address, played on arrival -->
@@ -9751,12 +9778,19 @@ if (INVITE) setTimeout(function () {
 // ============================================================
 
 const STELE_STONE = 0x1a1814;          // the pedestal's marble — low channels LOW
+// TROUT'S STELE (RULED 2026-08-08, Sailor): the villa's first stele — his
+// 'Hello' on the beach, 08-03 — is Trout's to author, front and back. A
+// two-faced stele packs both faces into ONE text field, split on ' \u2042 '
+// (newlines die at both sanitizer boundaries, so the divider is spaces).
+// No new field crosses the gate; no Worker change; the 400 cap covers both.
+const STELE_FACE_SPLIT = ' \u2042 ';
+const TROUT_STELE_ID = '1785778489227-trout-i09din';
 const steleField = new THREE.Group();
 steleField.name = 'statementField';
 scene.add(steleField);
 const steleState = { byId: new Map() };
 
-function steleFace(entry) {
+function steleFace(entry, faceTextOverride) {
   // The tablet face — statement in Georgia, place and date incised below.
   const cvs = document.createElement('canvas');
   cvs.width = 512; cvs.height = 700;
@@ -9786,7 +9820,9 @@ function steleFace(entry) {
   // The statement — wrapped, and it steps down a size rather than truncate.
   // 400 chars is the cap on the way in (postStatement), so two passes cover it.
   ctx.fillStyle = 'rgba(240,234,222,0.95)';
-  const words = String(entry.text || '').split(/\s+/);
+  const faceText = (faceTextOverride != null) ? faceTextOverride
+    : String(entry.text || '').split(STELE_FACE_SPLIT)[0];
+  const words = String(faceText).split(/\s+/);
   function wrapAt(px) {
     ctx.font = px + 'px Georgia';
     const out = [];
@@ -9843,7 +9879,13 @@ function buildStatementStele(entry) {
     map: steleFace(entry), roughness: 0.62, metalness: 0.04,
     emissive: new THREE.Color(0x141210), emissiveIntensity: 0.22,
   });
-  const mats = [stone.clone(), stone.clone(), stone.clone(), stone.clone(), faceMat, stone.clone()];
+  const parts = String(entry.text || '').split(STELE_FACE_SPLIT);
+  const backText = parts.length > 1 ? parts.slice(1).join(STELE_FACE_SPLIT).trim() : '';
+  const backMat = backText ? new THREE.MeshStandardMaterial({
+    map: steleFace(entry, backText), roughness: 0.62, metalness: 0.04,
+    emissive: new THREE.Color(0x141210), emissiveIntensity: 0.22,
+  }) : stone.clone();
+  const mats = [stone.clone(), stone.clone(), stone.clone(), stone.clone(), faceMat, backMat];
   const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.98, 0.07), mats);
   tablet.position.y = 0.16 + 0.49;
   tablet.castShadow = true; tablet.receiveShadow = true;
@@ -9886,12 +9928,17 @@ function renderStatementField() {
   // to the welcome mat in the middle of the lawn.
   const entries = (feedState.entries || [])
     .filter(e => e && e.id && e.pos && e.kind !== 'address');
+  // TROUT'S STELE: his authored reply supersedes the original 'Hello' in
+  // the field — the one sanctioned edit, a one-off, not a re-authoring
+  // system. The original survives in the feed and in git. Do not schematise.
+  const troutAuthored = entries.some(e => e.author === 'trout' && e.replyTo === TROUT_STELE_ID);
+  const visible = troutAuthored ? entries.filter(e => e.id !== TROUT_STELE_ID) : entries;
   const seen = new Set();
   const spots = new Map();     // rounded spot → how many already stand there
   const placed = new Map();    // entry id → world position, for reply aiming
 
   // Oldest first, so the spiral order is the order things were said
-  const ordered = entries.slice().sort((a, b) => (a.t < b.t ? -1 : 1));
+  const ordered = visible.slice().sort((a, b) => (a.t < b.t ? -1 : 1));
 
   ordered.forEach(entry => {
     seen.add(entry.id);
@@ -9931,6 +9978,61 @@ function renderStatementField() {
     steleState.byId.delete(id);
   });
 }
+
+// ── TROUT'S STELE — the prompt, the carve ──
+// Statements are added, never edited (§5) — except this one stone.
+function troutSteleAuthored() {
+  return (feedState.entries || []).some(e => e && e.author === 'trout' && e.replyTo === TROUT_STELE_ID);
+}
+function considerTroutPrompt(tries) {
+  const id = feedIdentity();
+  if (!id || id.avatar !== 'trout' || !id.pass) {
+    if (tries > 0) setTimeout(function () { considerTroutPrompt(tries - 1); }, 2000);
+    return;
+  }
+  const orig = (feedState.entries || []).some(e => e && e.id === TROUT_STELE_ID);
+  const gating = (typeof threshold !== 'undefined') && threshold.showing;
+  if ((!orig || gating) && tries > 0) { setTimeout(function () { considerTroutPrompt(tries - 1); }, 2000); return; }
+  if (!orig || troutSteleAuthored()) return;
+  document.getElementById('trout-panel').classList.add('open');
+}
+setTimeout(function () { considerTroutPrompt(90); }, 4000);
+function troutCarveStele() {
+  const note = document.getElementById('tp-note');
+  const front = (document.getElementById('tp-front').value || '').trim();
+  const back = (document.getElementById('tp-back').value || '').trim();
+  if (!front) { note.textContent = 'the front face needs words'; return; }
+  const packed = back ? front + STELE_FACE_SPLIT + back : front;
+  if (packed.length > 400) { note.textContent = 'a stele holds 400 characters across both faces — this is ' + packed.length; return; }
+  const id = feedIdentity();
+  if (!id || !id.pass) { openIdentityPanel(); return; }
+  note.textContent = 'carving…';
+  fetch(GATE + '/say', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      pass: id.pass, avatar: 'trout', kind: 'statement',
+      text: packed, to: null, replyTo: TROUT_STELE_ID,
+      place: 'the beach', pos: [15, -10.9, 78],
+    }),
+  })
+    .then(r => r.json().catch(() => ({})).then(j => ({ ok: r.ok, j: j })))
+    .then(res => {
+      if (!res.ok) { note.textContent = (res.j && res.j.error) || 'the villa could not hold that'; return; }
+      if (res.j.entry) {
+        const clean = sanitizeFeedEntry(res.j.entry);
+        if (clean) feedState.entries.unshift(clean);
+        renderStatementField();
+        if (typeof renderFeedInto === 'function' && followAnimal.key) renderFeedInto(followAnimal.key);
+      }
+      document.getElementById('trout-panel').classList.remove('open');
+      note.textContent = '';
+    })
+    .catch(function () { note.textContent = 'the villa is unreachable — try again in a moment'; });
+}
+['tp-front', 'tp-back'].forEach(function (k) {
+  const el = document.getElementById(k);
+  if (el) el.addEventListener('keydown', function (e) { e.stopPropagation(); });
+});
 
 function steleEntryFor(object) {
   let o = object;
