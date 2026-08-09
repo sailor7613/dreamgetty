@@ -212,6 +212,28 @@
   #dc-row { margin-top: 14px; display: flex; gap: 8px; }
   #dc-row .ui-btn { position: static; }
   #dc-note { margin-top: 10px; font-size: 12px; opacity: .7; }
+  #profile-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 950; display: none; width: min(520px, 90vw);
+    background: rgba(12,14,18,0.96); color: #e8e4dc; border: 1px solid rgba(140,150,165,0.3);
+    border-radius: 10px; padding: 22px 24px; }
+  #profile-panel.open { display: block; }
+  #pf-title { font-family: Georgia, serif; letter-spacing: .14em; font-size: 15px; }
+  #pf-sub { font-style: italic; opacity: .55; font-size: 12px; margin: 3px 0 12px; }
+  .pf-label { font-size: 10px; letter-spacing: .18em; opacity: .55; margin: 10px 0 4px; }
+  #pf-count { float: right; letter-spacing: 0; opacity: .8; }
+  .pf-input { width: 100%; background: rgba(0,0,0,0.4); color: #e8e4dc;
+    border: 1px solid rgba(140,150,165,0.3); border-radius: 5px; padding: 9px 10px;
+    font: 14px/1.55 Georgia, serif; resize: vertical; box-sizing: border-box; }
+  #pf-row { margin-top: 14px; display: flex; gap: 8px; }
+  #pf-row .ui-btn { position: static; }
+  #pf-note { margin-top: 10px; font-size: 12px; opacity: .7; }
+  /* the ✎ on your own card */
+  #fc-edit { background: none; border: 0; color: inherit; cursor: pointer;
+    font-size: 12px; opacity: .4; padding: 0 4px; display: none; }
+  #fc-edit:hover { opacity: 1; }
+  #fc-head.mine #fc-edit { display: inline-block; }
+  .fc-profile { font-style: italic; opacity: .6; }
+
   #trout-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
     z-index: 950; display: none; width: min(560px, 90vw);
     background: rgba(12,14,18,0.96); color: #e8e4dc; border: 1px solid rgba(140,150,165,0.3);
@@ -803,6 +825,7 @@
     <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Take your body's wheel — WASD or the arrows walk, click the ground to go there. Patrol is what your body does when you're away (RULED 2026-08-07)">🐾 Walk</button>
     <div class="nav-menu-label">You</div>
     <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
+    <button class="ui-btn" id="profile-btn" onclick="openProfilePanel()" title="your display name and your bio">✎ profile</button>
     <button class="ui-btn" id="docent-btn" style="display:none" onclick="openDocentConsole()">🐾 address</button>
     <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
     <div class="nav-menu-label">Ways of looking</div>
@@ -843,6 +866,7 @@
   <div id="fc-head">
     <span id="fc-emoji"></span>
     <div id="fc-titles"><div id="fc-name"></div><div id="fc-status"></div></div>
+    <button id="fc-edit" onclick="openProfilePanel()" title="your name and your bio, yours to change">&#9998;</button>
     <button id="fc-close" onclick="stopFollow()" title="release the camera">×</button>
   </div>
   <div id="fc-bio"></div>
@@ -865,6 +889,23 @@
   <button class="ui-btn" onclick="rehearseDraft()" title="Hear it exactly as a visitor will — the fly-over, the gathering, the camera, the whole walk — without the villa keeping a word of it">rehearse</button>
   <button class="ui-btn" onclick="closeDocentConsole()">later</button></div>
   <div id="dc-note"></div>
+</div>
+
+<!-- Your own profile — the display name and the bio that was written FOR you.
+     Only ever your own: the gate names the author from the passcode. -->
+<div id="profile-panel">
+  <div id="pf-title">Who are you here?</div>
+  <div id="pf-sub">the villa wrote you a name and a few lines when you arrived. they are yours to change.</div>
+  <div class="pf-label">DISPLAY NAME</div>
+  <input id="pf-name" class="pf-input" maxlength="40" placeholder="the name the villa calls you">
+  <div class="pf-label">BIO<span id="pf-count"></span></div>
+  <textarea id="pf-bio" class="pf-input" rows="5" maxlength="320" placeholder="a few lines about you"></textarea>
+  <div id="pf-row">
+    <button class="ui-btn" onclick="saveProfile()">save</button>
+    <button class="ui-btn" onclick="revertProfile()" title="back to the words the villa wrote for you — this only fills the boxes, nothing is saved until you press save">the original</button>
+    <button class="ui-btn" onclick="closeProfilePanel()">later</button>
+  </div>
+  <div id="pf-note"></div>
 </div>
 
 <!-- Trout's stele — the first stone is his to author (RULED 2026-08-08) -->
@@ -9067,6 +9108,36 @@ function saveFeedIdentity(avatar, pass) {
 // number, or null. A new field on a statement gets a line here, or it does not
 // exist. One boundary is cheaper to hold than "escape at every render site."
 const FEED_MAX_ENTRIES = 500;
+// ── THE THIRD KIND (2026-08-09) ──
+// A profile is a person saying who they are, and it is append-only like
+// everything else: the newest one wins and the old ones stay in the feed.
+//
+// It carries TWO markers, and the second is the important one. `kind:
+// 'profile'` is the honest shape — but the gate's KINDS set is
+// {statement, address} and it silently COERCES anything else to a statement,
+// which would erect a stone on the lawn reading "Emilia ⁂ A snow stoat…".
+// So the discriminator that actually travels is `replyTo: 'dg:profile'`,
+// a field the Worker already passes through untouched (`str(body.replyTo,
+// 80)`) and that nothing else in the client reads as anything but an id
+// lookup that fails.
+//
+// This is the STELE_FACE_SPLIT lesson again: find the field that already
+// crosses the boundary intact rather than adding one. It works TODAY on the
+// deployed gate, and the moment villa-gate learns 'profile' the two markers
+// agree and the replyTo becomes belt to the braces.
+const PROFILE_MARK = 'dg:profile';
+function profileKind(kind, replyTo) {
+  if (kind === 'address') return 'address';
+  if (kind === 'profile' || replyTo === PROFILE_MARK) return 'profile';
+  return 'statement';
+}
+function kindTextCap(kind) {
+  return kind === 'address' ? 6000 : (kind === 'profile' ? 800 : 400);
+}
+function isProfileEntry(e) {
+  return !!(e && (e.kind === 'profile' || e.replyTo === PROFILE_MARK));
+}
+
 function safeStr(v, max) {
   if (typeof v !== 'string') return '';
   // control characters are stripped: they have no business in a statement, and
@@ -9090,13 +9161,15 @@ function sanitizeFeedEntry(e) {
   const when = Number.isFinite(new Date(ts).getTime()) ? ts : '';
   return {
     id: safeStr(e.id, 80) || (author + '-' + Math.random().toString(36).slice(2)),
-    // An address is the docent speaking to the house; anything else is a
-    // statement standing where it was said. Unknown kinds become statements —
-    // the boundary decides, not the file.
-    kind: safeStr(e.kind, 20) === 'address' ? 'address' : 'statement',
+    // An address is the docent speaking to the house; a profile is somebody
+    // saying who they are; anything else is a statement standing where it was
+    // said. Unknown kinds become statements — the boundary decides, not the
+    // file. (Native Spaces §2.3: a new kind gets a line HERE and a line in the
+    // Worker, in the same breath, or it vanishes on reload.)
+    kind: profileKind(safeStr(e.kind, 20), safeStr(e.replyTo, 80)),
     author: author,
     to: to || null,
-    text: safeStr(e.text, safeStr(e.kind, 20) === 'address' ? 6000 : 400),
+    text: safeStr(e.text, kindTextCap(profileKind(safeStr(e.kind, 20), safeStr(e.replyTo, 80)))),
     t: when,
     pos: [safeNum(pos[0]), safeNum(pos[1]), safeNum(pos[2])],
     place: safeStr(e.place, 60),
@@ -9109,11 +9182,16 @@ function loadFeed() {
   return fetch('feed/manifest.json?t=' + Date.now(), { cache: 'no-store' })
     .then(r => { if (!r.ok) throw new Error('no manifest'); return r.json(); })
     .then(m => {
+      // (applyProfileOverrides runs at the tail of this chain — see below)
       feedState.entries = (Array.isArray(m.entries) ? m.entries : [])
         .map(sanitizeFeedEntry).filter(Boolean)
         .sort((a, b) => (a.t < b.t ? 1 : -1))
         .slice(0, FEED_MAX_ENTRIES);
       feedState.loaded = true;
+      // BEFORE anything renders: a name is read by nearly every surface in
+      // the villa, and painting the card first would show the authored name
+      // for a frame and then swap it.
+      if (typeof applyProfileOverrides === 'function') applyProfileOverrides();
       if (followAnimal.key) renderFeedInto(followAnimal.key);
       if (typeof renderStatementField === 'function') renderStatementField();
       if (typeof considerThreshold === 'function') considerThreshold();
@@ -10467,12 +10545,13 @@ function postStatement(text, toKey, replyTo, kind) {
   const optimistic = {
     id: tempId, author: id.avatar,
     to: toKey && toKey !== id.avatar ? toKey : null,
-    kind: kind === 'address' ? 'address' : 'statement',
-    text: text.slice(0, kind === 'address' ? 6000 : 400), t: new Date().toISOString(),
+    kind: profileKind(kind, replyTo),
+    text: text.slice(0, kindTextCap(profileKind(kind, replyTo))), t: new Date().toISOString(),
     pos: [+pos.x.toFixed(1), +pos.y.toFixed(1), +pos.z.toFixed(1)],
     place: place, replyTo: replyTo || null,
   };
   const repaint = () => {
+    if (typeof applyProfileOverrides === 'function') applyProfileOverrides();
     renderFeedInto(followAnimal.key || id.avatar);
     if (typeof renderStatementField === 'function') renderStatementField();
   };
@@ -10484,8 +10563,8 @@ function postStatement(text, toKey, replyTo, kind) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       pass: id.pass, avatar: id.avatar,
-      kind: kind === 'address' ? 'address' : 'statement',
-      text: text.slice(0, kind === 'address' ? 6000 : 400),
+      kind: kind === 'address' ? 'address' : (kind === 'profile' ? 'profile' : 'statement'),
+      text: text.slice(0, kindTextCap(profileKind(kind, replyTo))),
       to: toKey && toKey !== id.avatar ? toKey : null,
       replyTo: replyTo || null, place: place, pos: optimistic.pos,
     }),
@@ -10736,6 +10815,10 @@ function stopFollow() {
 function updateFollowCard() {
   const p = PROFILES[followAnimal.key];
   if (!p) return;
+  // The pencil only exists on your own card, and it is a CSS class rather
+  // than a permission — the gate is the permission.
+  const head = document.getElementById('fc-head');
+  if (head) head.classList.toggle('mine', profileMine() === followAnimal.key);
   document.getElementById('fc-emoji').textContent = p.emoji;
   document.getElementById('fc-name').textContent = p.name;
   document.getElementById('fc-status').textContent = p.status();
@@ -10748,6 +10831,158 @@ setInterval(function () {
     if (p) document.getElementById('fc-status').textContent = p.status();
   }
 }, 700);
+
+// ============================================================
+// THE PROFILE IS THE RESIDENT'S OWN (2026-08-09, Sailor: "I'd like for them
+// to be able to edit their display name and the little bios you'd written
+// for them")
+//
+// PROFILES is read in about thirty places — the follow card, the Compass
+// roster, the identity button, Meet, the nav labels, the statement field's
+// attributions. Rather than route every one of them through a getter and
+// hope none was missed, the overrides are written INTO PROFILES in place
+// and the authored text is kept in a snapshot to restore from. One write,
+// and every reader is already correct — including the ones written before
+// this feature existed and the ones written after it.
+//
+// WHO MAY EDIT WHOSE: nobody had to rule on this, because the gate already
+// has. It names the author from the passcode and discards every client
+// claim, so a key can only ever post as its own resident. You edit yours.
+// Not even the docent can edit somebody else's, and that falls out of the
+// door rather than out of a permission check somebody has to remember.
+// ============================================================
+const PROFILE_CANON = {};
+(function snapshotProfiles() {
+  Object.keys(PROFILES).forEach(function (k) {
+    PROFILE_CANON[k] = { name: PROFILES[k].name, bio: PROFILES[k].bio };
+  });
+})();
+
+function profileSplit(text) {
+  const i = String(text || '').indexOf(STELE_FACE_SPLIT);
+  if (i < 0) return { name: String(text || '').trim(), bio: '' };
+  return { name: text.slice(0, i).trim(), bio: text.slice(i + STELE_FACE_SPLIT.length).trim() };
+}
+
+// Newest profile entry per author wins; everyone else goes back to the text
+// that was written for them. Cheap enough to run on every feed change.
+function applyProfileOverrides() {
+  const newest = {};
+  (feedState.entries || []).forEach(function (e) {
+    if (!isProfileEntry(e) || !e.author || !PROFILES[e.author]) return;
+    const cur = newest[e.author];
+    if (!cur || String(e.t) > String(cur.t)) newest[e.author] = e;
+  });
+  Object.keys(PROFILE_CANON).forEach(function (k) {
+    const e = newest[k];
+    const p = PROFILES[k];
+    if (!p) return;
+    if (!e) { p.name = PROFILE_CANON[k].name; p.bio = PROFILE_CANON[k].bio; return; }
+    const parts = profileSplit(e.text);
+    p.name = parts.name || PROFILE_CANON[k].name;
+    p.bio = parts.bio || PROFILE_CANON[k].bio;
+  });
+  // the two chrome elements that cache a name rather than reading it live
+  try { refreshIdentityBtn(); } catch (e) {}
+  try { if (followAnimal.key) updateFollowCard(); } catch (e) {}
+}
+
+function profileIsEdited(key) {
+  const c = PROFILE_CANON[key], p = PROFILES[key];
+  return !!(c && p && (c.name !== p.name || c.bio !== p.bio));
+}
+
+// ── THE PANEL ──
+// Bio is capped at 320 and the name at 40 for a reason that is arithmetic,
+// not taste: 40 + the 3-character separator + 320 = 363, which fits inside
+// the gate's MAX_TEXT of 400. So a profile survives the CURRENT door, before
+// villa-gate learns the kind and its own larger cap. The longest bio the
+// villa wrote for anybody is Luke's, at 298.
+const PROFILE_NAME_MAX = 40, PROFILE_BIO_MAX = 320;
+
+function profileMine() {
+  const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+  if (!id || !id.avatar || !PROFILES[id.avatar]) return null;
+  return id.avatar;
+}
+function closeProfilePanel() {
+  const el = document.getElementById('profile-panel');
+  if (el) el.classList.remove('open');
+}
+function profileCount() {
+  const bio = document.getElementById('pf-bio');
+  const c = document.getElementById('pf-count');
+  if (bio && c) c.textContent = (bio.value || '').length + ' / ' + PROFILE_BIO_MAX;
+}
+function openProfilePanel() {
+  const key = profileMine();
+  const el = document.getElementById('profile-panel');
+  if (!el) return;
+  const note = document.getElementById('pf-note');
+  const name = document.getElementById('pf-name');
+  const bio = document.getElementById('pf-bio');
+  if (!key) {
+    // No identity, no profile: there is nobody for the villa to rename.
+    if (typeof openIdentityPanel === 'function') openIdentityPanel();
+    return;
+  }
+  const p = PROFILES[key];
+  name.value = p.name || '';
+  bio.value = p.bio || '';
+  document.getElementById('pf-sub').textContent = profileIsEdited(key)
+    ? 'you have written these. the villa\u2019s own words are one button away.'
+    : 'the villa wrote you a name and a few lines when you arrived. they are yours to change.';
+  if (note) note.textContent = 'saved to the villa, so everyone sees it. profiles are added, never overwritten \u2014 the old one stays in the feed.';
+  if (!name._bound) {
+    name._bound = true;
+    [name, bio].forEach(function (el2) {
+      el2.addEventListener('keydown', function (e) { e.stopPropagation(); });   // the compose lesson
+      el2.addEventListener('input', profileCount);
+    });
+  }
+  profileCount();
+  el.classList.add('open');
+  try { name.focus(); } catch (e) {}
+}
+function revertProfile() {
+  const key = profileMine();
+  if (!key) return;
+  document.getElementById('pf-name').value = PROFILE_CANON[key].name;
+  document.getElementById('pf-bio').value = PROFILE_CANON[key].bio;
+  profileCount();
+  const note = document.getElementById('pf-note');
+  if (note) note.textContent = 'the villa\u2019s own words, back in the boxes. nothing is saved until you press save.';
+}
+function saveProfile() {
+  const key = profileMine();
+  const note = document.getElementById('pf-note');
+  if (!key) return;
+  const name = (document.getElementById('pf-name').value || '').trim().slice(0, PROFILE_NAME_MAX);
+  const bio = (document.getElementById('pf-bio').value || '').trim().slice(0, PROFILE_BIO_MAX);
+  if (!name) { if (note) note.textContent = 'the villa has to call you something'; return; }
+  if (name.indexOf(STELE_FACE_SPLIT.trim()) >= 0) {
+    // The separator is the whole protocol; a name containing it would split
+    // itself in two on the way back in.
+    if (note) note.textContent = 'that character is spoken for \u2014 try the name without it';
+    return;
+  }
+  if (note) note.textContent = 'the villa is listening\u2026';
+  postStatement(name + STELE_FACE_SPLIT + bio, null, PROFILE_MARK, 'profile')
+    .then(function (j) {
+      closeProfilePanel();
+      const wrote = j && j.entry;
+      if (wrote && wrote.kind !== 'profile') {
+        // The door coerced it, which means villa-gate has not been deployed
+        // with the new kind yet. Everything still works — the replyTo marker
+        // carries it and the client reads that — so this is a note, not an
+        // error, and it is worded for Sailor rather than for a guest.
+        showNavLabel('saved \u2014 the door has not learned profiles yet (gate deploy owed)');
+      } else {
+        showNavLabel('the villa knows you as ' + name);
+      }
+    })
+    .catch(function (err) { if (note) note.textContent = err.message; });
+}
 
 // ── The card's Activity area IS the feed ──
 const composeState = { replyTo: null };
@@ -10765,6 +11000,17 @@ function renderFeedInto(key) {
     const tp = e.to ? (PROFILES[e.to] || { emoji: '', name: e.to }) : null;
     const div = document.createElement('div');
     div.className = 'fc-entry';
+    if (isProfileEntry(e)) {
+      // Kept in the record — everything is — but a profile edit is not a
+      // remark and printing its raw text would show the ⁂ separator to the
+      // person who just typed either side of it.
+      div.className = 'fc-entry fc-profile';
+      div.innerHTML = '<span class="fc-when">' + timeAgo(e.t) + '</span> \u270e ' +
+        (profileSplit(e.text).name || ep.name).replace(/[<>&]/g, '') +
+        ' wrote their own profile';
+      list.appendChild(div);
+      return;
+    }
     const head = document.createElement('div');
     head.className = 'fc-entry-head';
     // Built as nodes, never as markup (SECURITY — 2026-08-02). `e.t` and
@@ -11024,7 +11270,25 @@ function forgetIdentity() {
   if (followAnimal.key) renderFeedInto(followAnimal.key);
 }
 document.getElementById('ip-token').addEventListener('keydown', function (e) { e.stopPropagation(); });
+// The ⚿ button caches a name rather than reading one, so it has to be told
+// twice: when the identity changes, and when the NAME changes under a
+// identity that did not. The first draft only did the second, and the button
+// sat reading "⚿ identity" for anyone whose key arrived after the feed.
+function refreshIdentityBtn() {
+  const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+  const b = document.getElementById('identity-btn');
+  if (!b) return;
+  b.textContent = (id && id.avatar)
+    ? '\u269a ' + ((PROFILES[id.avatar] || {}).name || id.avatar)
+    : '\u269a identity';
+}
+function refreshProfileBtn() {
+  const b = document.getElementById('profile-btn');
+  if (b) b.style.display = profileMine() ? '' : 'none';
+  refreshIdentityBtn();
+}
 function refreshDocentBtn() {
+  refreshProfileBtn();
   const b = document.getElementById('docent-btn');
   if (b) b.style.display = (typeof isDocent === 'function' && isDocent()) ? '' : 'none';
 }
@@ -11233,7 +11497,14 @@ function renderStatementField() {
   // no spot in it. Erecting a stele for the introduction would put a monument
   // to the welcome mat in the middle of the lawn.
   const entries = (feedState.entries || [])
-    .filter(e => e && e.id && e.pos && e.kind !== 'address');
+    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e));
+  // A PROFILE IS NOT A STONE EITHER, and this filter is load-bearing rather
+  // than tidy. The deployed gate coerces an unknown kind to 'statement', so
+  // until villa-gate learns 'profile' every saved profile comes back from the
+  // feed looking exactly like a remark — and without this line it would
+  // erect a stele on the lawn reading "Emilia ⁂ A snow stoat: dart, freeze,
+  // dart." `isProfileEntry` reads the replyTo marker, which survives the
+  // coercion, so the exclusion holds on both sides of the deploy.
   // TROUT'S STELE: his authored reply supersedes the original 'Hello' in
   // the field — the one sanctioned edit, a one-off, not a re-authoring
   // system. The original survives in the feed and in git. Do not schematise.
