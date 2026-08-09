@@ -226,17 +226,71 @@
   #tp-row { margin-top: 14px; display: flex; gap: 8px; }
   #tp-row .ui-btn { position: static; }
   #tp-note { margin-top: 10px; font-size: 12px; opacity: .7; }
+  /* ── THE CAPTION BAND (2026-08-09, Sailor: "less dominating over the
+     screen") ──
+     What did NOT change: `inset: 0`. That full-bleed rectangle is the
+     pointer shield described in the comment above this block — it is the
+     entire reason orbit, click-to-go and walk are inert during an address
+     without a single input handler being touched. Shrink it to the visible
+     band and the canvas becomes live under the speech. Only the WEIGHT
+     moved: the scrim now clears by 26% of the height instead of 78%, the
+     type is 15px instead of 17px in a 560px column instead of 720px, and
+     the address arrives a line at a time (see addressNext) rather than
+     standing on the screen as a wall of text with its own scrollbar. */
   #threshold { position: fixed; inset: 0; z-index: 900; display: none;
-    align-items: flex-end; justify-content: center; padding: 0 0 6vh;
-    background: linear-gradient(to top, rgba(8,10,14,.92) 0%, rgba(8,10,14,.72) 38%, rgba(8,10,14,0) 78%); }
+    align-items: flex-end; justify-content: center; padding: 0 0 4.5vh;
+    background: linear-gradient(to top, rgba(8,10,14,.62) 0%, rgba(8,10,14,.30) 13%, rgba(8,10,14,0) 26%); }
   #threshold.open { display: flex; }
-  #th-inner { max-width: 720px; width: 88%; color: #e8e4dc; text-align: left; }
-  #th-who { font-family: Georgia, serif; letter-spacing: .18em; font-size: 15px; opacity: .95; }
-  #th-role { font-style: italic; opacity: .55; font-size: 12px; margin: 2px 0 14px; }
-  #th-text { font-family: Georgia, serif; font-size: 17px; line-height: 1.62;
-    max-height: 42vh; overflow-y: auto; white-space: pre-wrap;
-    text-shadow: 0 1px 3px rgba(0,0,0,.6); }
-  #th-skip { margin-top: 18px; }
+  #th-inner { max-width: 560px; width: 78%; color: #e8e4dc; text-align: left; }
+  #th-who { font-family: Georgia, serif; letter-spacing: .22em; font-size: 10px;
+    opacity: .45; text-transform: uppercase; }
+  /* The byline said in twelve words what the name said in two. */
+  #th-role { display: none; }
+  #th-prev { font-family: Georgia, serif; font-size: 13px; line-height: 1.5;
+    opacity: .26; margin-top: 7px; min-height: 1.5em; white-space: pre-wrap;
+    text-shadow: 0 1px 3px rgba(0,0,0,.7); transition: opacity .5s ease; }
+  #th-text { font-family: Georgia, serif; font-size: 15px; line-height: 1.56;
+    max-height: 18vh; overflow: hidden; white-space: pre-wrap; opacity: 0;
+    text-shadow: 0 1px 4px rgba(0,0,0,.75); transition: opacity .45s ease; }
+  #th-text.in { opacity: .93; }
+  /* .ui-btn is position:absolute by default — the #dc-row lesson, which cost
+     a session when the docent panel's buttons stacked on their own note. */
+  #th-skip { position: static; margin-top: 13px; font-size: 11px; opacity: .4;
+    transition: opacity .3s; }
+  #th-skip:hover { opacity: 1; }
+
+  /* ── THE ANNOUNCEMENT BANNER (2026-08-09) ──
+     The threshold's own rule is that it may never become a toll. With one
+     address that cost nothing; with a SERIES it is the whole design problem,
+     because twelve talks in, a visitor would be stopped at the door twelve
+     times. So: the introduction gates a first arrival and NOTHING else ever
+     does. A later talk waits here, in the corner, and is taken or dismissed. */
+  #announce { position: fixed; left: 50%; bottom: 3.2vh; transform: translateX(-50%);
+    z-index: 880; display: none; align-items: center; gap: 10px;
+    background: rgba(12,14,18,0.82); color: #e8e4dc; padding: 9px 12px 9px 16px;
+    border: 1px solid rgba(140,150,165,0.22); border-radius: 30px;
+    font: 12px/1.4 Georgia, serif; backdrop-filter: blur(6px); }
+  #announce.open { display: flex; }
+  #an-text { opacity: .8; }
+  #announce .ui-btn { position: static; font-size: 11px; }
+
+  /* ── The talks list in the Compass ── */
+  .cmp-sub { display: block; font-size: 10px; opacity: .45; font-style: italic;
+    letter-spacing: 0; margin-top: 1px; }
+  #nav-menu .cmp-talk { display: flex; align-items: center; gap: 6px;
+    justify-content: flex-end; text-align: right; }
+  #nav-menu .cmp-edit { opacity: .45; padding-left: 8px; padding-right: 8px; }
+  #nav-menu .cmp-edit:hover { opacity: 1; }
+  #cmp-talks .cmp-note { font: italic 11px/1.5 Georgia, serif; opacity: .45;
+    text-align: right; padding: 4px 2px; }
+
+  /* ── The docent's cue rail ── */
+  #dc-target { font-size: 11px; opacity: .6; font-style: italic; margin: -8px 0 10px; }
+  #dc-cues { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px;
+    align-items: center; }
+  #dc-cues .ui-btn { position: static; font-size: 10px; padding: 3px 7px; }
+  .dc-cue-label { font-size: 10px; letter-spacing: .16em; opacity: .4;
+    text-transform: uppercase; margin-right: 2px; }
   #identity-panel {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
     z-index: 20; width: 270px; display: none;
@@ -733,6 +787,7 @@
   <div class="cmp-view open" id="cmp-root">
     <button class="ui-btn cmp-row" onclick="compassShow('places')" title="Where you can go — and, for each place, who is standing there and what has been said there">🧭 Places&nbsp;▸</button>
     <button class="ui-btn cmp-row" onclick="compassShow('company')" title="Who lives here — tap a resident to lock the camera on them">🎭 Company&nbsp;▸</button>
+    <button class="ui-btn cmp-row" onclick="compassShow('talks')" title="Every address the house has been given, the introduction first — click one to hear it again">🗣 Talks&nbsp;▸</button>
     <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place — where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
     <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Take your body's wheel — WASD or the arrows walk, click the ground to go there. Patrol is what your body does when you're away (RULED 2026-08-07)">🐾 Walk</button>
     <div class="nav-menu-label">You</div>
@@ -746,6 +801,7 @@
     <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
   </div>
   <div class="cmp-view" id="cmp-places"></div>
+  <div class="cmp-view" id="cmp-talks"></div>
   <div class="cmp-view" id="cmp-place"></div>
   <div class="cmp-view" id="cmp-company">
     <button class="ui-btn cmp-back" onclick="compassShow('root')">◂ compass</button>
@@ -790,10 +846,14 @@
 <!-- The docent's console — appears only for an assigned Ted -->
 <div id="docent-panel">
   <div id="dc-title">Address the house</div>
-  <div id="dc-sub">every visitor hears this on arrival, before they can wander</div>
+  <div id="dc-sub">a talk is kept. the first one the villa gave is its introduction; the rest are announcements</div>
+  <div id="dc-target"></div>
   <textarea id="dc-text" rows="10" placeholder="Hello and welcome to the Dream Getty. Allow me to introduce myself…"></textarea>
+  <div id="dc-cues"><span class="dc-cue-label">turn the camera</span></div>
   <div id="dc-row"><button class="ui-btn" onclick="postAddress()">say it to the house</button>
-  <button class="ui-btn" onclick="document.getElementById('docent-panel').classList.remove('open')">later</button></div>
+  <button class="ui-btn" onclick="rehearseDraft()" title="Hear it exactly as a visitor will — the gathering, the camera, the whole walk — without the villa keeping a word of it">rehearse</button>
+  <button class="ui-btn" onclick="saveDraft()" title="Keep it on this device. Nothing is broadcast">keep the draft</button>
+  <button class="ui-btn" onclick="closeDocentConsole()">later</button></div>
   <div id="dc-note"></div>
 </div>
 
@@ -810,14 +870,24 @@
   <div id="tp-note"></div>
 </div>
 
-<!-- The threshold — the docent's address, played on arrival -->
+<!-- The threshold — the docent's address, played on arrival.
+     One line at a time: #th-prev holds the line just spoken, faded; #th-text
+     holds the one being spoken. -->
 <div id="threshold">
   <div id="th-inner">
     <div id="th-who">TED TURNER</div>
     <div id="th-role">the docent, addressing the house</div>
+    <div id="th-prev"></div>
     <div id="th-text"></div>
     <button class="ui-btn" id="th-skip" onclick="endThreshold()">enter the villa &rarr;</button>
   </div>
+</div>
+
+<!-- A talk that is not the introduction does not gate. It waits here. -->
+<div id="announce">
+  <span id="an-text"></span>
+  <button class="ui-btn" onclick="announceOpen()">listen</button>
+  <button class="ui-btn" onclick="announceDismiss()">later</button>
 </div>
 
 <!-- Identity panel — who this device speaks as, and its passcode -->
@@ -6586,6 +6656,15 @@ function buildCoyote() {
 
 const tedTurner = buildCoyote();
 tedTurner.scale.set(0.85, 0.85, 0.85);
+// RULED BY ARITHMETIC (2026-08-09): 'YXZ', not the default 'XYZ'.
+// 'XYZ' composes as Rx·Ry, so `rotation.x` pitches about the WORLD x-axis.
+// At yaw 0 that is indistinguishable from a pitch — which is why the sit
+// pose has looked correct since it was written, photo mode framing him
+// head-on almost every time. At yaw ±90° the same line ROLLS HIM ONTO HIS
+// SIDE. 'YXZ' composes as Ry·Rx and pitches about his own spine.
+// Output is bit-identical whenever x and z are 0, so nothing that only
+// sets yaw — patrol, walk, docent, follow — can tell the difference.
+tedTurner.rotation.order = 'YXZ';
 scene.add(tedTurner);
 
 // Separate head meshes into a sub-group for docent detachment
@@ -6631,6 +6710,29 @@ function getTedHeight(x, z) {
   return getTerrainHeight(x, z);
 }
 
+// ============================================================
+// ONE ANSWER TO "HOW FAR ALONG IS THIS TRAVEL" (2026-08-09)
+//
+// Fourteen movers computed this identically — Math.min(1, (t − t0) / dur) —
+// and not one of them floored it. Harmless for a lerp. FATAL for a curve:
+// getPointAt(−1.1e-5) sends three.js's arc-length search to NaN, indexes
+// points[NaN], and throws `undefined.x` from inside the animation loop.
+//
+// It happens on exactly one frame: the frame a resident is summoned, when
+// summonResident stamps t0 from a clock reading fractionally ahead of the
+// t the current frame is already holding. One resident being called is a
+// coin flip. SIXTEEN being called at once is not, and the seal threw on the
+// very first full-cast gathering — on the UNTOUCHED canon, before a line of
+// today's work was in the file. `gather()` has carried the comment "the
+// intro rehearsal (ruling 5)" since 08-05 and nothing but a console had
+// ever called it: the same class as toggleVisitor's every-walker-is-Ted,
+// a path that only a test could reach, wrong the whole time.
+// ============================================================
+function travelU(t, S) {
+  const u = (t - S.t0) / S.dur;
+  return u < 0 ? 0 : (u > 1 ? 1 : u);
+}
+
 const tedPatrol = {
   waypoints: [
     // Inside the gallery — near the pedestal
@@ -6664,6 +6766,7 @@ function updateTedTurner(t) {
   if (p.state === 'docent') return; // frozen during story mode
   if (p.state === 'photo') return;  // photo mode — Ted holds his mark and his gaze
   if (p.state === 'player') return; // Sailor has the wheel (🐾 Walk mode)
+  if (p.state === 'address') return; // he is up on his hind legs, addressing the house
   const curr = p.waypoints[p.currentWP], next = p.waypoints[p.nextWP];
   if (p.state === 'pausing') {
     p.pauseTimer -= 0.016;
@@ -7326,7 +7429,7 @@ function updateTrout(t) {
     const u = Math.min(1, (t - troutState.t0) / troutState.duration);
     // Ease the whole journey slightly — labouring upstream, easing at the end
     const ue = u < 0.5 ? u * (0.9 + 0.2 * u) : u;
-    const p = troutPath.getPointAt(Math.min(1, ue));
+    const p = troutPath.getPointAt(Math.max(0, Math.min(1, ue)));   // floored: see travelU
     troutState._prev.copy(troutFish.position);
     troutFish.position.copy(p);
     const v = new THREE.Vector3().subVectors(p, troutState._prev);
@@ -7555,7 +7658,7 @@ function animateSeal(t) {
   }
 
   // Traveling: arriving | up | down — gallumph along the path
-  const p = Math.min(1, (t - S.t0) / S.dur);
+  const p = travelU(t, S);
   const u = S.rev ? 1 - p : p;
   const pt = S.path.getPointAt(u);
   // Gallumph — the whole body bounds; head-over-heels energy without the mess
@@ -7788,7 +7891,7 @@ function animateY2k(t) {
 
   // move
   if (S.t0 < 0) S.t0 = t;
-  const p = Math.min(1, (t - S.t0) / S.dur);
+  const p = travelU(t, S);
   const e = p < 0.1 ? p / 0.1 * p : p;   // soft start
   const pt = new THREE.Vector3().lerpVectors(S.from, S.to, p);
   pt.y = getVisitorHeight(pt.x, pt.z) + 0.02;   // walkable height — floors count
@@ -8126,7 +8229,7 @@ function animateOtter(t) {
   let travelling = false;
 
   if (S.mode === 'entering') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const z = KELP_Z + 14 - u * 14;
     const x = KELP_X + 3 - u * 3;
     target = new THREE.Vector3(x, otterWaterY(x, z), z);
@@ -8788,7 +8891,7 @@ function animateDiddy(t) {
   diddyKong.userData.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * 4.2 + i * Math.PI) * 0.45; });
 
   if (S.mode === 'move') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const e = u * u * (3 - 2 * u);
     const prev = diddyKong.position.clone();
     const p = S.path ? S.path.getPointAt(Math.min(1, e)) : S.from.clone().lerp(S.to, e);
@@ -9017,31 +9120,131 @@ function isDocent() {
   const id = feedIdentity();
   return !!(id && id.avatar === 'ted' && id.pass);
 }
-function openDocentConsole() {
+// ============================================================
+// THE DOCENT'S CONSOLE — compose, rehearse, and only then say it
+//
+// Until 2026-08-09 this box had one button, and pressing it broadcast.
+// There was no way to hear a talk before everyone else heard it, and no
+// way to fix a comma without reaching every visitor again. The console now
+// holds a DRAFT (this device, localStorage, never the feed) and a
+// REHEARSAL (the whole walk — gathering, camera, Ted on his hind legs —
+// playing locally with nothing posted). Publishing is unchanged and still
+// append-only: statements are added, never edited.
+// ============================================================
+const DRAFT_KEY = 'dg_address_draft';
+// null = a new talk. An entry = the talk this composition revises.
+let dcRevising = null;
+
+function closeDocentConsole() {
+  const el = document.getElementById('docent-panel');
+  if (el) el.classList.remove('open');
+}
+
+// The cue rail. Each button drops a mark at the cursor; the marks are the
+// camera's score and never reach Ted's mouth (see parseAddress).
+const ADDRESS_CUE_BUTTONS = [
+  ['house', 'the gathering'], ['ted', 'himself'], ['library', 'the library'],
+  ['exedra', 'the exedra'], ['mountain', 'the mountain'], ['galleria', 'the galleria'],
+  ['pool', 'the pool'], ['beach', 'the beach'],
+];
+function renderCueRail() {
+  const rail = document.getElementById('dc-cues');
+  if (!rail) return;
+  rail.innerHTML = '<span class="dc-cue-label">turn the camera</span>';
+  ADDRESS_CUE_BUTTONS.forEach(function (c) {
+    const b = document.createElement('button');
+    b.className = 'ui-btn';
+    b.textContent = c[1];
+    b.title = 'insert [[' + c[0] + ']] — the camera turns here, at this word';
+    b.onclick = function () { insertCue(c[0]); };
+    rail.appendChild(b);
+  });
+}
+function insertCue(key) {
+  const box = document.getElementById('dc-text');
+  if (!box) return;
+  const mark = '[[' + key + ']] ';
+  const a = box.selectionStart == null ? box.value.length : box.selectionStart;
+  const b = box.selectionEnd == null ? a : box.selectionEnd;
+  box.value = box.value.slice(0, a) + mark + box.value.slice(b);
+  box.selectionStart = box.selectionEnd = a + mark.length;
+  box.focus();
+}
+
+function openDocentConsole(reviseId) {
   if (!isDocent()) return;
   const el = document.getElementById('docent-panel');
   if (!el) return;
-  const a = newestAddress();
-  document.getElementById('dc-text').value = a ? a.text : '';
+  const series = talkSeries();
+  dcRevising = reviseId
+    ? ((series.find(function (s) { return s.entry.id === reviseId; }) || {}).entry || null)
+    : null;
+
+  const box = document.getElementById('dc-text');
   const note = document.getElementById('dc-note');
-  if (note) note.textContent = a
-    ? 'replacing the address every visitor hears. they will hear the new one, even if they have been before.'
-    : 'the villa has no introduction yet. this will be the first thing anyone hears.';
+  const target = document.getElementById('dc-target');
+  let draft = '';
+  try { draft = localStorage.getItem(DRAFT_KEY) || ''; } catch (e) {}
+
+  if (dcRevising) {
+    box.value = dcRevising.text;
+    if (target) target.textContent = 'revising ' + (series[0] && series[0].entry.id === dcRevising.id
+      ? 'the introduction' : '“' + talkTitle(dcRevising) + '”') +
+      ' — the talk keeps its place in the series, and the version you replace stays in the feed and in git';
+    if (note) note.textContent = 'a revision is posted, not overwritten. Nobody who already heard this talk is stopped at the door for the new version.';
+  } else {
+    box.value = draft;
+    if (target) target.textContent = draft
+      ? 'a kept draft, from this device. nothing has been said yet'
+      : (series.length ? 'a new talk — it joins the series after ' + series.length + (series.length === 1 ? ' other' : ' others')
+                       : 'the villa has no introduction yet. this will be the first thing anyone hears');
+    if (note) note.textContent = series.length
+      ? 'this posts a NEW talk. to fix an existing one, open it from Compass → Talks and press ✎.'
+      : 'the first talk the villa gives becomes its introduction, and it is the only one that will ever stop a visitor at the door.';
+  }
+  renderCueRail();
   el.classList.add('open');
 }
+
+function saveDraft() {
+  const box = document.getElementById('dc-text');
+  const note = document.getElementById('dc-note');
+  try { localStorage.setItem(DRAFT_KEY, box.value || ''); } catch (e) {}
+  if (note) note.textContent = 'kept on this device. the villa has not heard a word of it.';
+}
+
+// The answer to "the only way to see how it plays is to publish it."
+function rehearseDraft() {
+  const box = document.getElementById('dc-text');
+  const text = (box.value || '').trim();
+  const note = document.getElementById('dc-note');
+  if (!text) { if (note) note.textContent = 'there is nothing to rehearse'; return; }
+  try { localStorage.setItem(DRAFT_KEY, box.value || ''); } catch (e) {}
+  closeDocentConsole();
+  toggleNavMenu();
+  // A rehearsal has no id, so nothing can be marked heard by it.
+  openThreshold({ id: null, text: text, t: new Date().toISOString(), kind: 'address' },
+                { rehearsal: true });
+}
+
 function postAddress() {
   const box = document.getElementById('dc-text');
   const note = document.getElementById('dc-note');
   const text = (box.value || '').trim();
   if (!text) { if (note) note.textContent = 'an address with nothing in it is not an address'; return; }
   if (note) note.textContent = 'the villa is listening…';
-  postStatement(text, null, null, 'address')
-    .then(function () {
-      document.getElementById('docent-panel').classList.remove('open');
-      // Hearing your own new address immediately is the point — it is how you
-      // know what a visitor will get, and the only way to judge the pacing.
-      try { localStorage.removeItem(HEARD_KEY); } catch (e) {}
-      considerThreshold();
+  postStatement(text, null, dcRevising ? dcRevising.id : null, 'address')
+    .then(function (j) {
+      closeDocentConsole();
+      try { localStorage.removeItem(DRAFT_KEY); } catch (e) {}
+      dcRevising = null;
+      // Hearing your own talk immediately is the point — it is how you know
+      // what a visitor will get, and the only way to judge the pacing. It is
+      // also now the ONLY replay a post causes: the old code cleared the
+      // heard-marker for the whole villa, so a typo fix stopped everyone at
+      // the door. A new talk announces itself; it does not gate.
+      const fresh = (j && j.entry) ? sanitizeFeedEntry(j.entry) : null;
+      if (fresh) openThreshold(fresh, {});
     })
     .catch(function (err) { if (note) note.textContent = err.message; });
 }
@@ -9054,9 +9257,13 @@ function postAddress() {
 // place you are already wandering.
 //
 // Three things this must not become:
-//   1. A toll. It is remembered PER ADDRESS, not per visitor — so it plays
-//      once, but rewriting it reaches everyone again, including people who
-//      have already been. The introduction is allowed to change its mind.
+//   1. A toll. 2026-08-09: this is the rule the SERIES had to answer for.
+//      One address could re-play for everyone whenever it changed and stay
+//      a door. Twelve talks cannot: the door would be crossed twelve times.
+//      So the introduction — the first talk the villa ever gave, tracked by
+//      the root of its revision chain, not by its timestamp — is the only
+//      thing that ever gates, and only for someone who has heard no version
+//      of it. Every later talk waits in the banner instead.
 //   2. A wall. If there is no address, or the feed never loads, or speech
 //      synthesis is missing, the threshold does not exist and the villa opens
 //      exactly as before. It can only ever ADD a pause, never withhold entry.
@@ -9065,72 +9272,664 @@ function postAddress() {
 // ============================================================
 const threshold = { showing: false, entry: null };
 
-const HEARD_KEY = 'dg_heard_address';
-function alreadyHeard(id) {
-  try { return localStorage.getItem(HEARD_KEY) === id; } catch (e) { return false; }
-}
+const HEARD_KEY = 'dg_heard_address';       // the old single-address marker
+const HEARD_TALKS_KEY = 'dg_heard_talks';   // the series' set
+const heardTalks = (function () {
+  let s = new Set();
+  try { s = new Set(JSON.parse(localStorage.getItem(HEARD_TALKS_KEY) || '[]')); } catch (e) {}
+  // Migration, and it matters: without it every device that has already sat
+  // through the introduction would be stopped at the door by it once more on
+  // the day this shipped.
+  try { const old = localStorage.getItem(HEARD_KEY); if (old) s.add(old); } catch (e) {}
+  return s;
+})();
+// Also un-referenced now — talkHeardAnyVersion asks the better question,
+// because a talk's identity is its chain and not any single posting of it.
+function alreadyHeard(id) { return heardTalks.has(id); }
 function markHeard(id) {
+  if (!id || heardTalks.has(id)) return;
+  heardTalks.add(id);
+  try { localStorage.setItem(HEARD_TALKS_KEY, JSON.stringify(Array.from(heardTalks))); } catch (e) {}
   try { localStorage.setItem(HEARD_KEY, id); } catch (e) {}
 }
 
+// ============================================================
+// THE SERIES (2026-08-09) — every address the villa has kept
+//
+// The storage half has existed since 08-03: every address is a feed entry
+// with kind 'address', and none has ever been deleted. What did not exist
+// was a way to READ them — newestAddress() sorted by time and returned
+// exactly one, so every earlier talk was stored and unreachable. This is
+// the same shape as the ledger: the feed stamped `place` on every statement
+// for weeks before anything read the stamps.
+//
+// A REVISION is an address whose replyTo names another address. The revised
+// one drops out of the series and the new one takes its place — AND ITS
+// POSITION, which is the whole point: a talk's place in the series is the
+// timestamp of the ROOT of its chain, so correcting the introduction leaves
+// it the introduction instead of shuffling it to the end as the newest
+// thing said.
+//
+// This generalises the supersede rule written for Trout's stele, which was
+// ruled a one-off with "do not schematise it". It is deliberately opt-in —
+// nothing revises unless the docent presses ✎ — and it is confined to
+// kind 'address', which is the docent's own register. Sailor's call to
+// keep or cut. The original survives in the feed and in git either way.
+// ============================================================
+function talkSeries() {
+  const all = (feedState.entries || []).filter(function (e) { return e && e.kind === 'address' && e.id; });
+  const byId = {};
+  all.forEach(function (e) { byId[e.id] = e; });
+  const superseded = new Set();
+  all.forEach(function (e) { if (e.replyTo && byId[e.replyTo]) superseded.add(e.replyTo); });
+  const out = [];
+  all.forEach(function (e) {
+    if (superseded.has(e.id)) return;
+    const chain = [e.id];
+    let r = e, guard = 0;
+    while (r.replyTo && byId[r.replyTo] && guard++ < 24) { r = byId[r.replyTo]; chain.push(r.id); }
+    out.push({ entry: e, root: r.id, first: r.t, chain: chain });
+  });
+  out.sort(function (a, b) { return a.first < b.first ? -1 : (a.first > b.first ? 1 : 0); });
+  return out;   // oldest root first — the introduction leads
+}
+// Kept for the callers that only ever wanted "the latest thing said".
+// NO LONGER CALLED by anything as of 2026-08-09 — the console composes a new
+// talk on a blank page and the threshold asks talkSeries() for the
+// introduction. Left standing rather than removed: it is the honest answer to
+// a question the villa will ask again, and nothing here is deleted, only
+// un-referenced (git log -S finds any of it in one command).
 function newestAddress() {
-  const a = (feedState.entries || []).filter(e => e && e.kind === 'address');
-  if (!a.length) return null;
-  return a.slice().sort((x, y) => (x.t < y.t ? 1 : -1))[0];
+  const s = talkSeries();
+  if (!s.length) return null;
+  return s.slice().sort(function (a, b) { return a.entry.t < b.entry.t ? 1 : -1; })[0].entry;
+}
+function talkHeardAnyVersion(item) {
+  return item.chain.some(function (id) { return heardTalks.has(id); });
+}
+function talkTitle(entry) {
+  const plain = addressPlainText(entry && entry.text).replace(/\s+/g, ' ').trim();
+  if (!plain) return 'an empty talk';
+  const first = (plain.split(/(?<=[.!?…])\s/)[0] || plain).trim();
+  return first.length > 54 ? first.slice(0, 52).replace(/[\s,;:]+$/, '') + '…' : first;
+}
+function talkWhen(entry) {
+  try {
+    return new Date(entry.t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } catch (e) { return ''; }
+}
+
+function compassRenderTalks() {
+  const w = document.getElementById('cmp-talks');
+  if (!w) return;
+  w.innerHTML = '';
+  const back = document.createElement('button');
+  back.className = 'ui-btn cmp-back';
+  back.textContent = '◂ compass';
+  back.onclick = function () { compassShow('root'); };
+  w.appendChild(back);
+
+  const series = talkSeries();
+  if (!series.length) {
+    const n = document.createElement('div');
+    n.className = 'cmp-note';
+    n.textContent = 'the villa has not spoken yet';
+    w.appendChild(n);
+    return;
+  }
+  series.forEach(function (item, i) {
+    const row = document.createElement('div');
+    row.className = 'cmp-talk';
+    if (isDocent()) {
+      const ed = document.createElement('button');
+      ed.className = 'ui-btn cmp-edit';
+      ed.textContent = '✎';
+      ed.title = 'revise this talk — it keeps its place in the series';
+      ed.onclick = function () { toggleNavMenu(); openDocentConsole(item.entry.id); };
+      row.appendChild(ed);
+    }
+    const b = document.createElement('button');
+    b.className = 'ui-btn cmp-row';
+    const marks = [];
+    if (i === 0) marks.push('the introduction');
+    marks.push(talkWhen(item.entry));
+    if (item.chain.length > 1) marks.push('revised');
+    if (!talkHeardAnyVersion(item)) marks.push('unheard');
+    b.innerHTML = compassIconHTML('talk-' + i, i === 0 ? '🏛' : '🗣') + ' ' +
+      talkTitle(item.entry).replace(/[<>&]/g, '') +
+      '<span class="cmp-sub">' + marks.join(' · ') + '</span>';
+    b.onclick = function () { toggleNavMenu(); openThreshold(item.entry, { rewatch: true }); };
+    row.appendChild(b);
+    w.appendChild(row);
+  });
+}
+
+// ============================================================
+// THE ANNOUNCEMENT BANNER — the not-a-toll half of the series
+// ============================================================
+const announceState = { entry: null };
+function announceShow(entry, why) {
+  if (!entry || announceState.entry === entry) return;
+  if (threshold.showing) return;
+  announceState.entry = entry;
+  const el = document.getElementById('announce');
+  const t = document.getElementById('an-text');
+  if (t) t.textContent = why || ('Ted has something to say — “' + talkTitle(entry) + '”');
+  if (el) el.classList.add('open');
+}
+function announceHide() {
+  const el = document.getElementById('announce');
+  if (el) el.classList.remove('open');
+  announceState.entry = null;
+}
+function announceOpen() {
+  const e = announceState.entry;
+  announceHide();
+  if (e) openThreshold(e, { rewatch: true });
+}
+function announceDismiss() {
+  if (announceState.entry) markHeard(announceState.entry.id);
+  announceHide();
+}
+
+// ============================================================
+// THE CAMERA'S SCORE — cues written into the speech
+//
+// [[library]] where Ted turns to the library. The mark is stripped before
+// he speaks it and fires as he begins the sentence that follows.
+//
+// Checked at both sanitizer boundaries BEFORE building, which is the
+// STELE_FACE_SPLIT lesson: safeStr strips only control characters, the
+// Worker's str() leaves brackets alone, and neither collapses square
+// brackets or spaces. So a cue crosses the gate untouched — no new field,
+// no Worker change, NO DEPLOY. (Newlines are the thing that dies at both
+// boundaries; a cue must never contain one, and it cannot.)
+// ============================================================
+const ADDRESS_CUE_RE = /\[\[\s*([a-z0-9_-]{1,20})\s*\]\]/gi;
+
+function addressPlainText(text) {
+  return String(text || '').replace(ADDRESS_CUE_RE, '').replace(/[ \t]{2,}/g, ' ');
+}
+
+// One segment per sentence; a cue rides on the segment it precedes.
+function parseAddress(text) {
+  const src = String(text || '');
+  const out = [];
+  const push = function (chunk, cue) {
+    const sentences = chunk.split(/(?<=[.!?…])\s+/)
+      .map(function (x) { return x.trim(); })
+      .filter(function (x) { return x.length; });
+    if (!sentences.length) { if (cue) out.push({ text: '', cue: cue }); return; }
+    sentences.forEach(function (x, i) { out.push({ text: x, cue: i === 0 ? cue : null }); });
+  };
+  let last = 0, pending = null, m;
+  ADDRESS_CUE_RE.lastIndex = 0;
+  while ((m = ADDRESS_CUE_RE.exec(src))) {
+    push(src.slice(last, m.index), pending);
+    pending = m[1].toLowerCase();
+    last = ADDRESS_CUE_RE.lastIndex;
+  }
+  push(src.slice(last), pending);
+  return out;
+}
+
+function cameraGlide(look, off, dur) {
+  try { if (typeof activeFocus !== 'undefined' && activeFocus) releaseFocus(); } catch (e) {}
+  try { if (typeof stopFollow === 'function') stopFollow(); } catch (e) {}
+  approach.active = true;
+  approach.progress = 0;
+  approach.startTime = -1;
+  approach.released = false;
+  approach.duration = dur || 3;
+  approach.startPos.copy(camera.position);
+  approach.startLook.copy(camTarget);
+  approach.endLook.set(look[0], look[1], look[2]);
+  approach.endPos.set(look[0] + off[0], look[1] + off[1], look[2] + off[2]);
+  autoOrbit = false;
+}
+
+function addressApplyCue(name) {
+  const k = String(name || '').toLowerCase();
+  const origin = (typeof placePoint === 'function' && placePoint('galleria')) || new THREE.Vector3(0, 0, 0);
+  if (k === 'ted' || k === 'me' || k === 'i' || k === 'himself') {
+    const p = tedTurner.position;
+    cameraGlide([p.x, p.y + 1.35, p.z], [2.4, 0.9, 4.0], 2.6);
+    return true;
+  }
+  if (k === 'house' || k === 'everyone' || k === 'gathering' || k === 'company' || k === 'them') {
+    // Across the arc of them, over Ted's shoulder.
+    cameraGlide([origin.x, 1.5, origin.z + 3.6], [-8.5, 5.0, -9.5], 4.2);
+    return true;
+  }
+  const pl = PLACE_REGISTRY.find(function (p) {
+    const lab = p.label.toLowerCase();
+    return p.key === k || lab === k || lab === 'the ' + k;
+  });
+  if (!pl) return false;
+  cameraGlide(pl.look, pl.off, 3.4);
+  // Deliberately NOT compassMarkVisited: being SHOWN a place is not standing
+  // in it. Discovery is taught by arrival (hidden-until-visited, 08-07) and
+  // a camera move must never hand it out — otherwise the introduction would
+  // reveal Our Lady of California to someone who has never left the gallery.
+  return true;
+}
+
+// ============================================================
+// TED ON HIS HIND LEGS (2026-08-09, Sailor)
+//
+// The pivot is READ OFF buildCoyote, not guessed: the hind leg groups sit
+// at z −0.30 with their origin AT THE PAW (y 0). Pitching the body about
+// the x-axis through that line leaves the hind paws exactly where they
+// stand, so the compensation is arithmetic and there is no measured sink
+// to tune — the pivot IS the contact point. Houston's lesson one joint
+// further up: an animal's rear axis is not its centre and not its feet as
+// a whole, it is its hind feet.
+//
+// AND THE LATENT BUG IT SURFACED: tedTurner used the default 'XYZ' euler
+// order, which composes as Rx·Ry — so rotation.x pitches about the WORLD
+// x-axis, not his own. At yaw 0 that is indistinguishable from a pitch,
+// which is why the sit pose has looked right for a fortnight: photo mode
+// mostly frames him head-on. At yaw ±90° the same line ROLLS HIM ONTO HIS
+// SIDE. 'YXZ' composes as Ry·Rx and pitches about his own spine. Identical
+// output whenever x and z are 0, so nothing that only sets yaw can notice.
+// ============================================================
+const TED_REAR = {
+  active: false, releasing: false, arrived: false,
+  want: 0, now: 0,
+  PIVOT_Z: -0.30,        // the hind-leg attach line, from buildCoyote
+  MAX: 1.12,             // 64° — a coyote up on his hind legs, not a circus bear
+  // The one number here that is MEASURED rather than derived, and it is
+  // measured for the same reason HOUSTON_FLOP_SINK is: the arithmetic puts
+  // the hind paws exactly on the stone, and then the hind legs counter-
+  // rotate to stay under him, which tips each paw's ellipsoid and dips its
+  // lowest vertex 26mm below the floor. Not visible; measured. Scaled by
+  // the pitch so it is zero while he is still on four legs.
+  SINK: 0.026,
+  base: new THREE.Vector3(),
+  mark: new THREE.Vector3(),
+  faceYaw: 0,
+};
+
+function tedTailMeshes() {
+  // Same collection the sit pose uses. The head parts (y > 1.05) were moved
+  // into tedHeadGroup at build; the tail stayed on the group, so this still
+  // finds it.
+  if (!tedTurner.userData.tailMeshes) {
+    tedTurner.userData.tailMeshes = tedTurner.children.filter(function (c) {
+      return c.isMesh && ((c.geometry && c.geometry.type === 'TubeGeometry') ||
+        (Math.abs(c.position.z + 0.92) < 0.05 && Math.abs(c.position.y - 0.50) < 0.05));
+    });
+  }
+  return tedTurner.userData.tailMeshes;
+}
+
+// THE TAIL IS TWO KINDS OF THING, AND ONLY ONE OF THEM ROTATES.
+// The two tubes carry their vertices in GROUP coordinates with the mesh
+// sitting at the origin, so `rotation.x` swings them about the same point
+// the body pitches about — which is why the sit pose could rotate "the
+// tail" with one line and be right. The black TIP is an ordinary sphere
+// PARKED at (0.02, 0.50, −0.92): rotating it spins a ball in place and
+// moves it nowhere. Reared 64° it therefore stayed behind and below him
+// and drove 0.33 THROUGH THE FLOOR — the deepest thing on the whole
+// animal, and invisible to every assertion in the suite until the lowest
+// vertex was measured per-mesh. Photograph the model. Then measure it.
+// The tip has to be MOVED along the same arc the tubes swing through.
+function tedTailParts() {
+  if (!tedTurner.userData.tailParts) {
+    const all = tedTailMeshes();
+    const tubes = all.filter(function (m) { return m.geometry && m.geometry.type === 'TubeGeometry'; });
+    const tip = all.find(function (m) { return !tubes.includes(m); }) || null;
+    tedTurner.userData.tailParts = {
+      tubes: tubes, tip: tip,
+      tipRest: tip ? tip.position.clone() : null,
+    };
+  }
+  return tedTurner.userData.tailParts;
+}
+function tedTailSwing(phi) {
+  const T = tedTailParts();
+  T.tubes.forEach(function (m) { m.rotation.x = phi; });
+  if (T.tip && T.tipRest) {
+    T.tip.position.copy(T.tipRest).applyAxisAngle(_TED_X, phi);
+    T.tip.rotation.x = phi;
+  }
+}
+
+const _TED_X = new THREE.Vector3(1, 0, 0);
+const _TED_Y = new THREE.Vector3(0, 1, 0);
+function tedRearApply(theta) {
+  const legs = tedTurner.userData.legs || [];
+  tedTurner.rotation.x = -theta;
+  // Hind pair leans back under the load; front pair hangs, tucked, the way
+  // a dog's forepaws hang when it stands up — not held out like a beggar.
+  legs.forEach(function (leg, i) {
+    leg.group.rotation.x = i < 2 ? (theta - 0.62) : (theta * 0.30);
+  });
+  tedTailSwing(theta * 0.82);
+  if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) {
+    tedHeadGroup.rotation.x = theta * 0.74 - 0.08;   // he ends up looking out, not up
+  }
+  // Keep the hind paws planted: shift by (I − Rx)·pivot, carried through his
+  // yaw so this is correct at any facing.
+  const s = tedTurner.scale.y || 1;
+  const piv = new THREE.Vector3(0, 0, TED_REAR.PIVOT_Z * s);
+  const d = piv.clone().sub(piv.clone().applyAxisAngle(_TED_X, -theta)).applyAxisAngle(_TED_Y, tedTurner.rotation.y);
+  const p = tedTurner.position;
+  p.x = TED_REAR.base.x + d.x;
+  p.z = TED_REAR.base.z + d.z;
+  p.y = getTedHeight(p.x, p.z) + d.y +
+        (TED_REAR.MAX ? TED_REAR.SINK * (theta / TED_REAR.MAX) : 0);
+}
+
+function tedRearRelease() {
+  TED_REAR.want = 0;
+  TED_REAR.releasing = true;
+}
+
+function updateTedAddress(t) {
+  if (!TED_REAR.active) return;
+
+  // He WALKS to the mark. Placing him there would be a teleport, and the
+  // villa's own precedent is that a body arrives — "you wake up wherever
+  // your body is; inhabiting is not teleporting."
+  if (!TED_REAR.arrived) {
+    const p = tedTurner.position;
+    const dx = TED_REAR.mark.x - p.x, dz = TED_REAR.mark.z - p.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > 0.28) {
+      p.x += dx * 0.045; p.z += dz * 0.045;
+      p.y = getTedHeight(p.x, p.z) + Math.abs(Math.sin(t * 4)) * 0.02;
+      tedTurner.rotation.y = Math.atan2(dx, dz);
+      (tedTurner.userData.legs || []).forEach(function (leg, i) {
+        leg.group.rotation.x = Math.sin(t * 4 + (i < 2 ? 0 : Math.PI) + (i % 2 ? Math.PI : 0)) * 0.2;
+      });
+      return;
+    }
+    TED_REAR.arrived = true;
+    TED_REAR.base.copy(p);
+    TED_REAR.base.y = getTedHeight(p.x, p.z);
+    TED_REAR.want = TED_REAR.MAX;
+  }
+
+  // Turn to face the house, then hold that facing — the photo-mode rule:
+  // a locked gaze, not a head that tracks the camera around the villa.
+  let dy = TED_REAR.faceYaw - tedTurner.rotation.y;
+  while (dy > Math.PI) dy -= Math.PI * 2;
+  while (dy < -Math.PI) dy += Math.PI * 2;
+  tedTurner.rotation.y += dy * 0.06;
+
+  TED_REAR.now += (TED_REAR.want - TED_REAR.now) * 0.055;
+
+  if (TED_REAR.releasing && TED_REAR.now < 0.02) {
+    TED_REAR.now = 0;
+    tedRearApply(0);
+    tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
+    (tedTurner.userData.legs || []).forEach(function (l) { l.group.rotation.x = 0; });
+    tedTailSwing(0);
+    if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) tedHeadGroup.rotation.set(-0.05, 0, 0);
+    TED_REAR.active = false; TED_REAR.releasing = false; TED_REAR.arrived = false;
+    // Back into the loop at the nearest waypoint — the photo-exit rule.
+    let ni = 0, nd = Infinity;
+    tedPatrol.waypoints.forEach(function (w, i) {
+      const d = (w.x - tedTurner.position.x) * (w.x - tedTurner.position.x) +
+                (w.z - tedTurner.position.z) * (w.z - tedTurner.position.z);
+      if (d < nd) { nd = d; ni = i; }
+    });
+    tedPatrol.currentWP = ni; tedPatrol.nextWP = (ni + 1) % tedPatrol.waypoints.length;
+    tedPatrol.progress = 0; tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5;
+    return;
+  }
+
+  tedRearApply(TED_REAR.now);
+  // A reared animal is not a statue, and the sway is what sells the weight.
+  const amt = TED_REAR.MAX ? TED_REAR.now / TED_REAR.MAX : 0;
+  tedTurner.rotation.z = Math.sin(t * 0.85) * 0.035 * amt;
+  if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) {
+    tedHeadGroup.rotation.y = Math.sin(t * 0.4) * 0.18 * amt;   // working the room
+  }
+  if (tedNarration.speaking && tedTurner.userData.jaw) {
+    const jawOpen = Math.abs(Math.sin(t * 14)) * 0.025 + Math.abs(Math.sin(t * 7.3)) * 0.012;
+    tedTurner.userData.jaw.position.y = tedTurner.userData.jawRestY - jawOpen;
+  } else if (tedTurner.userData.jaw) {
+    tedTurner.userData.jaw.position.y += (tedTurner.userData.jawRestY - tedTurner.userData.jaw.position.y) * 0.15;
+  }
+}
+
+// AN AUDIENCE LOOKS AT THE SPEAKER, and it took a photograph to notice that
+// sixteen residents standing in a half-circle facing sixteen different
+// directions is a queue, not a gathering.
+//
+// Deliberately gentle, and deliberately LAST in the frame — after every
+// mover has had its own say about where it is pointing, which is the only
+// place this can go without editing sixteen animators. A resident actively
+// turning still wins the argument; only one that has settled drifts round.
+// It applies solely while a talk is being GIVEN: a resident's facing is its
+// own the rest of the time.
+function addressFaceTheHouse() {
+  if (!TED_REAR.active || typeof gatherState === 'undefined' || !gatherState.held) return;
+  const to = tedTurner.position;
+  for (const key in gatherState.members) {
+    const m = gatherState.members[key];
+    const av = AVATARS[key] && AVATARS[key]();
+    if (!av || !av.visible) continue;
+    if (av.position.distanceTo(m.at) > 3) continue;      // still travelling: leave them alone
+    if (typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subjectKey === key) continue;
+    const want = Math.atan2(to.x - av.position.x, to.z - av.position.z);
+    let d = want - av.rotation.y;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    av.rotation.y += d * 0.045;
+  }
+}
+
+// ============================================================
+// THE INTRO IS A GATHERING (Native Spaces §0, ruling 5)
+//
+// "The introduction is this same system at full scale — every animal called
+// out of its native space, converging on one place, to hear Ted's address."
+// The gathering was built on 08-05 and `gather()` has carried the comment
+// "the intro rehearsal (ruling 5)" ever since, wired to nothing. This is
+// that call. No mover was edited to make it: the gathering is a
+// lease-renewer, and the audience arc is just a set of destinations handed
+// to gatherAdd, which already takes one.
+// ============================================================
+function addressAudienceSpots(keys, origin) {
+  const n = keys.length;
+  const per = Math.max(1, Math.ceil(n / 2));
+  return keys.map(function (k, i) {
+    const rank = i % 2;                       // two ranks, so sixteen bodies read as a crowd
+    const idx = Math.floor(i / 2);
+    const spread = 1.95;                      // ~112° of arc in front of the speaker
+    const a = per > 1 ? (-spread / 2 + spread * idx / (per - 1)) : 0;
+    const r = 3.7 + rank * 2.2;
+    const x = origin.x + Math.sin(a) * r;
+    const z = origin.z + Math.cos(a) * r;
+    return new THREE.Vector3(x, getVisitorHeight(x, z), z);
+  });
+}
+
+function addressGather(origin, focus) {
+  if (typeof gatherBegin !== 'function') return 0;
+  gatherBegin('The Galleria', origin);
+  // The arc is struck around the SPEAKER, not around the middle of the room.
+  // Centred on the room, the first photograph had Ted at one end of a wide
+  // scatter with half the cast out past the colonnade; centred on him it
+  // reads as a half-circle of animals looking up at somebody.
+  const centre = focus || origin;
+  const keys = (typeof ASSIGNABLE !== 'undefined' ? ASSIGNABLE : [])
+    .filter(function (k) { return typeof RESIDENTS !== 'undefined' && RESIDENTS[k]; });
+  const spots = addressAudienceSpots(keys, centre);
+  let n = 0;
+  keys.forEach(function (k, i) {
+    gatherAdd(k, spots[i]);                    // raven excuses himself in here, as ruled
+    const m = gatherState.members[k];
+    if (!m) return;
+    n++;
+    try { summonResident(k, true, m.at); } catch (e) {}   // silent: the camera is the address's
+  });
+  gatherState.held = true;
+  return n;
+}
+
+// ============================================================
+// PLAYING A TALK
+// ============================================================
+const addressPlay = { segs: [], i: -1, timer: null, ended: true, gathered: false };
+
+function addressStop() {
+  const A = addressPlay;
+  A.ended = true;
+  if (A.timer) { clearTimeout(A.timer); A.timer = null; }
+  try { if (typeof tedStopSpeaking === 'function') tedStopSpeaking(); } catch (e) {}
+  if (TED_REAR.active) tedRearRelease();
+  // The gathering is NOT dispersed: it keeps its own patience from here and
+  // everyone drifts home on their own clock, which is ruling 3 working as
+  // designed rather than a curtain dropping on the cast.
+  if (typeof gatherState !== 'undefined') gatherState.held = false;
+  if (typeof tedPatrol !== 'undefined' && tedPatrol.state === 'address') {
+    // updateTedAddress restores the patrol as the rear eases out; if he never
+    // got up (a talk skipped in its first second) release it here instead.
+    if (!TED_REAR.active) { tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5; }
+  }
+}
+
+function addressNext() {
+  const A = addressPlay;
+  if (A.ended) return;
+  A.i++;
+  if (A.i >= A.segs.length) { endThreshold(); return; }
+  const seg = A.segs[A.i];
+  const step = A.i;
+
+  if (seg.cue) addressApplyCue(seg.cue);
+
+  const prev = document.getElementById('th-prev');
+  const cur = document.getElementById('th-text');
+  if (prev && cur) prev.textContent = cur.textContent || '';
+  if (cur) {
+    cur.classList.remove('in');
+    cur.textContent = seg.text;
+    requestAnimationFrame(function () { if (!A.ended && A.i === step) cur.classList.add('in'); });
+  }
+
+  const advance = function () {
+    if (A.ended || A.i !== step) return;       // one advance per segment, whichever fires first
+    if (A.timer) { clearTimeout(A.timer); A.timer = null; }
+    addressNext();
+  };
+
+  if (!seg.text) { A.timer = setTimeout(advance, 1100); return; }   // a cue on its own line
+
+  // Ask whether the browser can ACTUALLY speak, not merely whether tedSpeak
+  // exists. With no synthesiser tedSpeak invokes its callback immediately and
+  // politely — which, used naively, made the address flash for a single frame
+  // and vanish on any browser without a voice.
+  const canSpeak = typeof tedSpeak === 'function' &&
+                   typeof tedNarration !== 'undefined' && !!tedNarration.synth;
+  if (canSpeak) {
+    tedSpeak(seg.text, advance);
+    // Per segment, the failsafe the single-utterance threshold carried once:
+    // a muted tab or a browser that refuses to speak before a gesture must
+    // not strand the reader on line three.
+    A.timer = setTimeout(advance, 4000 + seg.text.length * 95);
+  } else {
+    // Roughly 200 words a minute, floored so a short line is not gone before
+    // it is seen and capped so nobody is held long by one sentence.
+    A.timer = setTimeout(advance, Math.max(2400, Math.min(15000, 1100 + seg.text.length * 58)));
+  }
 }
 
 function endThreshold() {
   if (!threshold.showing) return;
   threshold.showing = false;
-  if (typeof tedStopSpeaking === 'function') tedStopSpeaking();
+  addressStop();
   const el = document.getElementById('threshold');
   if (el) el.classList.remove('open');
-  if (threshold.entry) markHeard(threshold.entry.id);
+  if (threshold.entry && threshold.entry.id) markHeard(threshold.entry.id);
+  threshold.entry = null;
 }
 
-function openThreshold(entry) {
+function openThreshold(entry, opts) {
+  opts = opts || {};
   const el = document.getElementById('threshold');
   if (!el || !entry) return;
+  announceHide();
+  addressStop();
+
   threshold.showing = true;
   threshold.entry = entry;
-  document.getElementById('th-text').textContent = entry.text;
+  const A = addressPlay;
+  A.segs = parseAddress(entry.text);
+  A.i = -1;
+  A.ended = false;
+
+  const prev = document.getElementById('th-prev');
+  const cur = document.getElementById('th-text');
+  if (prev) prev.textContent = '';
+  if (cur) { cur.textContent = ''; cur.classList.remove('in'); }
+  const skip = document.getElementById('th-skip');
+  if (skip) skip.textContent = opts.rehearsal ? 'end the rehearsal →'
+    : (opts.rewatch ? 'back to the villa →' : 'enter the villa →');
+  const who = document.getElementById('th-who');
+  if (who) who.textContent = opts.rehearsal ? 'TED TURNER · rehearsal' : 'TED TURNER';
   el.classList.add('open');
 
-  // The villa keeps rendering behind the panel, with the camera on the speaker.
-  // Ted talking to an empty frame would be a loading screen with a voice.
-  if (typeof tapResident === 'function') { try { tapResident('ted'); } catch (e) {} }
+  // ── Ted takes the floor ──
+  const origin = (typeof placePoint === 'function' && placePoint('galleria')) || new THREE.Vector3(0, 0, 0);
+  try { if (typeof tedPhoto !== 'undefined' && tedPhoto.active) toggleTedPhoto(); } catch (e) {}
+  try { if (typeof tedDocent !== 'undefined' && tedDocent.active) deactivateTedDocent(); } catch (e) {}
+  try { if (typeof visitorNav !== 'undefined' && visitorNav.active) toggleVisitor(); } catch (e) {}
+  tedPatrol.state = 'address';
+  TED_REAR.active = true; TED_REAR.releasing = false; TED_REAR.arrived = false;
+  TED_REAR.want = 0; TED_REAR.now = 0;
+  TED_REAR.mark.set(origin.x, 0, origin.z - 1.6);
+  TED_REAR.mark.y = getTedHeight(TED_REAR.mark.x, TED_REAR.mark.z);
+  TED_REAR.base.copy(TED_REAR.mark);
+  TED_REAR.faceYaw = 0;                        // nose is +z; the arc stands in front of him
+  tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
 
-  const done = function () { endThreshold(); };
-  // Ask whether the browser can ACTUALLY speak, not merely whether tedSpeak
-  // exists. With no synthesiser tedSpeak invokes its callback immediately and
-  // politely — which, used naively here, made the address flash for a single
-  // frame and vanish on any browser without a voice. Found by the test, and
-  // the difference between a threshold and a glitch.
-  const canSpeak = typeof tedSpeak === 'function' &&
-                   typeof tedNarration !== 'undefined' && !!tedNarration.synth;
-  // A reading pace for the silent path — roughly 200 words a minute, floored so
-  // a one-line address is not gone before it is seen, capped so nobody is ever
-  // held for long.
-  const readingMs = Math.max(6000, Math.min(90000, 4000 + entry.text.length * 55));
-  if (canSpeak) {
-    tedSpeak(entry.text, done);
-    // A failsafe: if synthesis never fires onend — a muted tab, a browser that
-    // refuses to speak before a gesture — the threshold must still lift. It is
-    // better to open early than to trap someone at the door.
-    setTimeout(function () { if (threshold.showing) endThreshold(); },
-               Math.min(12 * 60 * 1000, 6000 + entry.text.length * 90));
-  } else {
-    setTimeout(done, readingMs);
+  // ── and the cast comes in from wherever it lives ──
+  A.gathered = false;
+  if (opts.gather !== false) {
+    try {
+      const n = addressGather(origin, TED_REAR.mark);
+      A.gathered = n > 0;
+    } catch (e) {}
   }
+
+  // The opening shot: over the audience, onto the speaker. The villa keeps
+  // rendering behind the caption the whole time — Ted talking to an empty
+  // frame would be a loading screen with a voice.
+  cameraGlide([origin.x, 1.9, origin.z + 0.6], [4.6, 2.7, 10.4], 4.4);
+
+  addressNext();
 }
+
+// Escape leaves a talk. The threshold shields the pointer, never the keys.
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && threshold.showing) { endThreshold(); }
+});
 
 // Called once the feed has loaded, which is also why the threshold cannot
 // block a cold start: no feed, no address, no pause.
 function considerThreshold() {
   if (threshold.showing) return;
-  const a = newestAddress();
-  if (!a || alreadyHeard(a.id)) return;
-  openThreshold(a);
+  const series = talkSeries();
+  if (!series.length) return;
+
+  const intro = series[0];
+  if (!talkHeardAnyVersion(intro)) { openThreshold(intro.entry); return; }
+
+  // Heard some version of the introduction, but not THIS one — Sailor has
+  // rewritten it. The 08-03 ruling that "the introduction is allowed to
+  // change its mind" and reach everyone again is honoured, but it reaches
+  // them here rather than at the door: a comma is not worth a second toll.
+  if (!heardTalks.has(intro.entry.id)) {
+    announceShow(intro.entry, 'the introduction has been rewritten');
+    return;
+  }
+  const unheard = series.slice(1).filter(function (s) { return !talkHeardAnyVersion(s); });
+  if (unheard.length) announceShow(unheard[unheard.length - 1].entry);
 }
 
 // ── Write: through the gate. No credential, no api.github.com. ──
@@ -10175,7 +10974,7 @@ function animateAlrik(t) {
   wizardAlrik.userData.hat.rotation.z = Math.sin(t * 0.4) * 0.03;
 
   if (S.mode === 'walk') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const e = u * u * (3 - 2 * u);
     const prev = wizardAlrik.position.clone();
     const p = S.path ? S.path.getPointAt(Math.min(1, e)) : S.from.clone().lerp(S.to, e);
@@ -10409,7 +11208,7 @@ function animateHeron(t) {
   if (S.t0 < 0) { S.t0 = t; S.nextAct = t + 14; }
 
   if (S.mode === 'fly') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const p = S.flyFrom.clone().lerp(S.flyTo, u);
     p.y = Math.max(S.flyFrom.y, S.flyTo.y) + Math.sin(u * Math.PI) * 5.2;
     heronJulia.position.copy(p);
@@ -10574,7 +11373,7 @@ function animateStoat(t) {
   if (S.t0 < 0) { S.t0 = t; S.until = t + 2; }
 
   if (S.mode === 'dart') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const p = S.from.clone().lerp(S.to, u);
     // Bounding — a stoat runs as a series of arcs, not a trot
     p.y = getVisitorHeight(p.x, p.z) + 0.02 + Math.abs(Math.sin(u * Math.PI * 7)) * 0.10;
@@ -10767,7 +11566,7 @@ function animateCat(t) {
 
   if (S.mode === 'walk' || S.mode === 'zoom') {
     const fast = S.mode === 'zoom';
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const e = fast ? u : u * u * (3 - 2 * u);
     const p = S.from.clone().lerp(S.to, e);
     const spot = ADLIB_SPOTS[S.spot] || { perch: 0, name: 'you' };   // summoned = no spot
@@ -10983,7 +11782,7 @@ function animateAustin(t) {
   const W = pelicanAustin.userData;
 
   if (S.mode === 'glide') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const p = S.from.clone().lerp(S.to, u);
     // Low over the swell, in ground effect — his height follows whatever is
     // beneath him rather than the higher of his two endpoints, so crossing
@@ -11248,7 +12047,7 @@ function animateHouston(t) {
   if (S.t0 < 0) { S.t0 = t; S.until = t + 6; }
 
   if (S.mode === 'sprint') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     // Fast out, fast in — a greyhound accelerates hard and does not coast
     const e = u < 0.15 ? (u / 0.15) * (u / 0.15) * 0.15 : u;
     const p = S.from.clone().lerp(S.to, e);
@@ -11285,7 +12084,7 @@ function animateHouston(t) {
   }
 
   if (S.mode === 'settle') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const p = S.from.clone().lerp(S.to, u * u * (3 - 2 * u));
     p.y = getVisitorHeight(p.x, p.z) + 0.02;
     greyhoundHouston.position.copy(p);
@@ -11548,7 +12347,7 @@ function animateTurtle(t) {
   }
 
   if (S.mode === 'entering' || S.mode === 'travel') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const e = u * u * (3 - 2 * u);
     const p = S.from.clone().lerp(S.to, e);
     p.y = turtleY(p.x, p.z);
@@ -11728,7 +12527,7 @@ function animateEdburg(t) {
 
   if (S.mode === 'walk' || S.mode === 'zoom') {
     const fast = S.mode === 'zoom';
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const e = fast ? u : u * u * (3 - 2 * u);
     const p = S.from.clone().lerp(S.to, e);
     p.y = getVisitorHeight(p.x, p.z) + 0.02 + (fast ? Math.abs(Math.sin(u * Math.PI * 9)) * 0.09 : 0);
@@ -11992,7 +12791,7 @@ function animateLuke(t) {
   const W = albatrossLuke.userData;
 
   if (S.mode === 'soar') {
-    const u = Math.min(1, (t - S.t0) / S.dur);
+    const u = travelU(t, S);
     const p = S.from.clone().lerp(S.to, u);
     // DYNAMIC SOARING, and it is one expression. `cycle` is the phase of the
     // sinusoid he flies; the SAME phase drives roll, height and heading
@@ -12282,8 +13081,16 @@ function gatherTick(t) {
   const g = gatherState;
   if (!g.active) return;
   // the host's presence is the lease
+  //
+  // …EXCEPT while a talk is being given. The address pans the camera to the
+  // library, the mountain and the exedra, and summonerPoint follows camTarget
+  // whenever you are not walking — so the choreography reads as the host
+  // walking out, and the gathering would break up at the exact moment Ted is
+  // describing the peak to it. Found by reading this rule against the new
+  // camera before running it, which is the only reason it was not a bug.
   const d = summonerPoint().distanceTo(g.point);
-  if (d > 24) { if (!g.hostAway) g.hostAway = t; } else g.hostAway = 0;
+  if (g.held) g.hostAway = 0;
+  else if (d > 24) { if (!g.hostAway) g.hostAway = t; } else g.hostAway = 0;
   if (g.hostAway && t - g.hostAway > 18) { gatherDisperse('the gathering breaks up'); return; }
   for (const key in g.members) {
     const m = g.members[key];
@@ -12764,11 +13571,12 @@ setInterval(function () {
 }, 5000);
 
 function compassShow(view) {
-  ['root', 'places', 'place', 'company'].forEach(function (v) {
+  ['root', 'places', 'place', 'company', 'talks'].forEach(function (v) {
     const el = document.getElementById('cmp-' + v);
     if (el) el.classList.toggle('open', v === view);
   });
   if (view === 'places') compassRenderPlaces();
+  if (view === 'talks') compassRenderTalks();
 }
 
 function compassRenderPlaces() {
@@ -17607,7 +18415,15 @@ const residentBudget = {
     let isNear = true;
     if (mesh) {
       const exempt = (typeof followAnimal !== 'undefined' && followAnimal.key === key) ||
-                     (typeof meetState !== 'undefined' && meetState.who === key);
+                     (typeof meetState !== 'undefined' && meetState.who === key) ||
+                     // The audience of a talk is never far-rated: the camera
+                     // is off at the mountain for a sentence at a time, and a
+                     // resident crossing the bay to be there should not
+                     // stutter through it because nobody is looking yet.
+                     // Bounded to a HELD gathering, so this is the address
+                     // and nothing else.
+                     (typeof gatherState !== 'undefined' && gatherState.held &&
+                      gatherState.members && gatherState.members[key]);
       if (!exempt) {
         const r = QUALITY.nearRadius;
         isNear = camera.position.distanceToSquared(mesh.position) <= r * r;
@@ -17932,6 +18748,7 @@ function animate() {
   tedFocus.hitbox.position.copy(tedTurner.position);
   tedFocus.hitbox.position.y += 0.7;
   updateTedDocent(t);
+  updateTedAddress(t);
 
   // Walk mode (Ted under Sailor's wheel) — click-to-walk
   updateVisitor(t);
@@ -17972,6 +18789,7 @@ function animate() {
   residentBudget.run('edburg',  animateEdburg,  t, catEdburg);
   residentBudget.run('luke',    animateLuke,    t, albatrossLuke);
   residentBudget.end();
+  addressFaceTheHouse();   // last, after every mover has set its own yaw
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)
