@@ -850,9 +850,8 @@
   <div id="dc-target"></div>
   <textarea id="dc-text" rows="10" placeholder="Hello and welcome to the Dream Getty. Allow me to introduce myself…"></textarea>
   <div id="dc-cues"><span class="dc-cue-label">turn the camera</span></div>
-  <div id="dc-row"><button class="ui-btn" onclick="postAddress()">say it to the house</button>
-  <button class="ui-btn" onclick="rehearseDraft()" title="Hear it exactly as a visitor will — the gathering, the camera, the whole walk — without the villa keeping a word of it">rehearse</button>
-  <button class="ui-btn" onclick="saveDraft()" title="Keep it on this device. Nothing is broadcast">keep the draft</button>
+  <div id="dc-row"><button class="ui-btn" onclick="postAddress()">save</button>
+  <button class="ui-btn" onclick="rehearseDraft()" title="Hear it exactly as a visitor will — the fly-over, the gathering, the camera, the whole walk — without the villa keeping a word of it">rehearse</button>
   <button class="ui-btn" onclick="closeDocentConsole()">later</button></div>
   <div id="dc-note"></div>
 </div>
@@ -9199,13 +9198,27 @@ function openDocentConsole(reviseId) {
       : (series.length ? 'a new talk — it joins the series after ' + series.length + (series.length === 1 ? ' other' : ' others')
                        : 'the villa has no introduction yet. this will be the first thing anyone hears');
     if (note) note.textContent = series.length
-      ? 'this posts a NEW talk. to fix an existing one, open it from Compass → Talks and press ✎.'
-      : 'the first talk the villa gives becomes its introduction, and it is the only one that will ever stop a visitor at the door.';
+      ? 'typing keeps the draft on this device. save posts a NEW talk — to fix an existing one, open it from Compass → Talks and press ✎.'
+      : 'typing keeps the draft on this device. the first talk you save becomes the villa\u2019s introduction, and it is the only one that will ever stop a visitor at the door.';
   }
   renderCueRail();
+  // The draft keeps ITSELF now. "keep the draft" was a button you had to
+  // remember to press, next to a button that published — which is a bad
+  // pair to put a hand between. Typing is saving; `save` means the villa
+  // hears it.
+  if (box && !box._draftBound) {
+    box._draftBound = true;
+    box.addEventListener('input', function () {
+      if (dcRevising) return;          // a revision is not the standing draft
+      try { localStorage.setItem(DRAFT_KEY, box.value || ''); } catch (e) {}
+    });
+    box.addEventListener('keydown', function (e) { e.stopPropagation(); });   // the compose lesson
+  }
   el.classList.add('open');
 }
 
+// Un-referenced since the draft became automatic; kept because the console
+// will want an explicit "keep this one" the day drafts become plural.
 function saveDraft() {
   const box = document.getElementById('dc-text');
   const note = document.getElementById('dc-note');
@@ -9473,6 +9486,88 @@ function parseAddress(text) {
   return out;
 }
 
+// ============================================================
+// THE PARALLAX (2026-08-09, Sailor: "I want this to natively parallax
+// around the whole space as these interactions happen, not only with Ted's
+// announcements, but also with other avatar interactions")
+//
+// THE RULE: while something is HAPPENING between avatars, the villa is
+// never watched from a fixed point. The camera arcs, slowly, and the
+// parallax — near things sliding past far things — is what tells you the
+// place has depth. It is the Compass ruling's own argument in motion: a map
+// flattens because it does not move; a view from within does not flatten
+// because it does.
+//
+// AND IT NEVER FIGHTS YOU (RULED). The Compass session deliberately stopped
+// a summon from seizing the camera and that is not being undone. The first
+// touch of mouse, wheel or key hands the view back and the drift does not
+// retake it for the rest of that interaction. The one exception is a talk,
+// where the threshold's full-bleed shield already means input is inert by
+// design — there, Escape or the skip button is how you take it back.
+//
+// It also does not choose a subject. It re-bases on WHATEVER THE LAST MOVE
+// LEFT YOU LOOKING AT, so after a [[library]] cue it parallaxes around the
+// library, and during a plain gathering it parallaxes around whatever you
+// were already watching. A pendulum, not an orbit: ±1 radian off the
+// bearing it inherited, so it can never swing through a wall it was not
+// already outside of.
+//
+// It drives targetTheta / camTarget, never camera.position — the animate
+// loop owns that, and going through the orbit variables is why drag, wheel
+// and every other camera system keep working underneath it.
+// ============================================================
+const parallax = {
+  active: false, released: false, blocked: true,
+  base: 0, phase: 0, span: 1.0, speed: 0.048,
+  radius: 18, phi: 1.05, focus: new THREE.Vector3(), last: 0,
+};
+function parallaxBegin(opts) {
+  opts = opts || {};
+  parallax.active = true;
+  parallax.released = false;
+  parallax.blocked = true;              // re-base on the next free frame
+  parallax.phase = 0;
+  parallax.span = opts.span || 1.0;
+  parallax.speed = opts.speed || 0.048;
+}
+function parallaxEnd() { parallax.active = false; parallax.blocked = true; }
+function parallaxRelease() {
+  // A talk holds the camera on purpose; the shield means this hand never
+  // reached the canvas anyway.
+  if (typeof threshold !== 'undefined' && threshold.showing) return;
+  if (parallax.active) parallax.released = true;
+}
+function parallaxTick() {
+  if (!parallax.active || parallax.released) return;
+  const busy = approach.active ||
+               (typeof followAnimal !== 'undefined' && followAnimal.key) ||
+               (typeof activeFocus !== 'undefined' && activeFocus) ||
+               (typeof visitorNav !== 'undefined' && visitorNav.active) ||
+               (typeof g4State !== 'undefined' && g4State.screenLocked) ||
+               (typeof isDragging !== 'undefined' && isDragging);
+  const now = clock.getElapsedTime();
+  if (busy) { parallax.blocked = true; parallax.last = now; return; }
+  if (parallax.blocked) {
+    parallax.blocked = false;
+    parallax.base = camTheta; parallax.phase = 0;
+    parallax.radius = camRadius; parallax.phi = camPhi;
+    parallax.focus.copy(camTarget);
+    parallax.last = now;
+    return;
+  }
+  const dt = Math.min(0.1, Math.max(0, now - parallax.last));
+  parallax.last = now;
+  parallax.phase += dt * parallax.speed;
+  targetTheta = parallax.base + Math.sin(parallax.phase) * parallax.span;
+  targetRadius = parallax.radius;
+  targetPhi = parallax.phi;
+  camTarget.lerp(parallax.focus, 0.02);
+  // Hold off the villa's own idle auto-orbit, which would otherwise wake up
+  // after AUTO_RESUME and add a second hand to the wheel.
+  autoOrbit = false;
+  lastInteraction = Date.now();
+}
+
 function cameraGlide(look, off, dur) {
   try { if (typeof activeFocus !== 'undefined' && activeFocus) releaseFocus(); } catch (e) {}
   try { if (typeof stopFollow === 'function') stopFollow(); } catch (e) {}
@@ -9488,7 +9583,45 @@ function cameraGlide(look, off, dur) {
   autoOrbit = false;
 }
 
+// ============================================================
+// THE FLY-OVER (2026-08-09, Sailor: "start with a slow fly over the whole
+// space as all the animals come up from the beach… from the beach, up the
+// river and the cliff up to the Galleria")
+//
+// Six legs, out at the break and inland along the channel the residents are
+// climbing, arriving at the pool as it fills and settling on the speaker.
+// It runs the length of the villa — 130 units of z — in about half a
+// minute, and the speech plays over it from the first line.
+//
+// It runs for the INTRODUCTION and for a rehearsal of one. A later
+// announcement opens on the pool: a fly-over is an establishing shot, and a
+// place is established once.
+// ============================================================
+const ADDRESS_FLYOVER = [
+  { look: [0, -11.0, 96], off: [15, 21, 32],  dur: 5.5 },   // out past the break, the coast ahead
+  { look: [6, -10.5, 82], off: [11, 17, 25],  dur: 5.5 },   // over the beach and the river mouth
+  { look: [0, -6.0, 58],  off: [6, 15, 27],   dur: 5.0 },   // up the channel through the valley
+  { look: [-3, -1.0, 40], off: [6, 13, 23],   dur: 4.5 },   // over the cliff lip
+  { look: [0, 1.5, 19],   off: [6, 7.5, 20],  dur: 5.0 },   // the pool, filling
+  { look: [0, 2.3, 12],   off: [4.5, 4.0, 15],dur: 4.5 },   // and the speaker on his step
+];
+const flyover = { i: -1, timer: null };
+function flyoverStop() {
+  if (flyover.timer) { clearTimeout(flyover.timer); flyover.timer = null; }
+  flyover.i = -1;
+}
+function flyoverNext() {
+  flyover.i++;
+  if (flyover.i >= ADDRESS_FLYOVER.length) { flyover.timer = null; return; }
+  const leg = ADDRESS_FLYOVER[flyover.i];
+  cameraGlide(leg.look, leg.off, leg.dur);
+  flyover.timer = setTimeout(flyoverNext, leg.dur * 1000);
+}
+function flyoverBegin() { flyoverStop(); flyoverNext(); }
+
 function addressApplyCue(name) {
+  // A mark in the speech is the author directing. It outranks the tour.
+  flyoverStop();
   const k = String(name || '').toLowerCase();
   const origin = (typeof placePoint === 'function' && placePoint('galleria')) || new THREE.Vector3(0, 0, 0);
   if (k === 'ted' || k === 'me' || k === 'i' || k === 'himself') {
@@ -9497,8 +9630,21 @@ function addressApplyCue(name) {
     return true;
   }
   if (k === 'house' || k === 'everyone' || k === 'gathering' || k === 'company' || k === 'them') {
-    // Across the arc of them, over Ted's shoulder.
-    cameraGlide([origin.x, 1.5, origin.z + 3.6], [-8.5, 5.0, -9.5], 4.2);
+    // Down the causeway at them, from BEHIND HIS SHOULDER — the offset has
+    // to be negative in z or the camera sets up past the pool looking back
+    // and Ted is not in his own reaction shot, which is what the first
+    // photograph showed. The three tiers only read as three from above the
+    // top one, so it sits high as well as back.
+    cameraGlide([0, 0.9, 20.0], [6.5, 3.6, -8.0], 4.2);
+    // From the terrace edge beside him, looking down the water. Two earlier
+    // framings and two photographs to arrive here: set up PAST the pool and
+    // Ted is missing from his own reaction shot; set up BEHIND him inside
+    // the colonnade and a column stands in the middle of the frame.
+    //
+    // And the third finding is the useful one: [[house]] should not try to
+    // hold them both. It is the reaction shot — the crowd is the subject,
+    // and the speaker has his own cue. Fighting the colonnade to get a
+    // shoulder into the corner of the frame was solving the wrong problem.
     return true;
   }
   const pl = PLACE_REGISTRY.find(function (p) {
@@ -9733,6 +9879,85 @@ function addressFaceTheHouse() {
 // lease-renewer, and the audience arc is just a set of destinations handed
 // to gatherAdd, which already takes one.
 // ============================================================
+// ============================================================
+// THE HOUSE IN SESSION (2026-08-09, Sailor: "be a little more intentional
+// with the avatars… where Ted should stand… gather around at the level of
+// the reflection pool, looking in towards the Galleria")
+//
+// This seating is READ OFF THE TERRAIN rather than struck as an arc, and the
+// terrain turns out to have built an amphitheatre already. Sampled:
+//
+//   the stylobate   |x| < 14, z −9…12      y  1.5   — Ted's step
+//   the causeway    |x| < 4,  z 12…28      y  1.5   — a raised spit, and the
+//                                                     pool fills all but a
+//                                                     metre of it
+//   the reflection pool  |x| < 3, z 13…27           — water, on the spit
+//   the lawn either side  |x| 6…12          y −1…−3 — it FALLS AWAY
+//
+// So the pool is a causeway standing three metres proud of the ground on
+// both sides, pointing at the front steps. Three tiers, no invention:
+// swimmers in the water, the small and the light on the stone lip, the
+// heavy ones on the grass below — all of them looking up the spit at a
+// coyote standing on the top step with the colonnade behind him.
+//
+// TED'S MARK is z 11.0: the last metre of stylobate before the drop, just
+// outside the columns the patrol calls "out through the colonnade". Above
+// them and in front of the building rather than swallowed by it.
+const TED_MARK = { x: 0, z: 11.0 };
+
+// Per-resident, and deliberately not evenly. Sailor: "don't worry about
+// trying to feature everyone evenly."
+//   water    — the pool is theirs; Trout in it is canon (Compass §4)
+//   lip      — the metre of stone at the water's edge: small feet only
+//   lawn     — the grass shoulder, three metres down. The big bodies, and
+//              Petra hauled out on the grass, which is the image 07-31
+//              explicitly ruled it wanted rather than a rule forbidding it
+//   air      — they are not seated. Luke cannot land at all, so the
+//              albatross circling the gathering is not a compromise
+const ADDRESS_SEATING = {
+  trout:  { tier: 'water', slot: 0 },
+  otter:  { tier: 'water', slot: 1 },
+  kyle:   { tier: 'water', slot: 2 },
+  turtle: { tier: 'water', slot: 3 },
+  seal:   { tier: 'water', slot: 4 },
+  emilia: { tier: 'lip',   slot: 0 },
+  adlib:  { tier: 'lip',   slot: 1 },
+  edburg: { tier: 'lip',   slot: 2 },
+  julia:  { tier: 'lip',   slot: 3 },
+  y2k:     { tier: 'lawn', slot: 0 },
+  houston: { tier: 'lawn', slot: 1 },
+  diddy:   { tier: 'lawn', slot: 2 },
+  alrik:   { tier: 'lawn', slot: 3 },
+  petra:   { tier: 'lawn', slot: 4 },
+  austin: { tier: 'air',  slot: 0 },
+  luke:   { tier: 'air',  slot: 1 },
+};
+
+function addressSeat(key, index) {
+  const seat = ADDRESS_SEATING[key] || { tier: 'lawn', slot: index || 0 };
+  const n = seat.slot;
+  let x, z;
+  if (seat.tier === 'water') {
+    // Down the pool's own axis, alternating sides of the centre line.
+    x = (n % 2 ? 1 : -1) * (0.9 + (n % 3) * 0.5);
+    z = 15.0 + n * 2.4;
+  } else if (seat.tier === 'lip') {
+    // The metre of stone between the water and the drop. Facing in.
+    x = (n % 2 ? 1 : -1) * 3.5;
+    z = 15.5 + Math.floor(n / 2) * 4.5;
+  } else if (seat.tier === 'air') {
+    x = (n % 2 ? 1 : -1) * 5.5;
+    z = 19 + n * 3;
+  } else {
+    // The grass, staggered so the back of one is not the front of another.
+    x = (n % 2 ? 1 : -1) * (7.0 + (n % 3) * 1.6);
+    z = 14.5 + Math.floor(n / 2) * 4.2 + (n % 2) * 1.4;
+  }
+  return new THREE.Vector3(x, getVisitorHeight(x, z), z);
+}
+
+// The old even arc. Un-referenced now that the seating is a table, kept
+// because a gathering that is NOT the address still wants a ring.
 function addressAudienceSpots(keys, origin) {
   const n = keys.length;
   const per = Math.max(1, Math.ceil(n / 2));
@@ -9748,27 +9973,113 @@ function addressAudienceSpots(keys, origin) {
   });
 }
 
-function addressGather(origin, focus) {
+// ============================================================
+// HOW THEY GET THERE (2026-08-09)
+//
+// RULED (Sailor): everyone comes out of their OWN place — no staging area,
+// nobody teleported to the sand to make a nicer line. What makes it read as
+// a procession is not forcing a column but giving the ones who live
+// seaward the river to come up, and letting the camera fly that river with
+// them. The back range comes down the north side at the same time; the
+// house residents are simply already here, and that is allowed.
+//
+// The route is three waypoints at most, and it is the villa's own
+// geography: the channel runs at x ≈ 0 the whole way (riverCenterX), the
+// ground climbs from −13 at the river mouth to −3 at the valley to the
+// cliff at z 40 and the terrace at 1.5. A leg is handed over when the
+// traveller is within 8 units of it, or after 45 seconds — because the
+// turtle takes 78 to cross the bay and that is correct and is the joke.
+// ============================================================
+const ADDRESS_RIVER = [
+  { x: 0, z: 84 },    // the mouth, where the river crosses the sand
+  { x: 0, z: 58 },    // up the channel through the valley
+  { x: 0, z: 34 },    // over the cliff lip and onto the lawn
+];
+const ADDRESS_RIDGE = [
+  { x: -13, z: -26 }, // off the back range
+  { x: -12, z: -2 },  // across the north lawn
+  { x: -8,  z: 12 },  // round the west side of the house to the pool
+];
+
+// WHERE A RESIDENT COMES FROM WHEN IT IS NOT ANYWHERE YET.
+//
+// The first version read the live position and got this wrong for nine of
+// sixteen, which the test caught and the eye would not have: a resident
+// whose mode is 'off' has not arrived, so its mesh is parked at the origin,
+// so it read as already inland and walked straight to its seat — and then
+// its own toggle brought it in from the bay anyway, cutting across the
+// villa instead of coming up the river. The summon and the arrival were
+// racing and the arrival won.
+//
+// This is a TWO-LINE STAND-IN for native space as data, which three
+// handoffs have now called the missing half of the priority stack. The
+// live position still wins whenever there is one; this only answers for a
+// body that does not exist yet.
+const ADDRESS_FROM = {
+  trout: 'sea', seal: 'sea', otter: 'sea', petra: 'sea', kyle: 'sea',
+  turtle: 'sea', austin: 'sea', luke: 'sea', julia: 'sea', y2k: 'sea',
+  diddy: 'ridge', alrik: 'ridge', edburg: 'ridge',
+};
+
+function addressRoute(key, seat) {
+  const av = AVATARS[key] && AVATARS[key]();
+  const live = (av && av.visible) ? av.position : null;
+  const region = live ? (live.z > 46 ? 'sea' : (live.z < -22 ? 'ridge' : 'house'))
+                      : (ADDRESS_FROM[key] || 'house');
+  const legs = [];
+  const add = function (w) { legs.push(new THREE.Vector3(w.x, getVisitorHeight(w.x, w.z), w.z)); };
+  if (region === 'sea') {
+    // Join the channel at whichever waypoint is already behind them — a
+    // resident at the break does not walk back out to the mouth to start.
+    ADDRESS_RIVER.forEach(function (w) { if (!live || live.z > w.z + 4) add(w); });
+  } else if (region === 'ridge') {
+    ADDRESS_RIDGE.forEach(function (w) { if (!live || live.z < w.z - 4) add(w); });
+  }
+  legs.push(seat);
+  return legs;
+}
+
+function addressGather() {
   if (typeof gatherBegin !== 'function') return 0;
-  gatherBegin('The Galleria', origin);
-  // The arc is struck around the SPEAKER, not around the middle of the room.
-  // Centred on the room, the first photograph had Ted at one end of a wide
-  // scatter with half the cast out past the colonnade; centred on him it
-  // reads as a half-circle of animals looking up at somebody.
-  const centre = focus || origin;
+  const pool = placePoint('pool') || new THREE.Vector3(0, BUILDING_Y, 20);
+  gatherBegin('The Reflection Pool', pool);
   const keys = (typeof ASSIGNABLE !== 'undefined' ? ASSIGNABLE : [])
     .filter(function (k) { return typeof RESIDENTS !== 'undefined' && RESIDENTS[k]; });
-  const spots = addressAudienceSpots(keys, centre);
   let n = 0;
   keys.forEach(function (k, i) {
-    gatherAdd(k, spots[i]);                    // raven excuses himself in here, as ruled
+    const seat = addressSeat(k, i);
+    gatherAdd(k, seat);                        // raven excuses himself in here, as ruled
     const m = gatherState.members[k];
     if (!m) return;
     n++;
+    m.seat = seat;                             // where they end up
+    m.route = addressRoute(k, seat);
+    m.leg = 0;
+    m.legAt = clock.getElapsedTime();
+    m.at = m.route[0];                         // …and where they are headed NOW
     try { summonResident(k, true, m.at); } catch (e) {}   // silent: the camera is the address's
   });
   gatherState.held = true;
   return n;
+}
+
+// Hand each traveller its next leg. Called from gatherTick, so a procession
+// only exists while a gathering does.
+function processionTick(t) {
+  const g = gatherState;
+  if (!g.active) return;
+  for (const key in g.members) {
+    const m = g.members[key];
+    if (!m.route || m.leg >= m.route.length - 1) continue;
+    const av = AVATARS[key] && AVATARS[key]();
+    const close = av && av.position.distanceTo(m.at) < 8;
+    if (!close && t - m.legAt < 45) continue;
+    m.leg++;
+    m.legAt = t;
+    m.at = m.route[m.leg];
+    m.recalled = t;                            // this IS the recall; do not double-summon
+    try { summonResident(key, true, m.at); } catch (e) {}
+  }
 }
 
 // ============================================================
@@ -9780,6 +10091,7 @@ function addressStop() {
   const A = addressPlay;
   A.ended = true;
   if (A.timer) { clearTimeout(A.timer); A.timer = null; }
+  flyoverStop();
   try { if (typeof tedStopSpeaking === 'function') tedStopSpeaking(); } catch (e) {}
   if (TED_REAR.active) tedRearRelease();
   // The gathering is NOT dispersed: it keeps its own patience from here and
@@ -9882,25 +10194,31 @@ function openThreshold(entry, opts) {
   tedPatrol.state = 'address';
   TED_REAR.active = true; TED_REAR.releasing = false; TED_REAR.arrived = false;
   TED_REAR.want = 0; TED_REAR.now = 0;
-  TED_REAR.mark.set(origin.x, 0, origin.z - 1.6);
+  TED_REAR.mark.set(TED_MARK.x, 0, TED_MARK.z);
   TED_REAR.mark.y = getTedHeight(TED_REAR.mark.x, TED_REAR.mark.z);
   TED_REAR.base.copy(TED_REAR.mark);
-  TED_REAR.faceYaw = 0;                        // nose is +z; the arc stands in front of him
+  TED_REAR.faceYaw = 0;                        // nose is +z: out over the pool, at the house
   tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
 
   // ── and the cast comes in from wherever it lives ──
   A.gathered = false;
   if (opts.gather !== false) {
-    try {
-      const n = addressGather(origin, TED_REAR.mark);
-      A.gathered = n > 0;
-    } catch (e) {}
+    try { A.gathered = addressGather() > 0; } catch (e) {}
   }
 
-  // The opening shot: over the audience, onto the speaker. The villa keeps
-  // rendering behind the caption the whole time — Ted talking to an empty
-  // frame would be a loading screen with a voice.
-  cameraGlide([origin.x, 1.9, origin.z + 0.6], [4.6, 2.7, 10.4], 4.4);
+  // ── the camera ──
+  // The villa keeps rendering behind the caption the whole time: Ted talking
+  // to an empty frame would be a loading screen with a voice.
+  flyoverStop();
+  const series = talkSeries();
+  const isIntro = opts.rehearsal || !series.length ||
+                  (series[0] && entry.id && series[0].entry.id === entry.id);
+  if (opts.flyover !== false && isIntro) {
+    flyoverBegin();                            // the whole space, from the sea inwards
+  } else {
+    cameraGlide([0, 1.5, 18], [6, 7.0, 19], 4.4);   // straight to the pool
+  }
+  parallaxBegin({ span: 1.15, speed: 0.05 });  // and it never stops moving between shots
 
   addressNext();
 }
@@ -13046,6 +13364,11 @@ function placePoint(key) {
 function gatherBegin(label, point) {
   gatherState.active = true; gatherState.label = label;
   gatherState.point = point.clone(); gatherState.members = {}; gatherState.hostAway = 0;
+  // Every gathering parallaxes, not only Ted's. It deliberately does NOT
+  // fly you to the gathering — it arcs around what you are already looking
+  // at, which is the difference between the villa having depth and the
+  // villa grabbing your head and turning it.
+  if (typeof parallaxBegin === 'function') parallaxBegin({ span: 0.8, speed: 0.04 });
 }
 function gatherAdd(key, at) {
   if (key === 'raven' || !gatherState.active) return;
@@ -13057,6 +13380,7 @@ function gatherAdd(key, at) {
   gatherState.members[key] = { leaves: clock.getElapsedTime() + patience, at: spot, recalled: 0 };
 }
 function gatherDisperse(msg) {
+  if (typeof parallaxEnd === 'function') parallaxEnd();
   gatherState.active = false; gatherState.members = {};
   gatherState.label = null; gatherState.point = null; gatherState.hostAway = 0;
   if (msg) showNavLabel(msg);
@@ -13123,6 +13447,7 @@ function gatherTick(t) {
       summonResident(key, true, m.at);
     }
   }
+  if (typeof processionTick === 'function') processionTick(t);
   if (!Object.keys(g.members).length) {
     g.active = false; g.label = null; g.point = null;
   }
@@ -14752,6 +15077,7 @@ const travelTargets = [
 ];
 
 function updateCamera() {
+  if (typeof parallaxTick === 'function') parallaxTick();
   // Screen-locked: hold camera steady on the G4 screen, no orbit
   if (g4State.screenLocked && !approach.active) {
     camera.lookAt(camTarget);
@@ -15519,6 +15845,12 @@ function showNavBar() {
 // INPUT
 // ============================================================
 let isDragging = false, prevX = 0, prevY = 0, pinchDist = 0;
+// The first touch of anything hands the camera back (see the parallax §).
+['pointerdown', 'wheel', 'keydown'].forEach(function (ev) {
+  window.addEventListener(ev, function () {
+    if (typeof parallaxRelease === 'function') parallaxRelease();
+  }, { passive: true, capture: true });
+});
 
 container.addEventListener('pointerdown', e => {
   lastInteraction = Date.now(); autoOrbit = false;
