@@ -15338,16 +15338,44 @@ function sunsetRng(seed) {
   };
 }
 
+// THE DOCENT'S EVENING (2026-08-09, Sailor: "a really nice yellow/orange
+// sunset with deep navy blue water and yellow orange streaks in the water").
+// No single photograph had both halves — the warmest sky in the folder
+// (palette 1) rides a plum-grey sea, and the one true navy sea (palette
+// 364) sits under a washed pink sky. So the docent may COMPOSE a night
+// from two photographs: still sampled colour, never invented — curated.
+// A date absent from this map falls to the seeded pick, which is every
+// other night there is.
+const SUNSET_CHOICE = {
+  20260809: { pal: 1, sea: 364 },
+};
+
+// Preview any palette without touching the night: ?sunset=N on the URL, or
+// sunsetPreview(N) in the console. Local eyes only — the seed is untouched,
+// so the villa's shared night is not.
+function sunsetPreview(n) {
+  const p = SUNSET_PALETTES[n | 0];
+  if (!p) return 'no palette ' + n;
+  drawSunset(sunsetWall.seed || sunsetSeed(), p);
+  return 'previewing palette ' + (n | 0) + ' — reload to return to tonight';
+}
+
 const sunsetWall = { canvas: null, tex: null, mesh: null, seed: 0 };
 
-function drawSunset(seed) {
+function drawSunset(seed, forcePal) {
   const W = 1024, H = 288;
   if (!sunsetWall.canvas) {
     sunsetWall.canvas = document.createElement('canvas');
     sunsetWall.canvas.width = W; sunsetWall.canvas.height = H;
   }
   const rng = sunsetRng(seed);
-  const pal = SUNSET_PALETTES[Math.floor(rng() * SUNSET_PALETTES.length)];
+  let pal = SUNSET_PALETTES[Math.floor(rng() * SUNSET_PALETTES.length)];
+  const choice = SUNSET_CHOICE[seed];
+  if (choice && SUNSET_PALETTES[choice.pal]) {
+    pal = Object.assign({}, SUNSET_PALETTES[choice.pal]);
+    if (choice.sea != null && SUNSET_PALETTES[choice.sea]) pal.sea = SUNSET_PALETTES[choice.sea].sea;
+  }
+  if (forcePal) pal = forcePal;
   const ctx = sunsetWall.canvas.getContext('2d');
   const horizon = H * (0.62 + rng() * 0.14);
 
@@ -15405,6 +15433,26 @@ function drawSunset(seed) {
     const len = 12 + rng() * 60;
     ctx.beginPath(); ctx.moveTo(x0 - len / 2, y); ctx.lineTo(x0 + len / 2, y); ctx.stroke();
   }
+  // …and the STREAKS' REFLECTIONS (Sailor, 2026-08-09: "yellow orange
+  // streaks in the water") — the sky's two accents lie back down on the
+  // sea as long broken strokes, brightest near the horizon, the way a
+  // burning sky actually sits on dark water.
+  // Bolder than the first pass: at 0.34 alpha over navy the yellow blended
+  // down to mud (255·0.34 + 30·0.66 ≈ 106 red — invisible). A reflection on
+  // dark water is BRIGHT where it is at all; it is broken, not faint.
+  pal.st.forEach(function (c) {
+    ctx.strokeStyle = c;
+    for (let j = 0; j < 34; j++) {
+      const t = rng();
+      const y = horizon + t * t * (H - horizon) * 0.85 + 3;
+      ctx.globalAlpha = 0.62 * (1 - t * 0.72);
+      ctx.lineWidth = 2 + rng() * 4;
+      const x0 = rng() * W, len = 26 + rng() * 150 * (1 - t * 0.5);
+      ctx.beginPath(); ctx.moveTo(x0, y);
+      ctx.quadraticCurveTo(x0 + len / 2, y + (rng() - 0.5) * 3, x0 + len, y + (rng() - 0.5) * 2);
+      ctx.stroke();
+    }
+  });
   ctx.globalAlpha = 1;
   sunsetWall.seed = seed;
   if (sunsetWall.tex) sunsetWall.tex.needsUpdate = true;
@@ -15414,10 +15462,21 @@ function drawSunset(seed) {
 (function buildSunsetWall() {
   drawSunset(sunsetSeed());
   sunsetWall.tex = new THREE.CanvasTexture(sunsetWall.canvas);
-  const mat = new THREE.MeshStandardMaterial({
-    map: sunsetWall.tex, roughness: 0.9, metalness: 0,
+  // The LAST wash (third photograph): the renderer outputs sRGB, and a
+  // CanvasTexture defaults to linear — so the already-sRGB canvas was being
+  // sRGB-encoded TWICE, the classic double-gamma fade. Declare what it is.
+  sunsetWall.tex.encoding = THREE.sRGBEncoding;
+  // VERBATIM (two photographs to get here, 2026-08-09): lit as a surface it
+  // bleached; self-lit it STILL bleached, which acquitted the lamps and
+  // convicted the pipeline — the villa's fog and ACES tone-mapping were
+  // grading the canvas like scenery. A drawing on a wall is not scenery.
+  // MeshBasic + toneMapped:false + fog:false steps around all three: what
+  // the painter drew is what the room shows, pixel for pixel.
+  const mat = new THREE.MeshBasicMaterial({
+    map: sunsetWall.tex,
     side: THREE.FrontSide,                     // the whole visibility rule is here
-    emissive: 0xffffff, emissiveMap: sunsetWall.tex, emissiveIntensity: 0.32,
+    toneMapped: false,
+    fog: false,
   });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(19, 5.2), mat);
   // inboard of the library's south wall (z +8), facing north — into the room
@@ -15426,6 +15485,10 @@ function drawSunset(seed) {
   sunsetWall.mesh = mesh;
   sunsetWall.mesh.name = 'sunsetWall';
   // added to the library wing AFTER it is built, below
+  try {
+    const q = new URLSearchParams(location.search).get('sunset');
+    if (q !== null) setTimeout(function () { sunsetPreview(+q); }, 500);
+  } catch (e) {}
   // a new night, a new sunset — checked on the villa's own slow clock
   setInterval(function () {
     if (sunsetSeed() !== sunsetWall.seed) drawSunset(sunsetSeed());
