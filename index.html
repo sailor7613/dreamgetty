@@ -114,11 +114,23 @@
   #compass-hud.soft { height: 224px; }
   #compass-dial { position: absolute; top: 0; left: 50%; margin-left: -42px;
     width: 84px; height: 84px; }
+  /* RULED 2026-08-09 (Sailor): "let's not rotate the compass, let's just
+     have the needle spin." The first build turned the whole card, and his
+     screenshots showed why that was wrong twice over — the letters went
+     upside down, and the clasp swung underneath and read as broken. The
+     card is the CASE now: it holds still, letters legible, loop up where
+     it was drawn. The needle is its own layer, cut out of the drawing and
+     re-centred on its waist, and it alone turns to keep its red end on
+     world north. */
   #compass-img { width: 100%; height: 100%; display: block;
     filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
     transition: transform 0.25s ease; }
-  #compass-hud:hover #compass-img { transform: scale(1.06) var(--cmp-rot, rotate(0rad)); }
-  #compass-img { transform: var(--cmp-rot, rotate(0rad)); }
+  #compass-hud:hover #compass-img { transform: scale(1.06); }
+  #compass-needle { position: absolute; inset: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    transform: var(--ndl, rotate(0rad));
+    transition: transform 0.45s cubic-bezier(.3,1.4,.5,1); }
+  #compass-hud:hover #compass-needle { transform: scale(1.06) var(--ndl, rotate(0rad)); }
   #compass-fallback { font-size: 64px; text-align: center; line-height: 84px; }
   /* where you are, in small caps under the dial — only while hovering */
   #compass-here { position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
@@ -145,17 +157,35 @@
   body.ted-chrome-hidden #ted-photo-hint, body.ted-chrome-hidden #touch-hint { display: none !important; }
 
   /* 🧭 Nav menu — the growing function list, tucked behind one button */
-  /* The unfold rises FROM the compass — same place as the gesture. */
+  /* THE UNFOLD IS SPRITES NOW (2026-08-09, Sailor: "let's have each one as
+     a floating sprite, like how you had for the locations"). The box, the
+     border and the blur are gone — each row is its own floating pill, the
+     same species as the bearing labels, drifting up from the compass in a
+     loose spine with a small alternating sway. The white scrollbar that
+     photographed so badly is hidden outright; the column still scrolls. */
   #nav-menu {
     position: absolute; bottom: 122px; left: 50%; transform: translateX(-50%);
     top: auto; right: auto; z-index: 11;
-    display: none; flex-direction: column; gap: 6px; align-items: stretch;
-    background: rgba(12,10,8,0.72); border: 1px solid rgba(245,240,232,0.1);
-    border-radius: 4px; padding: 8px;
-    backdrop-filter: blur(6px);
+    display: none; flex-direction: column; gap: 8px; align-items: center;
+    background: none; border: none; padding: 8px 40px;
   }
   #nav-menu.open { display: flex; }
-  #nav-menu { max-height: 78vh; overflow-y: auto; overscroll-behavior: contain; }
+  #nav-menu { max-height: 76vh; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: none; }
+  #nav-menu::-webkit-scrollbar { display: none; }
+  #nav-menu .ui-btn, #nav-menu .cmp-note {
+    background: rgba(12,14,18,0.78); border: 1px solid rgba(140,150,165,0.28);
+    border-radius: 15px; padding: 5px 14px; backdrop-filter: blur(4px);
+    width: auto; text-align: center; flex: none; }
+  #nav-menu .ui-btn:hover { border-color: rgba(232,224,200,0.6); opacity: 1; }
+  /* the loose spine — a small sway, period five, so the column reads as a
+     drift of sprites rather than a list that lost its box */
+  #nav-menu.open > *:nth-child(5n+1), #nav-menu.open .cmp-view.open > *:nth-child(5n+1) { transform: translateX(-14px); }
+  #nav-menu.open > *:nth-child(5n+2), #nav-menu.open .cmp-view.open > *:nth-child(5n+2) { transform: translateX(10px); }
+  #nav-menu.open > *:nth-child(5n+3), #nav-menu.open .cmp-view.open > *:nth-child(5n+3) { transform: translateX(-6px); }
+  #nav-menu.open > *:nth-child(5n+4), #nav-menu.open .cmp-view.open > *:nth-child(5n+4) { transform: translateX(13px); }
+  #nav-menu.open > *:nth-child(5n), #nav-menu.open .cmp-view.open > *:nth-child(5n) { transform: translateX(-9px); }
+  .cmp-view { align-items: center; }
   #meet-panel { position: absolute; top: 54px; right: 14px; width: 268px; max-height: 76vh;
     display: none; flex-direction: column; gap: 4px; padding: 10px;
     background: rgba(14,13,11,0.9); border: 1px solid rgba(232,224,208,0.14);
@@ -170,7 +200,7 @@
   .meet-sub { font-size: 9px; letter-spacing: 0.04em; opacity: 0.5; text-transform: none; font-style: italic; }
   body.light #meet-panel { background: rgba(245,242,235,0.92); border-color: rgba(20,18,14,0.14); }
   body.light #meet-head { color: rgba(20,18,14,0.7); }
-  #nav-menu .ui-btn { position: static; text-align: right; }
+  #nav-menu .ui-btn { position: static; }
   body.light #nav-menu { background: rgba(245,242,235,0.8); border-color: rgba(20,18,14,0.12); }
   #navmenu-btn.open { background: rgba(160,128,80,0.3); }
 
@@ -217,7 +247,7 @@
      drawer's container styling is untouched; only its inside learned to fold. */
   .cmp-view { display: none; flex-direction: column; gap: 6px; }
   .cmp-view.open { display: flex; }
-  #nav-menu .cmp-row { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  #nav-menu .cmp-row { display: flex; align-items: center; gap: 6px; justify-content: center; }
   #nav-menu .cmp-back { opacity: 0.55; }
   .cmp-ico em { font-style: normal; }
   .cmp-ico img { height: 13px; width: 13px; object-fit: contain; vertical-align: -2px; display: none; }
@@ -873,6 +903,8 @@
     <div id="compass-ring"></div>
     <img id="compass-img" src="art/icons/compass.png" alt=""
          onerror="this.style.display='none';document.getElementById('compass-fallback').style.display='block'">
+    <img id="compass-needle" src="art/icons/compass-needle.png" alt=""
+         onerror="this.remove()">
     <div id="compass-fallback" style="display:none">🧭</div>
     <div id="compass-here"></div>
   </div>
@@ -6903,6 +6935,38 @@ function updateTedTurner(t) {
   if (p.state === 'player') return; // Sailor has the wheel (🐾 Walk mode)
   if (p.state === 'address') return; // he is up on his hind legs, addressing the house
   const curr = p.waypoints[p.currentWP], next = p.waypoints[p.nextWP];
+  if (p.state === 'travel') {
+    // Walking somewhere he was SENT — the patrol's gait, the photo-exit
+    // release. Same shape as the address walk, but this one is going where
+    // the click said rather than where the speech stands.
+    const dx = tedTravel.target.x - tedTurner.position.x;
+    const dz = tedTravel.target.z - tedTurner.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist > 0.9) {
+      tedTurner.position.x += dx / dist * 0.055;
+      tedTurner.position.z += dz / dist * 0.055;
+      tedTurner.position.y = getTedHeight(tedTurner.position.x, tedTurner.position.z)
+        + Math.abs(Math.sin(t * 4 * 0.5)) * 0.03;
+      tedTurner.rotation.y = Math.atan2(dx, dz);
+      const wc2 = t * 4;
+      if (tedTurner.userData.legs) {
+        tedTurner.userData.legs.forEach((leg, i) => {
+          const ph = i < 2 ? 0 : Math.PI;
+          const sd = i % 2 === 0 ? 0 : Math.PI;
+          leg.group.rotation.x = Math.sin(wc2 + ph + sd) * 0.2;
+        });
+      }
+    } else {
+      let ni = 0, nd = Infinity;
+      p.waypoints.forEach((w, i) => {
+        const d = (w.x - tedTurner.position.x) ** 2 + (w.z - tedTurner.position.z) ** 2;
+        if (d < nd) { nd = d; ni = i; }
+      });
+      p.currentWP = ni; p.nextWP = (ni + 1) % p.waypoints.length;
+      p.progress = 0; p.state = 'pausing'; p.pauseTimer = 4;
+    }
+    return;
+  }
   if (p.state === 'pausing') {
     p.pauseTimer -= 0.016;
     if (tedTurner.userData.head) {
@@ -13808,9 +13872,46 @@ setTimeout(function () { if (lukeState.mode === 'off') toggleLuke(); }, 58000);
 // with focusing on an object.
 // PLACES lives in THE PLACE REGISTRY now (one list, every fact) — see its block beside nearestPlace.
 
+// ── TED TRAVELS (2026-08-09) ──
+// Everyone else already knew how to be sent somewhere (summonResident); Ted
+// did not — the docent's body had a patrol, a photo pose, an address mark,
+// and no way to simply GO. A travel state on the patrol, walked with the
+// patrol's own gait, released at the nearest waypoint like every other exit.
+const tedTravel = { target: new THREE.Vector3() };
+function tedTravelTo(pt) {
+  if (tedPhoto.active || tedDocent.active || TED_REAR.active) return;
+  if (typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subject === tedTurner) return;
+  tedTravel.target.copy(pt);
+  tedPatrol.state = 'travel';
+}
+
+// ── THE BODY FOLLOWS THE EYE (RULED 2026-08-09, Sailor: "let's have the
+// avatar travel to the locations as the user clicks through from place to
+// place") ──
+// Clicking a place has always flown the CAMERA; now your resident sets out
+// after it, silently, by its own medium — walking, swimming, flying its own
+// route while your eye is already there. Click on through and the body is
+// simply retargeted mid-journey; a body does not have to arrive anywhere to
+// be sent somewhere else. Not while you are DRIVING it (the wheel is a
+// stronger claim than a click), and never anybody else's body.
+function bodyFollowsTheEye(key) {
+  try {
+    if (typeof visitorNav !== 'undefined' && visitorNav.active) return;
+    const mine = (typeof profileMine === 'function') ? profileMine() : null;
+    if (!mine) return;
+    const pt = placePoint(key);
+    if (!pt) return;
+    if (mine === 'ted') { tedTravelTo(pt); return; }
+    if (!RESIDENTS[mine]) return;
+    if (RESIDENTS[mine].state().mode === 'off') { try { RESIDENTS[mine].toggle(); } catch (e) {} }
+    summonResident(mine, true, pt);
+  } catch (e) {}
+}
+
 function goToPlace(key) {
   const pl = PLACES.find(p => p.key === key);
   if (!pl) return;
+  bodyFollowsTheEye(key);
   // Going somewhere counts as having been there — the Compass learns it.
   if (typeof compassMarkVisited === 'function') compassMarkVisited(key);
   // A place is not a thing, so this releases any object focus and any
@@ -14458,7 +14559,20 @@ function compassBearing(from, p) {
   return Math.atan2(p.x - from.x, -(p.z - from.z));   // 0 = north, +east
 }
 
-function compassCardAngle() { return camTheta; }      // rotate the card by θ
+// The needle points at world north's screen angle, which is θ (see the
+// arithmetic above) — minus the angle the needle is DRAWN at. Sailor's red
+// end sits 0.659 rad east of straight up on the layer as cut.
+const COMPASS_NEEDLE_NATIVE = 0.659;
+// Unwrapped: CSS transitions take the long way round a ±π jump, and a
+// needle that whips 350° to move 10° is a broken instrument. Track a
+// continuous angle and step to the nearest equivalent.
+let _needleCont = 0;
+function compassNeedleAngle() {
+  let want = camTheta - COMPASS_NEEDLE_NATIVE;
+  const k = Math.round((_needleCont - want) / (Math.PI * 2));
+  _needleCont = want + k * Math.PI * 2;
+  return _needleCont;
+}
 
 function compassRefreshSoft() {
   const hud = document.getElementById('compass-hud');
@@ -14467,9 +14581,8 @@ function compassRefreshSoft() {
   if (!hud || !ring) return;
   const me = summonerPoint();
   if (here) here.textContent = nearestPlace(me);
-  const theta = compassCardAngle();
-  document.getElementById('compass-img').style.setProperty('--x', '');
-  hud.style.setProperty('--cmp-rot', 'rotate(' + theta.toFixed(3) + 'rad)');
+  const theta = camTheta;
+  hud.style.setProperty('--ndl', 'rotate(' + compassNeedleAngle().toFixed(3) + 'rad)');
 
   // The nearest handful of KNOWN places — the ring respects hidden-until-
   // visited exactly as the list does, so discovery is never leaked by a
@@ -14551,10 +14664,10 @@ function compassSoftEnd() {
     compassSoftEnd();
     toggleNavMenu();
   });
-  // the card keeps its bearing even when nobody is hovering — it is the one
-  // piece of chrome that is also an instrument reading
+  // the needle keeps its bearing even when nobody is hovering — it is the
+  // one piece of chrome that is also an instrument reading
   setInterval(function () {
-    hud.style.setProperty('--cmp-rot', 'rotate(' + compassCardAngle().toFixed(3) + 'rad)');
+    hud.style.setProperty('--ndl', 'rotate(' + compassNeedleAngle().toFixed(3) + 'rad)');
   }, 250);
 })();
 
