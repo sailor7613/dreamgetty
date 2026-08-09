@@ -100,13 +100,55 @@
   body.ted-photo #touch-hint { display: none; }
   #ted-photo-btn.on { background: rgba(160,128,80,0.35); }
   /* H hides every scrap of chrome for the clean shot */
+  /* The hud grows UPWARD when soft — the dial rises into your hand, which
+     is what makes room for the southern half of the ring. The first
+     screenshot had the beach, the valley and the overlook clipped off the
+     bottom of the screen, because a dial resting on the screen's lower edge
+     has nowhere to put the places behind you. And the growth is the HOVER
+     BOX growing, not the dial teleporting: the cursor that summoned the
+     ring is still inside the box after the rise, so mouseleave does not
+     fire and the dial does not bounce. */
+  #compass-hud { position: fixed; bottom: 18px; left: 50%;
+    transform: translateX(-50%); z-index: 12; width: 84px; height: 84px;
+    cursor: pointer; transition: height 0.35s ease; }
+  #compass-hud.soft { height: 224px; }
+  #compass-dial { position: absolute; top: 0; left: 50%; margin-left: -42px;
+    width: 84px; height: 84px; }
+  #compass-img { width: 100%; height: 100%; display: block;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
+    transition: transform 0.25s ease; }
+  #compass-hud:hover #compass-img { transform: scale(1.06) var(--cmp-rot, rotate(0rad)); }
+  #compass-img { transform: var(--cmp-rot, rotate(0rad)); }
+  #compass-fallback { font-size: 64px; text-align: center; line-height: 84px; }
+  /* where you are, in small caps under the dial — only while hovering */
+  #compass-here { position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 4px; white-space: nowrap; font: 10px Georgia, serif;
+    letter-spacing: .16em; color: rgba(232,228,220,0.75);
+    text-shadow: 0 1px 3px rgba(0,0,0,.8); opacity: 0; transition: opacity .3s; }
+  #compass-hud:hover #compass-here, #compass-hud.soft #compass-here { opacity: 1; }
+  /* the bearing labels — sprites of text standing around the dial */
+  #compass-ring { position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+    pointer-events: none; }
+  .cmp-bearing { position: absolute; transform: translate(-50%,-50%);
+    white-space: nowrap; pointer-events: auto; cursor: pointer;
+    background: rgba(12,14,18,0.78); border: 1px solid rgba(140,150,165,0.28);
+    border-radius: 12px; padding: 3px 9px; font: 11px Georgia, serif;
+    color: #e8e4dc; letter-spacing: .04em;
+    opacity: 0; transition: opacity .35s ease, transform .35s ease;
+    backdrop-filter: blur(4px); }
+  .cmp-bearing:hover { border-color: rgba(232,224,200,0.6); }
+  .cmp-bearing .cb-far { opacity: .5; font-size: 9px; margin-left: 4px; }
+  #compass-hud.soft .cmp-bearing { opacity: 1; }
+  body.ted-chrome-hidden #compass-hud,
   body.ted-chrome-hidden .ui-btn, body.ted-chrome-hidden #nav-bar,
   body.ted-chrome-hidden #nav-menu, body.ted-chrome-hidden #follow-card,
   body.ted-chrome-hidden #ted-photo-hint, body.ted-chrome-hidden #touch-hint { display: none !important; }
 
   /* 🧭 Nav menu — the growing function list, tucked behind one button */
+  /* The unfold rises FROM the compass — same place as the gesture. */
   #nav-menu {
-    position: absolute; top: 44px; right: 16px; z-index: 11;
+    position: absolute; bottom: 122px; left: 50%; transform: translateX(-50%);
+    top: auto; right: auto; z-index: 11;
     display: none; flex-direction: column; gap: 6px; align-items: stretch;
     background: rgba(12,10,8,0.72); border: 1px solid rgba(245,240,232,0.1);
     border-radius: 4px; padding: 8px;
@@ -798,9 +840,43 @@
 <div id="scene-container"></div>
 <div id="vignette"></div>
 
-<!-- RULED 2026-07-30: the nav tool is the MENU BAR — one 🧭 gathers the
-     growing list of functions instead of a sprawling button row. -->
-<button class="ui-btn" id="navmenu-btn" style="top:14px;right:16px;" onclick="toggleNavMenu()" title="The Compass — places, company, and everything you carry. Drop a hand-drawn compass at art/icons/compass.png and it takes over this button"><span class="cmp-ico"><img src="art/icons/compass.png" onload="this.parentNode.classList.add(&quot;has-img&quot;)" onerror="this.remove()"><em>🧭</em></span> Compass</button>
+<!-- ═══════════ THE COMPASS IN THE HAND (2026-08-09, Sailor) ═══════════
+     The word "Compass" stops being a label and becomes the object. One
+     drawn compass, bottom centre where the nav bar stood, and it has two
+     activations:
+
+     SOFT — rest the cursor on it and the villa's places appear around it,
+     each at its TRUE BEARING from where you stand, relative to where you
+     face. Standing at the reflection pool looking at the house: the
+     galleria above, the beach below, library left, exedra right. The card
+     itself turns so its painted N points at world north — it is a compass,
+     not a picture of one. Nothing opens, nothing navigates; it answers
+     "where am I" the way holding a compass up does, and it goes away when
+     the hand does. (Hover only exists on desktop, which is fine: the villa
+     is a reason to use Prism on a desktop — Sailor, 08-05.)
+
+     A label is also a door: click one and you go there. Hidden-until-
+     visited applies — the ring shows only places this device has stood in,
+     so the Observatory-Archive and Our Lady of California will appear on
+     the ring the day they are found, by the same rule that already governs
+     the list.
+
+     HARD — click the compass itself and it unfolds into the full menu:
+     Places, Company, Talks, You, Ways of looking, Instruments. The unfold
+     now rises from the compass instead of hanging in the top-right corner
+     of the screen, so the gesture and the thing it opens share a place.
+
+     The art is art/icons/compass.png — Sailor's drawing takes over this
+     file; the one shipped is a same-palette stand-in. -->
+<div id="compass-hud" title="the Compass — hover to get your bearings, click to unfold">
+  <div id="compass-dial">
+    <div id="compass-ring"></div>
+    <img id="compass-img" src="art/icons/compass.png" alt=""
+         onerror="this.style.display='none';document.getElementById('compass-fallback').style.display='block'">
+    <div id="compass-fallback" style="display:none">🧭</div>
+    <div id="compass-here"></div>
+  </div>
+</div>
 <div id="meet-panel">
   <div id="meet-head"><span id="meet-title">Meet who?</span><button class="ui-btn" onclick="closeMeet()">×</button></div>
   <div id="meet-list"></div>
@@ -833,6 +909,10 @@
     <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
     <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: Off</button>
     <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
+    <div class="nav-menu-label">Instruments</div>
+    <button class="ui-btn" id="nav-easel" onclick="navTo('Easel')" title="The easel — the case studies, on parchment">🖼 The Easel</button>
+    <button class="ui-btn" id="nav-graphmap" onclick="navTo('Graphmap')" title="The graphmap — the field where a trace stands">✳ The Graphmap</button>
+    <button class="ui-btn" id="nav-g4" onclick="navTo('iMac G4')" title="The G4 — the villa's one computer">🖥 The G4</button>
   </div>
   <div class="cmp-view" id="cmp-places"></div>
   <div class="cmp-view" id="cmp-talks"></div>
@@ -954,11 +1034,11 @@
   <div id="ip-note">the passcode stays on this device. it lets you write in the guestbook and nothing else.</div>
 </div>
 
-<div id="nav-bar">
-  <button class="nav-btn" id="nav-easel" onclick="navTo('Easel')">Easel</button>
-  <button class="nav-btn" id="nav-graphmap" onclick="navTo('Graphmap')">Graphmap</button>
-  <button class="nav-btn" id="nav-g4" onclick="navTo('iMac G4')">G4</button>
-</div>
+<!-- The nav bar is gone (2026-08-09, Sailor: "replace the existing nav
+     buttons with this compass"). Easel, Graphmap and the G4 are Instruments
+     inside the compass unfold now — the 07-30 ruling ("one 🧭 gathers the
+     growing list of functions instead of a sprawling button row") finally
+     applied to the last three buttons it was written about. -->
 
 <div id="touch-hint">drag to orbit · scroll to zoom · click to focus</div>
 <div id="ted-photo-hint">ted photo · click the ground to place him — he faces you, then holds his gaze<br>click ted to sit ⇄ stand · drag orbits · ⇧drag pans · scroll zooms · H hides the chrome · esc exits</div>
@@ -14277,9 +14357,12 @@ function summonResident(key, silent, at) {
 
 function toggleNavMenu() {
   const m = document.getElementById('nav-menu');
-  const b = document.getElementById('navmenu-btn');
   m.classList.toggle('open');
-  b.classList.toggle('open', m.classList.contains('open'));
+  // The button this used to light up ('navmenu-btn') is gone — the drawn
+  // compass replaced it (2026-08-09) — and its absence threw from HERE,
+  // which broke both activations at once. The hud carries the state now.
+  const hud = document.getElementById('compass-hud');
+  if (hud) hud.classList.toggle('open', m.classList.contains('open'));
 }
 
 // ============================================================
@@ -14354,6 +14437,126 @@ setInterval(function () {
     }
   } catch (e) {}
 }, 5000);
+
+// ============================================================
+// THE COMPASS IN THE HAND — soft and hard activation (2026-08-09)
+//
+// THE ARITHMETIC, once, because three different sessions will otherwise
+// re-derive it. World north is −z (the mountain), east is +x. The camera
+// orbits at angle camTheta with the camera at target + R·[sinθ, ·, cosθ],
+// so its FACING bearing (clockwise from north) is −θ. A place at bearing
+// B from you therefore sits at screen angle a = B + θ, measured clockwise
+// from straight up — and the card itself turns by that same θ so its
+// painted N sits at north's screen angle. Face north and everything is
+// where Sailor's example put it: galleria above, beach below, library
+// left, exedra right. Turn, and the villa turns around the dial the way
+// the world turns around a held compass.
+// ============================================================
+const compassSoft = { on: false, timer: null, RADIUS: 118 };
+
+function compassBearing(from, p) {
+  return Math.atan2(p.x - from.x, -(p.z - from.z));   // 0 = north, +east
+}
+
+function compassCardAngle() { return camTheta; }      // rotate the card by θ
+
+function compassRefreshSoft() {
+  const hud = document.getElementById('compass-hud');
+  const ring = document.getElementById('compass-ring');
+  const here = document.getElementById('compass-here');
+  if (!hud || !ring) return;
+  const me = summonerPoint();
+  if (here) here.textContent = nearestPlace(me);
+  const theta = compassCardAngle();
+  document.getElementById('compass-img').style.setProperty('--x', '');
+  hud.style.setProperty('--cmp-rot', 'rotate(' + theta.toFixed(3) + 'rad)');
+
+  // The nearest handful of KNOWN places — the ring respects hidden-until-
+  // visited exactly as the list does, so discovery is never leaked by a
+  // label. Eight fit around a dial; fifteen do not.
+  const rows = PLACE_REGISTRY.filter(compassPlaceKnown)
+    .map(function (p) {
+      const d = Math.hypot(p.x - me.x, p.z - me.z);
+      return { p: p, d: d, a: compassBearing(me, p) + theta };
+    })
+    .sort(function (a, b) { return a.d - b.d; })
+    .filter(function (r) { return r.d > 2.5; })       // not the one you are standing in
+    .slice(0, 10);
+  // Ten, not eight, and the tenth earned its place: from the pool the beach
+  // is the ninth-nearest place, and the beach-below-the-dial was the example
+  // the whole feature was asked for with. Same-bearing places stack outward
+  // (valley inner, beach outer — the villa really is deeper in that
+  // direction), so ten labels do not mean ten collisions.
+
+  // Two labels on one bearing stack instead of overlap: the farther steps
+  // to an outer ring.
+  // Collision: a label is wide, not a point, so anything under 0.42 rad of a
+  // neighbour steps to an outer ring — 52px out, because 34 still left two
+  // labels shingled in the second photograph. And the comparison wraps: the
+  // overlook (−159°) and the beach (+165°) are 35° apart THROUGH SOUTH and a
+  // plain sort-by-angle called them opposite ends of the line.
+  rows.sort(function (a, b) { return a.a - b.a; });
+  for (let i = 0; i < rows.length; i++) {
+    const prev = rows[(i + rows.length - 1) % rows.length];
+    const gap = i === 0 ? (rows[0].a + Math.PI * 2 - prev.a) : (rows[i].a - prev.a);
+    if (rows.length > 1 && Math.abs(gap) < 0.42) rows[i].out = (prev.out || 0) + 1;
+  }
+
+  ring.innerHTML = '';
+  rows.forEach(function (r) {
+    const b = document.createElement('button');
+    b.className = 'cmp-bearing';
+    const R = compassSoft.RADIUS + (r.out || 0) * 52;
+    b.style.left = (Math.sin(r.a) * R) + 'px';
+    b.style.top = (-Math.cos(r.a) * R) + 'px';
+    b.innerHTML = compassIconHTML(r.p.key) + ' ' + r.p.label.replace(/^The /, '').toLowerCase() +
+      (r.d > 55 ? '<span class="cb-far">far</span>' : '');
+    b.title = r.p.label + ' — click to go';
+    b.onclick = function (e) { e.stopPropagation(); compassSoftEnd(); goToPlaceFromRing(r.p.key); };
+    ring.appendChild(b);
+  });
+}
+
+// goToPlace closes the unfold via toggleNavMenu; from the ring the unfold
+// was never open, so going there must not open it.
+function goToPlaceFromRing(key) {
+  const m = document.getElementById('nav-menu');
+  const wasOpen = m && m.classList.contains('open');
+  goToPlace(key);
+  if (!wasOpen && m && m.classList.contains('open')) toggleNavMenu();
+}
+
+function compassSoftBegin() {
+  compassSoft.on = true;
+  compassRefreshSoft();
+  const hud = document.getElementById('compass-hud');
+  if (hud) hud.classList.add('soft');
+  // you can walk or turn while holding the hover — the ring keeps up
+  if (!compassSoft.timer) compassSoft.timer = setInterval(compassRefreshSoft, 600);
+}
+function compassSoftEnd() {
+  compassSoft.on = false;
+  const hud = document.getElementById('compass-hud');
+  if (hud) hud.classList.remove('soft');
+  if (compassSoft.timer) { clearInterval(compassSoft.timer); compassSoft.timer = null; }
+}
+
+(function initCompassHud() {
+  const hud = document.getElementById('compass-hud');
+  if (!hud) return;
+  hud.addEventListener('mouseenter', compassSoftBegin);
+  hud.addEventListener('mouseleave', compassSoftEnd);
+  hud.addEventListener('click', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('cmp-bearing')) return;
+    compassSoftEnd();
+    toggleNavMenu();
+  });
+  // the card keeps its bearing even when nobody is hovering — it is the one
+  // piece of chrome that is also an instrument reading
+  setInterval(function () {
+    hud.style.setProperty('--cmp-rot', 'rotate(' + compassCardAngle().toFixed(3) + 'rad)');
+  }, 250);
+})();
 
 function compassShow(view) {
   ['root', 'places', 'place', 'company', 'talks'].forEach(function (v) {
@@ -16296,10 +16499,12 @@ function updateNavBar() {
   });
 }
 
-// Show nav bar once approach animation completes
-function showNavBar() {
-  document.getElementById('nav-bar').classList.add('visible');
-}
+// The nav bar is gone (2026-08-09) — its three buttons are Instruments in
+// the compass unfold. The function stays because five call sites fire it at
+// the end of every camera flight, and each of them is really saying "the
+// flight is over, the chrome may come back": today that is nothing, and the
+// hook is where chrome-that-returns-after-a-flight would go.
+function showNavBar() {}
 
 // ============================================================
 // INPUT
