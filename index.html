@@ -1035,7 +1035,7 @@
   <div id="cmp-talks" style="display:none"></div>
   <div id="fp-list"></div>
   <textarea id="fp-text" class="tp-input" rows="2" placeholder="say something to the villa at large…" maxlength="400"></textarea>
-  <div id="fp-row"><button class="ui-btn" onclick="postGeneral()">say it to the villa</button>
+  <div id="fp-row"><button class="ui-btn" onclick="postGeneral()">speak in the villa</button>
   <button class="ui-btn" onclick="closeWaveMenu()">close</button></div>
   <div id="fp-note"></div>
 </div>
@@ -9516,11 +9516,13 @@ function openNotebook(room) {
   const el = document.getElementById('notebook-panel');
   if (!el) return;
   document.getElementById('nb-title').textContent =
-    room === 'exedra' ? 'The Exedra Notebook' : 'The Library Notebook';
+    room === 'exedra' ? 'The Exedra Notebook'
+    : room === 'bloomburger' ? 'BloomBurger'
+    : 'The Library Notebook';
   document.getElementById('nb-sub').textContent =
-    room === 'exedra'
-      ? 'comments, ideas — and files. what is added here is kept.'
-      : 'comments and ideas. what is written here is kept.';
+    room === 'exedra' ? 'comments, ideas — and files. what is added here is kept.'
+    : room === 'bloomburger' ? 'economic objects worth tracking — instruments, indicators, ideas. a notebook that means to become an application.'
+    : 'comments and ideas. what is written here is kept.';
   // Only the exedra's book takes files (ruled — Sailor asked for exactly this
   // asymmetry, and it echoes the wings' own: west veiled, east open).
   document.getElementById('nb-file-row').style.display = room === 'exedra' ? 'flex' : 'none';
@@ -9549,6 +9551,8 @@ function postNote() {
       box.value = '';
       if (note) note.textContent = 'kept.';
       renderNotebook();
+      // a page written into BloomBurger repaints the G4's glass too
+      try { if (room === 'bloomburger' && typeof redrawG4Screen === 'function') redrawG4Screen(); } catch (e) {}
     })
     .catch(function (err) { if (note) note.textContent = err.message; });
 }
@@ -9970,15 +9974,36 @@ function compassRenderTalks() {
 // ============================================================
 // THE ANNOUNCEMENT BANNER — the not-a-toll half of the series
 // ============================================================
-const announceState = { entry: null };
+const announceState = { entry: null, custom: null };
 function announceShow(entry, why) {
   if (!entry || announceState.entry === entry) return;
   if (threshold.showing) return;
   announceState.entry = entry;
+  announceState.custom = null;
   const el = document.getElementById('announce');
   const t = document.getElementById('an-text');
+  const btns = el ? el.querySelectorAll('.ui-btn') : [];
+  if (btns[0]) btns[0].textContent = 'listen';
+  if (btns[1]) btns[1].textContent = 'later';
   if (t) t.textContent = why || ('Ted has something to say — “' + talkTitle(entry) + '”');
   if (el) el.classList.add('open');
+}
+
+// The banner can also carry a CUSTOM notice — same corner, same two
+// buttons, no talk behind it. First use: telling a resident about the
+// BloomBurger, below.
+function announceCustom(text, openLabel, onOpen) {
+  if (threshold.showing) return false;
+  announceState.entry = null;
+  announceState.custom = { onOpen: onOpen || null };
+  const el = document.getElementById('announce');
+  const t = document.getElementById('an-text');
+  const btns = el ? el.querySelectorAll('.ui-btn') : [];
+  if (btns[0]) btns[0].textContent = openLabel || 'have a look';
+  if (btns[1]) btns[1].textContent = 'later';
+  if (t) t.textContent = text;
+  if (el) el.classList.add('open');
+  return true;
 }
 function announceHide() {
   const el = document.getElementById('announce');
@@ -9987,11 +10012,15 @@ function announceHide() {
 }
 function announceOpen() {
   const e = announceState.entry;
+  const c = announceState.custom;
+  announceState.custom = null;
   announceHide();
+  if (c) { if (c.onOpen) try { c.onOpen(); } catch (err) {} return; }
   if (e) openThreshold(e, { rewatch: true });
 }
 function announceDismiss() {
   if (announceState.entry) markHeard(announceState.entry.id);
+  announceState.custom = null;
   announceHide();
 }
 
@@ -15213,6 +15242,28 @@ function waveUnheardTick() {
   setInterval(waveUnheardTick, 8000);
   setTimeout(waveUnheardTick, 12000);
   setTimeout(waveHintRefresh, 9000);   // after arrival settles — a hint under the threshold is noise
+
+  // ── WORD FOR ADLIB (2026-08-09, Sailor) ──
+  // The next time Adlib's key is on a device, the banner mentions — once,
+  // and to him only — that something new is sitting on the G4. The notice
+  // says what is there, not who it is for; the notebook is anyone's, and a
+  // gift labelled with its recipient stops being a discovery.
+  const bloomTold = function () {
+    try { return !!localStorage.getItem('dg_bloom_note'); } catch (e) { return false; }
+  };
+  const bloomTick = setInterval(function () {
+    if (bloomTold()) { clearInterval(bloomTick); return; }
+    const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+    if (!id || id.avatar !== 'adlib') return;
+    if (typeof threshold !== 'undefined' && threshold.showing) return;
+    const shown = announceCustom('something new on the G4 — a notebook called BloomBurger',
+      'have a look',
+      function () { try { navTo('iMac G4'); } catch (e) {} });
+    if (shown) {
+      try { localStorage.setItem('dg_bloom_note', '1'); } catch (e) {}
+      clearInterval(bloomTick);
+    }
+  }, 15000);
 })();
 
 (function initCompassHud() {
@@ -18297,6 +18348,12 @@ function toggleMode() {
 // iMAC G4 PANEL — Inspect routing, Chat, Notes
 // ============================================================
 const g4State = {
+  // THE DESKTOP (2026-08-09, Sailor): the G4 is a computer now, not one
+  // application wearing a computer's body. It boots to a desktop; the
+  // Prism Workstation (the graphmap tools) is an application you open, and
+  // beside it sits BloomBurger — a notebook first, an application later,
+  // becoming one as its pages fill. null = the desktop.
+  app: null,
   visible: false,
   floatMode: false,
   floatExpanded: false,  // true = floating screen zoomed closer
@@ -19372,7 +19429,25 @@ function redrawG4Screen() {
   ctx.font = '400 ' + Math.round(18 * S) + 'px Georgia';
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText('iMac G4 · Prism Workstation', Math.round(65 * S), Math.round(28 * S));
+  ctx.fillText(g4State.app === 'prism' ? 'iMac G4 · Prism Workstation'
+             : g4State.app === 'bloomburger' ? 'iMac G4 · BloomBurger'
+             : 'iMac G4', Math.round(65 * S), Math.round(28 * S));
+
+  // ⌂ back to the desktop, whenever an application is open
+  if (g4State.app) {
+    var dtW = Math.round(90 * S), dtX = W - Math.round(285 * S);
+    g4Screen.hitRegions.push({ x: dtX, y: Math.round(8 * S), w: dtW, h: Math.round(34 * S), action: 'desktop' });
+    ctx.fillStyle = 'rgba(48,96,192,' + op(0.08) + ')';
+    ctx.strokeStyle = 'rgba(48,96,192,' + op(0.15) + ')';
+    ctx.lineWidth = 1;
+    ctx.fillRect(dtX, Math.round(8 * S), dtW, Math.round(34 * S));
+    ctx.strokeRect(dtX, Math.round(8 * S), dtW, Math.round(34 * S));
+    ctx.fillStyle = cream + op(0.35) + ')';
+    ctx.font = Math.round(11 * S) + 'px Georgia';
+    ctx.textAlign = 'center';
+    ctx.fillText('DESKTOP', dtX + dtW / 2, Math.round(28 * S));
+    ctx.textAlign = 'left';
+  }
 
   // Float button (or Exit when screen-locked, or Dock when floating)
   var hdrBtnW = Math.round(75 * S), hdrBtnH = Math.round(34 * S);
@@ -19439,6 +19514,15 @@ function redrawG4Screen() {
     ctx.font = Math.round(11 * S) + 'px Georgia';
     ctx.textAlign = 'center';
     ctx.fillText('FLOAT', hdrBtn2X + hdrBtn2W / 2, hdrBtnMid);
+  }
+
+  // ── The desktop and BloomBurger take the whole pane; the tabs are the
+  //    Workstation's own furniture ──
+  if (g4State.app !== 'prism') {
+    if (g4State.app === 'bloomburger') drawG4Bloomburger(ctx, W, H, hdrH, cream, blue, S);
+    else drawG4Desktop(ctx, W, H, hdrH, cream, blue, S);
+    g4ScreenTex.needsUpdate = true;
+    return;
   }
 
   // ── Tab bar (hdrH – tabBottom) ──
@@ -19516,6 +19600,101 @@ function redrawG4Screen() {
   }
 
   g4ScreenTex.needsUpdate = true;
+}
+
+// ── THE DESKTOP ──────────────────────────────────────────────────────────
+function drawG4Desktop(ctx, W, H, hdrH, cream, blue, S) {
+  const apps = [
+    { id: 'prism', glyph: '✳', name: 'Prism Workstation', sub: 'the graphmap tools' },
+    { id: 'bloomburger', glyph: '🍔', name: 'BloomBurger', sub: 'an economic notebook' },
+  ];
+  const cw = Math.round(250 * S), ch = Math.round(190 * S), gap = Math.round(70 * S);
+  const x0 = W / 2 - cw - gap / 2, y0 = hdrH + Math.round(150 * S);
+  apps.forEach(function (a, i) {
+    const x = x0 + i * (cw + gap);
+    g4Screen.hitRegions.push({ x: x, y: y0, w: cw, h: ch, action: 'openApp', data: a.id });
+    ctx.fillStyle = blue + '0.07)';
+    ctx.strokeStyle = blue + '0.18)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(x, y0, cw, ch, 10); ctx.fill(); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = Math.round(52 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.75) + ')';
+    ctx.fillText(a.glyph, x + cw / 2, y0 + Math.round(70 * S));
+    ctx.font = '600 ' + Math.round(17 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.6) + ')';
+    ctx.fillText(a.name, x + cw / 2, y0 + Math.round(135 * S));
+    ctx.font = 'italic ' + Math.round(12 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.32) + ')';
+    ctx.fillText(a.sub, x + cw / 2, y0 + Math.round(160 * S));
+  });
+  ctx.font = 'italic ' + Math.round(13 * S) + 'px Georgia';
+  ctx.fillStyle = cream + op(0.25) + ')';
+  ctx.textAlign = 'center';
+  ctx.fillText('click an application', W / 2, y0 + ch + Math.round(60 * S));
+}
+
+// ── BLOOMBURGER ──────────────────────────────────────────────────────────
+// A notebook first, an application later. The pages are ordinary notebook
+// entries (marker dg:note:bloomburger — the same feed, the same door, the
+// same archive as every other book in the villa), read here on the glass;
+// writing happens in the notebook panel, one button away. As the pages
+// accumulate instruments and objects worth tracking, this pane grows the
+// charts — the notebook BECOMES the application, which is the point.
+function drawG4Bloomburger(ctx, W, H, hdrH, cream, blue, S) {
+  let y = hdrH + Math.round(46 * S);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '600 ' + Math.round(30 * S) + 'px Georgia';
+  ctx.fillStyle = cream + op(0.7) + ')';
+  ctx.fillText('🍔 BloomBurger', W / 2, y);
+  y += Math.round(30 * S);
+  ctx.font = 'italic ' + Math.round(13 * S) + 'px Georgia';
+  ctx.fillStyle = cream + op(0.35) + ')';
+  ctx.fillText('a notebook first — it becomes an application as the pages fill', W / 2, y);
+  y += Math.round(24 * S);
+  // the write button
+  const bw = Math.round(180 * S), bh = Math.round(36 * S), bx = W / 2 - bw / 2;
+  g4Screen.hitRegions.push({ x: bx, y: y, w: bw, h: bh, action: 'bloomWrite' });
+  ctx.fillStyle = blue + '0.1)'; ctx.strokeStyle = blue + '0.2)'; ctx.lineWidth = 1;
+  ctx.fillRect(bx, y, bw, bh); ctx.strokeRect(bx, y, bw, bh);
+  ctx.font = Math.round(12 * S) + 'px Georgia';
+  ctx.fillStyle = cream + op(0.5) + ')';
+  ctx.fillText('WRITE IN IT', W / 2, y + bh / 2);
+  y += bh + Math.round(30 * S);
+  // the pages, newest first
+  const pages = (typeof feedState !== 'undefined' ? feedState.entries || [] : [])
+    .filter(function (e) { return typeof notebookRoom === 'function' && notebookRoom(e) === 'bloomburger'; })
+    .sort(function (a, b) { return a.t < b.t ? 1 : -1; })
+    .slice(0, 8);
+  ctx.textAlign = 'left';
+  if (!pages.length) {
+    ctx.font = 'italic ' + Math.round(14 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.28) + ')';
+    ctx.textAlign = 'center';
+    ctx.fillText('the pages are blank. someone has to be first.', W / 2, y + Math.round(40 * S));
+    return;
+  }
+  const pad = Math.round(70 * S), wrapW = W - pad * 2;
+  pages.forEach(function (e) {
+    if (y > H - 60) return;
+    const pr = (typeof PROFILES !== 'undefined' && PROFILES[e.author]) || { emoji: '·', name: e.author };
+    ctx.font = Math.round(11 * S) + 'px Georgia';
+    ctx.fillStyle = blue + '0.55)';
+    ctx.fillText(pr.emoji + ' ' + pr.name + ' · ' + timeAgo(e.t), pad, y);
+    y += Math.round(18 * S);
+    ctx.font = Math.round(14 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.55) + ')';
+    const words = String(e.text || '').split(' ');
+    let line = '';
+    words.forEach(function (w) {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > wrapW && line) {
+        ctx.fillText(line, pad, y); y += Math.round(19 * S); line = w;
+      } else line = test;
+    });
+    if (line) { ctx.fillText(line, pad, y); y += Math.round(19 * S); }
+    y += Math.round(12 * S);
+  });
 }
 
 function drawG4Inspect(ctx, W, H, startY, cream, blue, clipTop, S) {
@@ -20115,8 +20294,43 @@ function drawG4Story(ctx, W, H, startY, cream, blue, clipTop) {
 // Initial draw
 redrawG4Screen();
 
+// ── THE IRAN TRACE STANDS BY DEFAULT (2026-08-09, Sailor) ──
+// The gallery's graphmap no longer waits for the introduction's 30-second
+// mark or a hand on the easel: TS01 — US Military Strikes on Iran,
+// Operation Epic Fury — is up when the villa opens, the way a museum hangs
+// its current exhibition rather than an empty frame. The address's own
+// draft cue still fires and is idempotent; the easel flips to the event
+// card; the G4 stays on its desktop regardless (the Workstation is an
+// application now, and loading a trace does not barge into it).
+setTimeout(function () {
+  try {
+    if (typeof PrismTraces === 'undefined' || typeof loadTraceOnEasel !== 'function') return;
+    if (parchState.loadedTraceData) return;        // a hand got there first
+    const td = PrismTraces.get('TS01');
+    if (!td) return;
+    if (typeof graphmapVisible !== 'undefined' && !graphmapVisible &&
+        typeof toggleGraphmap === 'function') toggleGraphmap();
+    loadTraceOnEasel(td);
+  } catch (e) {}
+}, 3500);
+
 function handleG4ScreenClick(region) {
+  if (region.action === 'openApp') {
+    g4State.app = region.data;
+    redrawG4Screen();
+    return;
+  }
+  if (region.action === 'desktop') {
+    g4State.app = null;
+    redrawG4Screen();
+    return;
+  }
+  if (region.action === 'bloomWrite') {
+    openNotebook('bloomburger');
+    return;
+  }
   if (region.action === 'tab') {
+    g4State.app = 'prism';   // a tab click is Workstation business by definition
     g4Screen.activeTab = region.data;
     g4State.activeTab = region.data;
     redrawG4Screen();
