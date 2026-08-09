@@ -112,6 +112,19 @@
     transform: translateX(-50%); z-index: 12; width: 84px; height: 84px;
     cursor: pointer; transition: height 0.35s ease; }
   #compass-hud.soft { height: 224px; }
+  /* THE OSCILLATION FIX (2026-08-09, Sailor: "the entire compass with the
+     icons glitches and oscillates violently up and down").
+     The ring labels stand up to 170px from a box 84px wide, so the cursor
+     moving dial→label crossed empty screen, mouseleave fired, the box
+     collapsed, the dial fell back INTO the cursor, re-entered, rose again —
+     a feedback loop through the cursor's own position. The fix is a hit
+     surface, not a timer: while soft, an invisible disc spans the whole
+     ring, so the space between the labels is still "inside" the compass and
+     leave only fires when the hand genuinely goes away. (A pseudo-element
+     with pointer-events extends its owner's hit region — no DOM, no JS.) */
+  #compass-hud.soft::before { content: ''; position: absolute;
+    left: 50%; top: 42px; width: 400px; height: 400px;
+    transform: translate(-50%, -50%); border-radius: 50%; }
   #compass-dial { position: absolute; top: 0; left: 50%; margin-left: -42px;
     width: 84px; height: 84px; }
   /* RULED 2026-08-09 (Sailor): "let's not rotate the compass, let's just
@@ -898,7 +911,8 @@
 
      The art is art/icons/compass.png — Sailor's drawing takes over this
      file; the one shipped is a same-palette stand-in. -->
-<div id="compass-hud" title="the Compass — hover to get your bearings, click to unfold">
+<!-- no title attribute: the browser tooltip photobombed the ring -->
+<div id="compass-hud" aria-label="the Compass — hover to get your bearings, click to unfold">
   <div id="compass-dial">
     <div id="compass-ring"></div>
     <img id="compass-img" src="art/icons/compass.png" alt=""
@@ -14559,16 +14573,25 @@ function compassBearing(from, p) {
   return Math.atan2(p.x - from.x, -(p.z - from.z));   // 0 = north, +east
 }
 
-// The needle points at world north's screen angle, which is θ (see the
-// arithmetic above) — minus the angle the needle is DRAWN at. Sailor's red
-// end sits 0.659 rad east of straight up on the layer as cut.
+// RULED 2026-08-09 (Sailor): "lock the compass' orientation as the beach
+// being south" — the dial is FIXED TO THE WORLD now. North is up, the
+// letters mean what they say, and the beach sits below the dial from
+// everywhere in the villa because that is where the beach is (a shade east
+// of due south — the sand stands at x 15, and the dial tells the truth
+// rather than the round number).
+//
+// Which frees the needle for the only job left: THE NEEDLE IS YOU. It
+// points the way you are facing, across a card that no longer moves — hold
+// the compass up, turn, and the needle sweeps the labels; whatever it
+// points at is what you are looking at. Facing bearing is −camTheta (see
+// the arithmetic above), minus the 0.659 rad the needle is drawn at.
 const COMPASS_NEEDLE_NATIVE = 0.659;
 // Unwrapped: CSS transitions take the long way round a ±π jump, and a
 // needle that whips 350° to move 10° is a broken instrument. Track a
 // continuous angle and step to the nearest equivalent.
 let _needleCont = 0;
 function compassNeedleAngle() {
-  let want = camTheta - COMPASS_NEEDLE_NATIVE;
+  let want = -camTheta - COMPASS_NEEDLE_NATIVE;
   const k = Math.round((_needleCont - want) / (Math.PI * 2));
   _needleCont = want + k * Math.PI * 2;
   return _needleCont;
@@ -14581,8 +14604,15 @@ function compassRefreshSoft() {
   if (!hud || !ring) return;
   const me = summonerPoint();
   if (here) here.textContent = nearestPlace(me);
-  const theta = camTheta;
   hud.style.setProperty('--ndl', 'rotate(' + compassNeedleAngle().toFixed(3) + 'rad)');
+  // REBUILD ONLY WHEN THE WORLD CHANGED. With the dial locked, the labels
+  // move only when YOU move — and the old 600ms unconditional rebuild was
+  // replacing the node under the cursor mid-hover, which ate clicks and fed
+  // the same glitch Sailor saw. Standing still, nothing is touched.
+  if (compassSoft.lastAt && me.distanceTo(compassSoft.lastAt) < 2 &&
+      compassSoft.lastKnown === compassVisited.size) return;
+  compassSoft.lastAt = me.clone();
+  compassSoft.lastKnown = compassVisited.size;
 
   // The nearest handful of KNOWN places — the ring respects hidden-until-
   // visited exactly as the list does, so discovery is never leaked by a
@@ -14590,7 +14620,7 @@ function compassRefreshSoft() {
   const rows = PLACE_REGISTRY.filter(compassPlaceKnown)
     .map(function (p) {
       const d = Math.hypot(p.x - me.x, p.z - me.z);
-      return { p: p, d: d, a: compassBearing(me, p) + theta };
+      return { p: p, d: d, a: compassBearing(me, p) };   // absolute: the dial is the world's
     })
     .sort(function (a, b) { return a.d - b.d; })
     .filter(function (r) { return r.d > 2.5; })       // not the one you are standing in
@@ -14641,10 +14671,11 @@ function goToPlaceFromRing(key) {
 
 function compassSoftBegin() {
   compassSoft.on = true;
+  compassSoft.lastAt = null;                 // force one build
   compassRefreshSoft();
   const hud = document.getElementById('compass-hud');
   if (hud) hud.classList.add('soft');
-  // you can walk or turn while holding the hover — the ring keeps up
+  // you can walk while holding the hover — the ring keeps up
   if (!compassSoft.timer) compassSoft.timer = setInterval(compassRefreshSoft, 600);
 }
 function compassSoftEnd() {
@@ -14657,8 +14688,17 @@ function compassSoftEnd() {
 (function initCompassHud() {
   const hud = document.getElementById('compass-hud');
   if (!hud) return;
-  hud.addEventListener('mouseenter', compassSoftBegin);
-  hud.addEventListener('mouseleave', compassSoftEnd);
+  // A grace period on top of the hit disc: a hand that clips out across the
+  // disc's rim for 200ms is passing, not leaving.
+  let softLeaveTimer = null;
+  hud.addEventListener('mouseenter', function () {
+    if (softLeaveTimer) { clearTimeout(softLeaveTimer); softLeaveTimer = null; }
+    compassSoftBegin();
+  });
+  hud.addEventListener('mouseleave', function () {
+    if (softLeaveTimer) clearTimeout(softLeaveTimer);
+    softLeaveTimer = setTimeout(function () { softLeaveTimer = null; compassSoftEnd(); }, 200);
+  });
   hud.addEventListener('click', function (e) {
     if (e.target && e.target.classList && e.target.classList.contains('cmp-bearing')) return;
     compassSoftEnd();
