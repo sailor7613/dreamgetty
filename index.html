@@ -9621,8 +9621,8 @@ const ADDRESS_FLYOVER = [
   { look: [6, -10.5, 82], off: [11, 17, 25],  dur: 5.5 },   // over the beach and the river mouth
   { look: [0, -6.0, 58],  off: [6, 15, 27],   dur: 5.0 },   // up the channel through the valley
   { look: [-3, -1.0, 40], off: [6, 13, 23],   dur: 4.5 },   // over the cliff lip
-  { look: [0, 1.5, 19],   off: [6, 7.5, 20],  dur: 5.0 },   // the pool, filling
-  { look: [0, 2.3, 12],   off: [4.5, 4.0, 15],dur: 4.5 },   // and the speaker on his step
+  { look: [0, -3.0, 33],  off: [6, 10, 20],   dur: 5.0 },   // the lawn, filling with the house
+  { look: [0, 2.2, 27.5], off: [5, 3.6, 14],  dur: 4.5 },   // and the speaker at the lip, villa behind
 ];
 const flyover = { i: -1, timer: null };
 function flyoverStop() {
@@ -9655,15 +9655,11 @@ function addressApplyCue(name) {
     // photograph showed. The three tiers only read as three from above the
     // top one, so it sits high as well as back.
     cameraGlide([0, 0.9, 20.0], [6.5, 3.6, -8.0], 4.2);
-    // From the terrace edge beside him, looking down the water. Two earlier
-    // framings and two photographs to arrive here: set up PAST the pool and
-    // Ted is missing from his own reaction shot; set up BEHIND him inside
-    // the colonnade and a column stands in the middle of the frame.
-    //
-    // And the third finding is the useful one: [[house]] should not try to
-    // hold them both. It is the reaction shot — the crowd is the subject,
-    // and the speaker has his own cue. Fighting the colonnade to get a
-    // shoulder into the corner of the frame was solving the wrong problem.
+    // Over his shoulder and out at them, from back along the causeway. The
+    // stone he is standing on is the only thing behind him, so unlike the
+    // pool staging there is no column to set up behind and nothing between
+    // the lens and the crowd — the whole reason the stage moved.
+    cameraGlide([0, -3.0, 33.0], [4.5, 7.0, -11.0], 4.2);
     return true;
   }
   const pl = PLACE_REGISTRY.find(function (p) {
@@ -9974,85 +9970,116 @@ function addressFaceTheHouse() {
 // to gatherAdd, which already takes one.
 // ============================================================
 // ============================================================
-// THE HOUSE IN SESSION (2026-08-09, Sailor: "be a little more intentional
-// with the avatars… where Ted should stand… gather around at the level of
-// the reflection pool, looking in towards the Galleria")
+// THE HOUSE IN SESSION — second staging (2026-08-09, Sailor: "I want all of
+// the avatars to gather on the same plane for things like this… they're
+// kind of obscured from Ted")
 //
-// This seating is READ OFF THE TERRAIN rather than struck as an arc, and the
-// terrain turns out to have built an amphitheatre already. Sampled:
+// "Obscured" was made MEASURABLE before anything moved: a ray from Ted's eye
+// to every seat, against every solid mesh in the scene. The first staging —
+// the three tiers at the pool — scored **9 of 16 in his sightline, height
+// spread 4.05**. Seven of the house were behind something.
 //
-//   the stylobate   |x| < 14, z −9…12      y  1.5   — Ted's step
-//   the causeway    |x| < 4,  z 12…28      y  1.5   — a raised spit, and the
-//                                                     pool fills all but a
-//                                                     metre of it
-//   the reflection pool  |x| < 3, z 13…27           — water, on the spit
-//   the lawn either side  |x| 6…12          y −1…−3 — it FALLS AWAY
+// And the obvious fix makes it worse. Flattening them onto the lawn beside
+// the pool at a single z is perfectly coplanar (spread 0.00) and scores
+// **2 of 8**, because THE CAUSEWAY IS THE BLOCKER: the pool stands three
+// metres proud of the grass on both sides, so anyone on the lawn beside it
+// is standing behind a wall. The terrace is the villa's one big flat plane,
+// 76 units with both courts, and it has the colonnade standing in it —
+// 12 of 18 from the step, 7 of 27 out in the courts. Every arrangement that
+// keeps him on the top step is blocked by something.
 //
-// So the pool is a causeway standing three metres proud of the ground on
-// both sides, pointing at the front steps. Three tiers, no invention:
-// swimmers in the water, the small and the light on the stone lip, the
-// heavy ones on the grass below — all of them looking up the spit at a
-// coyote standing on the top step with the colonnade behind him.
+// So the speaker moves, and the geometry chose where: **the far lip of the
+// causeway, z 27.5.** Still stone at 1.5, past the water, with the whole
+// villa behind him as a backdrop and the lawn falling three and a half
+// metres away in front of him. Everything the top step gave — height, the
+// building behind, a house below looking up — with nothing in the way.
 //
-// TED'S MARK is z 11.0: the last metre of stylobate before the drop, just
-// outside the columns the patrol calls "out through the colonnade". Above
-// them and in front of the building rather than swallowed by it.
-const TED_MARK = { x: 0, z: 11.0 };
+// Measured after: **16 of 16, spread 0.58.**
+// ON THE AXIS, AT z 27.0 — the pool's coping, and the two numbers that fix
+// it pull in opposite directions.
+//
+// The VENUS stands on this axis at z 28.2, her plinth spanning z 27.7–28.7,
+// and the first photograph had a coyote inside it. The obvious dodge — step
+// 2.4 off the centre line — dropped his sightline from 16 of 16 to EIGHT,
+// because from beside her she stands between him and the whole left wing.
+//
+// On the axis she blocks nobody, and the reason is a coincidence worth
+// keeping: the house is seated in two wings with the river channel between
+// them, and the Venus is standing in the gap. The only thing directly in
+// front of him is the one direction nobody is sitting in.
+//
+// So: on the axis, and 8cm back from her plinth. Reared he measures 1.44 in
+// z; at 27.0 his box ends at 27.61 and hers begins at 27.70. That margin is
+// asserted in test_stage — it is thin enough that the next change to the
+// pose would eat it silently.
+const TED_MARK = { x: 0, z: 27.0 };
+// Where the house stands, and therefore where he turns to face.
+const ADDRESS_STAGE = { x: 0, z: 33.0 };
 
-// Per-resident, and deliberately not evenly. Sailor: "don't worry about
-// trying to feature everyone evenly."
-//   water    — the pool is theirs, down its far half. RULED 2026-08-09
-//              (Sailor): Trout gets NO special place. He was the first
-//              avatar in the villa by pure coincidence and the staging kept
-//              quietly treating him as the deuteragonist — he ended up
-//              hanging at eye level beside the speaker in two photographs
-//              running. The swimmers now start at z 18.6, seven and a half
-//              metres out from the step, and the fish is one of five
-//   lip      — the metre of stone at the water's edge: small feet only
-//   lawn     — the grass shoulder, three metres down. The big bodies, and
-//              Petra hauled out on the grass, which is the image 07-31
-//              explicitly ruled it wanted rather than a rule forbidding it
-//   air      — they are not seated. Luke cannot land at all, so the
-//              albatross circling the gathering is not a compromise
+// TWO CONTOUR RANKS ON THE OPEN LAWN.
+// Out here the ground falls with z and is flat across x, so a line of
+// constant z IS a contour line — a rank is exactly coplanar by construction
+// rather than by luck. Two of them, 3.5 apart, differ by 0.40; the scatter
+// jitter adds 0.18. Against 4.05 that is one ground.
+const ADDRESS_RANK_Z = [31.5, 34.6];
+const ADDRESS_RANK_HALFWIDTH = 11.5;
+
+// SHORT IN FRONT, TALL BEHIND — which is the actual anti-occlusion rule for
+// a crowd standing on one plane, and the reason this table exists at all.
+// (It used to describe ELEVATION: water, lip, lawn, air. On one plane that
+// distinction has nothing left to say, so it now says the thing that does.)
+//
+// Sailor: "I actually like your scatter logic here" — so the rank is not a
+// firing line. Each seat carries a deterministic jitter in x and z, keyed
+// off the name, and the back rank is offset half a step so nobody stands
+// directly behind anybody.
 const ADDRESS_SEATING = {
-  trout:  { tier: 'water', slot: 0 },
-  otter:  { tier: 'water', slot: 1 },
-  kyle:   { tier: 'water', slot: 2 },
-  turtle: { tier: 'water', slot: 3 },
-  seal:   { tier: 'water', slot: 4 },
-  emilia: { tier: 'lip',   slot: 0 },
-  adlib:  { tier: 'lip',   slot: 1 },
-  edburg: { tier: 'lip',   slot: 2 },
-  julia:  { tier: 'lip',   slot: 3 },
-  y2k:     { tier: 'lawn', slot: 0 },
-  houston: { tier: 'lawn', slot: 1 },
-  diddy:   { tier: 'lawn', slot: 2 },
-  alrik:   { tier: 'lawn', slot: 3 },
-  petra:   { tier: 'lawn', slot: 4 },
-  austin: { tier: 'air',  slot: 0 },
-  luke:   { tier: 'air',  slot: 1 },
+  // front rank — low to the ground
+  emilia: { rank: 0, slot: 0 }, adlib:  { rank: 0, slot: 1 },
+  edburg: { rank: 0, slot: 2 }, trout:  { rank: 0, slot: 3 },
+  otter:  { rank: 0, slot: 4 }, turtle: { rank: 0, slot: 5 },
+  kyle:   { rank: 0, slot: 6 }, seal:   { rank: 0, slot: 7 },
+  // back rank — the tall and the wide
+  y2k:    { rank: 1, slot: 0 }, houston: { rank: 1, slot: 1 },
+  diddy:  { rank: 1, slot: 2 }, alrik:   { rank: 1, slot: 3 },
+  petra:  { rank: 1, slot: 4 }, julia:   { rank: 1, slot: 5 },
+  austin: { rank: 1, slot: 6 }, luke:    { rank: 1, slot: 7 },
 };
 
+// A jitter that is the same every time for a given name — the scatter has to
+// survive a reload, or the villa rearranges itself behind your back.
+function addressJitter(key, salt) {
+  let h = salt * 2654435761;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return ((h % 1000) / 1000) * 2 - 1;        // −1 … 1
+}
+
+// THE RIVER RUNS THROUGH THE MIDDLE OF THE STAGE, and the first pass sat two
+// residents in it. `riverCenterX` is 0 the whole way down the valley, so the
+// lawn is cut by a channel on the centre line: seats near x 0 dropped to
+// −5.09 against −3.62 on the banks, which blew the spread out to 1.48 and
+// hid Trout and Alrik behind the channel's own bank. Measured, not guessed —
+// the same ray from Ted's eye that condemned the pool staging.
+//
+// So the ranks are two WINGS with the water between them, |x| 5.5 to 15.5,
+// and the river runs down the middle of the gathering to the speaker at its
+// head. Not a workaround: it is the third time this staging has been solved
+// by reading the ground instead of drawing on it.
+const ADDRESS_CHANNEL = 4.5;      // keep clear of the cut
+
 function addressSeat(key, index) {
-  const seat = ADDRESS_SEATING[key] || { tier: 'lawn', slot: index || 0 };
-  const n = seat.slot;
-  let x, z;
-  if (seat.tier === 'water') {
-    // Down the pool's own axis, alternating sides of the centre line.
-    x = (n % 2 ? 1 : -1) * (0.9 + (n % 3) * 0.5);
-    z = 18.6 + n * 1.7;          // the far half of the water, never his shoulder
-  } else if (seat.tier === 'lip') {
-    // The metre of stone between the water and the drop. Facing in.
-    x = (n % 2 ? 1 : -1) * 3.5;
-    z = 15.5 + Math.floor(n / 2) * 4.5;
-  } else if (seat.tier === 'air') {
-    x = (n % 2 ? 1 : -1) * 5.5;
-    z = 19 + n * 3;
-  } else {
-    // The grass, staggered so the back of one is not the front of another.
-    x = (n % 2 ? 1 : -1) * (7.0 + (n % 3) * 1.6);
-    z = 14.5 + Math.floor(n / 2) * 4.2 + (n % 2) * 1.4;
-  }
+  const seat = ADDRESS_SEATING[key] || { rank: 1, slot: (index || 0) % 8 };
+  const side = seat.slot < 4 ? -1 : 1;                  // four to a wing
+  const i = seat.slot % 4;
+  const span = ADDRESS_RANK_HALFWIDTH - ADDRESS_CHANNEL;
+  const step = span / 3;
+  const half = seat.rank === 1 ? step * 0.5 : 0;        // the back rank sees between heads
+  // The x jitter is capped at 0.40 and that number is not taste: the wing
+  // step is 2.33, so anything above 0.41 can close two neighbours to under
+  // 1.5 and the tightened ranks put a stoat inside a greyhound. Measured
+  // worst case now 1.53.
+  const x = side * (ADDRESS_CHANNEL + i * step + half) + addressJitter(key, 1) * 0.40;
+  const z = ADDRESS_RANK_Z[seat.rank] + addressJitter(key, 2) * 0.8;
   return new THREE.Vector3(x, getVisitorHeight(x, z), z);
 }
 
@@ -10090,15 +10117,18 @@ function addressAudienceSpots(keys, origin) {
 // traveller is within 8 units of it, or after 45 seconds — because the
 // turtle takes 78 to cross the bay and that is correct and is the joke.
 // ============================================================
+// The stage moved out past the pool, so the last leg of each route was
+// landing inside the seating. Trimmed: the river now hands over in the
+// valley and the seat itself is the final leg, and the ridge route comes
+// round the west side and down onto the lawn.
 const ADDRESS_RIVER = [
   { x: 0, z: 84 },    // the mouth, where the river crosses the sand
   { x: 0, z: 58 },    // up the channel through the valley
-  { x: 0, z: 34 },    // over the cliff lip and onto the lawn
 ];
 const ADDRESS_RIDGE = [
   { x: -13, z: -26 }, // off the back range
   { x: -12, z: -2 },  // across the north lawn
-  { x: -8,  z: 12 },  // round the west side of the house to the pool
+  { x: -11, z: 22 },  // round the west side of the house and the pool
 ];
 
 // WHERE A RESIDENT COMES FROM WHEN IT IS NOT ANYWHERE YET.
@@ -10141,8 +10171,8 @@ function addressRoute(key, seat) {
 
 function addressGather() {
   if (typeof gatherBegin !== 'function') return 0;
-  const pool = placePoint('pool') || new THREE.Vector3(0, BUILDING_Y, 20);
-  gatherBegin('The Reflection Pool', pool);
+  const stage = new THREE.Vector3(ADDRESS_STAGE.x, getVisitorHeight(ADDRESS_STAGE.x, ADDRESS_STAGE.z), ADDRESS_STAGE.z);
+  gatherBegin('The Lawn', stage);
   const keys = (typeof ASSIGNABLE !== 'undefined' ? ASSIGNABLE : [])
     .filter(function (k) { return typeof RESIDENTS !== 'undefined' && RESIDENTS[k]; });
   let n = 0;
@@ -10350,7 +10380,11 @@ function openThreshold(entry, opts) {
   TED_REAR.mark.set(TED_MARK.x, 0, TED_MARK.z);
   TED_REAR.mark.y = getTedHeight(TED_REAR.mark.x, TED_REAR.mark.z);
   TED_REAR.base.copy(TED_REAR.mark);
-  TED_REAR.faceYaw = 0;                        // nose is +z: out over the pool, at the house
+  // He turns to the house rather than to a compass bearing — he is standing
+  // off the axis now, and a speaker who faces straight ahead from off-centre
+  // is addressing the hedge.
+  TED_REAR.faceYaw = Math.atan2(ADDRESS_STAGE.x - TED_REAR.mark.x,
+                                ADDRESS_STAGE.z - TED_REAR.mark.z);
   tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
 
   // ── and the cast comes in from wherever it lives ──
@@ -10370,7 +10404,7 @@ function openThreshold(entry, opts) {
   if (opts.flyover !== false && isIntro) {
     flyoverBegin();                            // the whole space, from the sea inwards
   } else {
-    cameraGlide([0, 1.5, 18], [6, 7.0, 19], 4.4);   // straight to the pool
+    cameraGlide([0, 2.2, 27.5], [5, 3.6, 14], 4.4);   // straight to the speaker
   }
   addressTakeTheCamera();                      // orbiting, centred on him, yours to zoom
   if (isIntro) A.draftTimer = setTimeout(addressShowDraft, ADDRESS_DRAFT_DELAY);
