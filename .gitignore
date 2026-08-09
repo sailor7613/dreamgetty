@@ -7,3 +7,9 @@ Thumbs.db
 *.swp
 
 _to_delete/
+
+# 13GB of Sailor's sunset photos — palette source material, NEVER deployed.
+# The villa samples their colours (art/sunset_palettes, inlined in index.html)
+# and draws its own sunset each night. Committing these would sink the Pages
+# deploy and GitHub refuses >100MB files regardless.
+art/Sunsets/
