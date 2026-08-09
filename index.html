@@ -369,6 +369,26 @@
   #fc-head.mine #fc-edit { display: inline-block; }
   .fc-profile { font-style: italic; opacity: .6; }
 
+  #notebook-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 950; display: none; width: min(560px, 92vw); max-height: 84vh;
+    overflow-y: auto; background: rgba(12,14,18,0.96); color: #e8e4dc;
+    border: 1px solid rgba(140,150,165,0.3); border-radius: 10px; padding: 22px 24px; }
+  #notebook-panel.open { display: block; }
+  #nb-title { font-family: Georgia, serif; letter-spacing: .14em; font-size: 15px; }
+  #nb-sub { font-style: italic; opacity: .55; font-size: 12px; margin: 3px 0 12px; }
+  #nb-list { max-height: 38vh; overflow-y: auto; margin-bottom: 12px;
+    display: flex; flex-direction: column; gap: 10px; }
+  .nb-entry { border-left: 2px solid rgba(140,150,165,0.25); padding-left: 10px;
+    font: 13px/1.5 Georgia, serif; }
+  .nb-who { font-size: 11px; opacity: .6; margin-bottom: 2px; }
+  .nb-entry img { max-width: 100%; max-height: 180px; border-radius: 4px;
+    display: block; margin-top: 6px; }
+  .nb-entry a { color: #cfd8e8; }
+  #nb-file-row { margin-top: 10px; display: flex; gap: 8px; align-items: center; }
+  #nb-file-row input[type=file] { font: 11px Georgia, serif; color: rgba(232,228,220,0.7); max-width: 60%; }
+  #nb-file-row .ui-btn, #nb-row .ui-btn { position: static; }
+  #nb-row { margin-top: 12px; display: flex; gap: 8px; }
+  #nb-note { margin-top: 10px; font-size: 12px; opacity: .7; }
   #trout-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
     z-index: 950; display: none; width: min(560px, 90vw);
     background: rgba(12,14,18,0.96); color: #e8e4dc; border: 1px solid rgba(140,150,165,0.3);
@@ -1113,6 +1133,24 @@
 </div>
 
 <!-- Trout's stele — the first stone is his to author (RULED 2026-08-08) -->
+<!-- The notebooks (2026-08-09, Sailor): a pedestal and an open book in the
+     library and the exedra, for comments and ideas — and the exedra's book
+     takes files. Pages, not stones: a note binds to its book by replyTo
+     'dg:note:<room>' and never stands on the lawn. -->
+<div id="notebook-panel">
+  <div id="nb-title">The Notebook</div>
+  <div id="nb-sub"></div>
+  <div id="nb-list"></div>
+  <textarea id="nb-text" class="tp-input" rows="3" placeholder="leave a thought in the book…" maxlength="400"></textarea>
+  <div id="nb-file-row" style="display:none">
+    <input type="file" id="nb-file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.txt,.md">
+    <button class="ui-btn" onclick="uploadToNotebook()">📎 add the file</button>
+  </div>
+  <div id="nb-row"><button class="ui-btn" onclick="postNote()">write it in the book</button>
+  <button class="ui-btn" onclick="closeNotebook()">close the book</button></div>
+  <div id="nb-note"></div>
+</div>
+
 <div id="trout-panel">
   <div id="tp-title">The stele on the beach is yours</div>
   <div id="tp-sub">the villa's first stone carries your &ldquo;Hello&rdquo; from August 3rd, holding the spot. Say what it should really say &mdash; it has a front and a back.</div>
@@ -9374,6 +9412,161 @@ function isProfileEntry(e) {
   return !!(e && (e.kind === 'profile' || e.replyTo === PROFILE_MARK));
 }
 
+// ── THE NOTEBOOKS (2026-08-09, Sailor) ──────────────────────────────────
+// A note is a page in a room's book, never a stone on the lawn. It binds to
+// its book with replyTo 'dg:note:<room>' — the same field-that-already-
+// crosses-the-door trick as profiles, so it works on TODAY'S gate (which
+// coerces the kind to 'statement' and passes the marker untouched) and gets
+// cleaner, not different, when the deploy lands.
+const NOTE_MARK = 'dg:note:';
+function isNotebookEntry(e) {
+  return !!(e && typeof e.replyTo === 'string' && e.replyTo.indexOf(NOTE_MARK) === 0);
+}
+function notebookRoom(e) { return isNotebookEntry(e) ? e.replyTo.slice(NOTE_MARK.length) : null; }
+
+const notebookState = { room: null };
+
+function closeNotebook() {
+  const el = document.getElementById('notebook-panel');
+  if (el) el.classList.remove('open');
+  notebookState.room = null;
+}
+
+// A note's text may carry one file reference: "[file:feed/files/…] caption".
+// Rendered as an image when it is one, a link when it is not, and the raw
+// bracket never shown to anybody.
+function renderNoteText(container, text) {
+  const m = String(text || '').match(/^\[file:(feed\/files\/[A-Za-z0-9._-]+)\]\s*(.*)$/);
+  if (!m) { container.appendChild(document.createTextNode(text)); return; }
+  const path = m[1], caption = m[2];
+  if (caption) container.appendChild(document.createTextNode(caption));
+  const ext = (path.split('.').pop() || '').toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp'].indexOf(ext) >= 0) {
+    const img = document.createElement('img');
+    img.src = path; img.loading = 'lazy'; img.alt = caption || 'a page from the notebook';
+    container.appendChild(img);
+  } else {
+    const a = document.createElement('a');
+    a.href = path; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = '📎 ' + path.split('/').pop().split('-').slice(2).join('-');
+    const d = document.createElement('div'); d.appendChild(a);
+    container.appendChild(d);
+  }
+}
+
+function renderNotebook() {
+  const room = notebookState.room;
+  const list = document.getElementById('nb-list');
+  if (!room || !list) return;
+  list.innerHTML = '';
+  const entries = (feedState.entries || [])
+    .filter(function (e) { return notebookRoom(e) === room; })
+    .sort(function (a, b) { return a.t < b.t ? 1 : -1; })
+    .slice(0, 40);
+  if (!entries.length) {
+    const d = document.createElement('div');
+    d.className = 'nb-entry'; d.style.opacity = '0.5'; d.style.fontStyle = 'italic';
+    d.textContent = 'the pages are blank. someone has to be first.';
+    list.appendChild(d);
+    return;
+  }
+  entries.forEach(function (e) {
+    const d = document.createElement('div');
+    d.className = 'nb-entry';
+    const who = document.createElement('div');
+    who.className = 'nb-who';
+    const pr = PROFILES[e.author] || { emoji: '·', name: e.author };
+    who.textContent = pr.emoji + ' ' + pr.name + ' · ' + timeAgo(e.t);
+    d.appendChild(who);
+    renderNoteText(d, e.text);
+    list.appendChild(d);
+  });
+}
+
+function openNotebook(room) {
+  notebookState.room = room;
+  const el = document.getElementById('notebook-panel');
+  if (!el) return;
+  document.getElementById('nb-title').textContent =
+    room === 'exedra' ? 'The Exedra Notebook' : 'The Library Notebook';
+  document.getElementById('nb-sub').textContent =
+    room === 'exedra'
+      ? 'comments, ideas — and files. what is added here is kept.'
+      : 'comments and ideas. what is written here is kept.';
+  // Only the exedra's book takes files (ruled — Sailor asked for exactly this
+  // asymmetry, and it echoes the wings' own: west veiled, east open).
+  document.getElementById('nb-file-row').style.display = room === 'exedra' ? 'flex' : 'none';
+  const note = document.getElementById('nb-note');
+  const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+  if (note) note.textContent = (id && id.pass) ? '' : 'reading is free — writing needs your key (⚿)';
+  const box = document.getElementById('nb-text');
+  if (box && !box._bound) {
+    box._bound = true;
+    box.addEventListener('keydown', function (e) { e.stopPropagation(); });   // the compose lesson
+  }
+  renderNotebook();
+  el.classList.add('open');
+}
+
+function postNote() {
+  const room = notebookState.room;
+  const box = document.getElementById('nb-text');
+  const note = document.getElementById('nb-note');
+  const text = (box.value || '').trim();
+  if (!room) return;
+  if (!text) { if (note) note.textContent = 'a blank page is already in the book'; return; }
+  if (note) note.textContent = 'the book is taking it down…';
+  postStatement(text, null, NOTE_MARK + room, 'note')
+    .then(function () {
+      box.value = '';
+      if (note) note.textContent = 'kept.';
+      renderNotebook();
+    })
+    .catch(function (err) { if (note) note.textContent = err.message; });
+}
+
+// ── FILES, exedra only ──────────────────────────────────────────────────
+// The gate's /upload writes the file itself into feed/files/ in the repo —
+// git is the archive for files exactly as it is for words — and then an
+// ordinary note referencing it goes through /say. Until the villa-gate
+// deploy lands, /upload 404s and the message says whose move that is.
+function uploadToNotebook() {
+  const room = notebookState.room;
+  const note = document.getElementById('nb-note');
+  const input = document.getElementById('nb-file');
+  if (room !== 'exedra') return;
+  const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+  if (!id || !id.pass) { openIdentityPanel(); return; }
+  const f = input && input.files && input.files[0];
+  if (!f) { if (note) note.textContent = 'choose a file first'; return; }
+  if (f.size > 3 * 1024 * 1024) { if (note) note.textContent = 'too heavy for the notebook — three megabytes at most'; return; }
+  if (note) note.textContent = 'the notebook is taking the file…';
+  const reader = new FileReader();
+  reader.onload = function () {
+    const data = String(reader.result).split(',')[1] || '';
+    fetch(GATE + '/upload', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ pass: id.pass, avatar: id.avatar, name: f.name, data: data }),
+    })
+      .then(function (r) {
+        if (r.status === 404 || r.status === 405) throw new Error('the door has not learned files yet — the gate deploy is owed');
+        return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'the villa could not keep that'); return j; });
+      })
+      .then(function (j) {
+        const caption = (document.getElementById('nb-text').value || '').trim();
+        return postStatement('[file:' + j.path + '] ' + caption, null, NOTE_MARK + room, 'note');
+      })
+      .then(function () {
+        input.value = ''; document.getElementById('nb-text').value = '';
+        if (note) note.textContent = 'kept — it appears for everyone when the villa settles (~5 min).';
+        renderNotebook();
+      })
+      .catch(function (err) { if (note) note.textContent = err.message; });
+  };
+  reader.readAsDataURL(f);
+}
+
 function safeStr(v, max) {
   if (typeof v !== 'string') return '';
   // control characters are stripped: they have no business in a statement, and
@@ -10799,7 +10992,7 @@ function postStatement(text, toKey, replyTo, kind) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       pass: id.pass, avatar: id.avatar,
-      kind: kind === 'address' ? 'address' : (kind === 'profile' ? 'profile' : 'statement'),
+      kind: ['address', 'profile', 'note'].indexOf(kind) >= 0 ? kind : 'statement',
       text: text.slice(0, kindTextCap(profileKind(kind, replyTo))),
       to: toKey && toKey !== id.avatar ? toKey : null,
       replyTo: replyTo || null, place: place, pos: optimistic.pos,
@@ -11733,7 +11926,7 @@ function renderStatementField() {
   // no spot in it. Erecting a stele for the introduction would put a monument
   // to the welcome mat in the middle of the lawn.
   const entries = (feedState.entries || [])
-    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e));
+    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e) && !isNotebookEntry(e));
   // A PROFILE IS NOT A STONE EITHER, and this filter is load-bearing rather
   // than tidy. The deployed gate coerces an unknown kind to 'statement', so
   // until villa-gate learns 'profile' every saved profile comes back from the
@@ -15495,9 +15688,44 @@ function drawSunset(seed, forcePal) {
   }, 5 * 60 * 1000);
 })();
 
+// ── THE NOTEBOOKS' PEDESTALS ──────────────────────────────────────────
+// One in each wing, mid-room, book open toward the colonnade a visitor
+// enters through. Same stone as the house, cream pages, dark boards.
+const NOTEBOOKS = {};
+function buildNotebookPedestal(side, room) {
+  const g = new THREE.Group();
+  g.name = 'notebook-' + room;
+  const stoneM = new THREE.MeshStandardMaterial({ color: 0xcfc8bb, roughness: 0.7, metalness: 0.02 });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.12, 10), stoneM);
+  base.position.y = 0.06; g.add(base);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.26, 0.85, 10), stoneM);
+  shaft.position.y = 0.55; g.add(shaft);
+  const cap = new THREE.Mesh(new THREE.BoxGeometry(0.66, 0.07, 0.5), stoneM);
+  cap.position.y = 1.0; g.add(cap);
+  // the open book: two page-blocks in a shallow V on dark boards
+  const board = new THREE.MeshStandardMaterial({ color: 0x4a3220, roughness: 0.85 });
+  const page = new THREE.MeshStandardMaterial({ color: 0xe9e2cf, roughness: 0.9 });
+  [-1, 1].forEach(function (b) {
+    const cover = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.025, 0.42), board);
+    cover.position.set(b * 0.148, 1.055, 0); cover.rotation.z = -b * 0.16; g.add(cover);
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.02, 0.38), page);
+    leaf.position.set(b * 0.14, 1.078, 0); leaf.rotation.z = -b * 0.16; g.add(leaf);
+  });
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.045, 0.42), board);
+  spine.position.y = 1.05; g.add(spine);
+  g.position.set(side * WING_CX, BUILDING_Y, 3.2);
+  g.rotation.y = side * Math.PI / 2;            // the book opens toward the colonnade
+  g.traverse(function (c) { if (c.isMesh) { c.castShadow = true; } });
+  g.userData.notebook = room;
+  NOTEBOOKS[room] = g;
+  return g;
+}
+
 const libraryWing = buildWing(-1, 'library');
 libraryWing.add(sunsetWall.mesh);
+libraryWing.add(buildNotebookPedestal(-1, 'library'));
 const annexWing = buildWing(1, 'annex');
+annexWing.add(buildNotebookPedestal(1, 'exedra'));
 
 // ── The west court's kerb — the acacia's opening in the pavement ──
 // A tree growing out of the terrace wants an edge, or it reads as a
@@ -17273,6 +17501,16 @@ container.addEventListener('pointerup', e => {
     const g = tedPhotoGroundHit();
     if (g) tedPhotoPlace(g.point);
     return;
+  }
+
+  // ── The notebooks — click a pedestal and the book opens ──
+  {
+    for (const room in NOTEBOOKS) {
+      if (raycaster.intersectObject(NOTEBOOKS[room], true).length > 0) {
+        openNotebook(room);
+        return;
+      }
+    }
   }
 
   // ── Animal follow (2026-07-30) — click a resident to lock the camera ──
