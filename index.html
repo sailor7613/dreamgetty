@@ -195,25 +195,40 @@
   #wave-hud.unheard::after { content: ''; position: absolute; top: -3px;
     left: calc(50% + 46px); width: 9px; height: 9px; border-radius: 50%;
     background: #e05a2b; box-shadow: 0 0 6px rgba(224,90,43,0.8); }
-  #wave-menu {
-    position: absolute; bottom: 108px; left: calc(50% + 118px); transform: translateX(-50%);
-    z-index: 11; display: none; flex-direction: column; gap: 8px; align-items: center;
-    padding: 8px 40px; max-height: 72vh; overflow-y: auto; overscroll-behavior: contain;
-    scrollbar-width: none; }
-  #wave-menu::-webkit-scrollbar { display: none; }
-  #wave-menu.open { display: flex; }
-  #wave-menu .ui-btn, #wave-menu .cmp-note {
-    position: static; background: rgba(12,14,18,0.78); border: 1px solid rgba(140,150,165,0.28);
-    border-radius: 15px; padding: 5px 14px; backdrop-filter: blur(4px);
-    width: auto; text-align: center; flex: none; }
-  #wave-menu .ui-btn:hover { border-color: rgba(232,224,200,0.6); opacity: 1; }
-  #wave-menu .cmp-talk { display: flex; align-items: center; gap: 6px; justify-content: center; }
-  #wave-menu.open > *:nth-child(5n+1) { transform: translateX(-12px); }
-  #wave-menu.open > *:nth-child(5n+2) { transform: translateX(9px); }
-  #wave-menu.open > *:nth-child(5n+3) { transform: translateX(-5px); }
-  #wave-menu.open > *:nth-child(5n+4) { transform: translateX(12px); }
-  #wave-menu.open > *:nth-child(5n) { transform: translateX(-8px); }
-  body.ted-chrome-hidden #wave-hud, body.ted-chrome-hidden #wave-menu,
+  #feed-panel { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    z-index: 950; display: none; width: min(640px, 94vw); max-height: 86vh;
+    background: rgba(12,14,18,0.96); color: #e8e4dc; border: 1px solid rgba(140,150,165,0.3);
+    border-radius: 10px; padding: 20px 22px; flex-direction: column; }
+  #feed-panel.open { display: flex; }
+  #fp-title { font-family: Georgia, serif; letter-spacing: .14em; font-size: 15px; }
+  #fp-sub { font-style: italic; opacity: .55; font-size: 12px; margin: 3px 0 10px; }
+  #fp-actions { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  #fp-actions .ui-btn, #fp-row .ui-btn { position: static; }
+  #feed-panel #cmp-talks { margin-bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+  #feed-panel .cmp-talk { display: flex; align-items: center; gap: 6px; }
+  #fp-list { flex: 1; min-height: 120px; overflow-y: auto; display: flex;
+    flex-direction: column; gap: 9px; margin-bottom: 10px; padding-right: 4px; }
+  .fp-entry { border-left: 2px solid rgba(140,150,165,0.25); padding-left: 10px;
+    font: 13px/1.5 Georgia, serif; }
+  .fp-entry.fp-address { border-left-color: rgba(224,160,80,0.5); cursor: pointer; }
+  .fp-entry.fp-address:hover { border-left-color: rgba(224,160,80,0.9); }
+  .fp-who { font-size: 11px; opacity: .6; margin-bottom: 1px; }
+  .fp-quiet { opacity: .6; font-style: italic; }
+  #fp-row { margin-top: 10px; display: flex; gap: 8px; }
+  #fp-note { margin-top: 8px; font-size: 12px; opacity: .7; }
+  /* the first-times hint: a small tide-mark over the waves, gone for good
+     after the third opening */
+  #wave-hint { position: fixed; bottom: 96px; left: calc(50% + 118px);
+    transform: translateX(-50%); z-index: 12; display: none;
+    background: rgba(12,14,18,0.82); border: 1px solid rgba(140,150,165,0.3);
+    border-radius: 14px; padding: 4px 12px; font: 11px Georgia, serif;
+    color: rgba(232,228,220,0.85); white-space: nowrap; pointer-events: none;
+    animation: waveHintBob 2.2s ease-in-out infinite; }
+  #wave-hint.on { display: block; }
+  @keyframes waveHintBob { 0%,100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-6px); } }
+  body.ted-chrome-hidden #wave-hud, body.ted-chrome-hidden #feed-panel,
+  body.ted-chrome-hidden #wave-hint,
   body.ted-chrome-hidden #compass-hud,
   body.ted-chrome-hidden .ui-btn, body.ted-chrome-hidden #nav-bar,
   body.ted-chrome-hidden #nav-menu, body.ted-chrome-hidden #follow-card,
@@ -1005,13 +1020,26 @@
   <div id="wave-fallback" style="display:none">🗣</div>
   <div id="wave-here"></div>
 </div>
-<div id="wave-menu">
-  <div class="nav-menu-label">The Talks</div>
-  <div id="cmp-talks"></div>
-  <div class="nav-menu-label">Your Word</div>
-  <button class="ui-btn" id="profile-btn" onclick="openProfilePanel()" title="your display name and your bio">✎ profile</button>
-  <button class="ui-btn" id="docent-btn" style="display:none" onclick="closeWaveMenu(); openDocentConsole()">🐾 address</button>
+<!-- THE FEED (2026-08-09, Sailor): the waves' hard activation is the whole
+     of the villa's communication now — every statement, talk, page and
+     profile in one aggregate, newest first, with a general post that
+     stands nowhere. Talks, profile and address ride in its header. -->
+<div id="feed-panel">
+  <div id="fp-title">The Feed</div>
+  <div id="fp-sub">everything said in the villa, newest first</div>
+  <div id="fp-actions">
+    <button class="ui-btn" id="fp-talks-btn" onclick="toggleFeedTalks()">🗣 the talks</button>
+    <button class="ui-btn" id="profile-btn" onclick="openProfilePanel()" title="your display name and your bio">✎ profile</button>
+    <button class="ui-btn" id="docent-btn" style="display:none" onclick="closeWaveMenu(); openDocentConsole()">🐾 address</button>
+  </div>
+  <div id="cmp-talks" style="display:none"></div>
+  <div id="fp-list"></div>
+  <textarea id="fp-text" class="tp-input" rows="2" placeholder="say something to the villa at large…" maxlength="400"></textarea>
+  <div id="fp-row"><button class="ui-btn" onclick="postGeneral()">say it to the villa</button>
+  <button class="ui-btn" onclick="closeWaveMenu()">close</button></div>
+  <div id="fp-note"></div>
 </div>
+<div id="wave-hint">the villa's voices — click the waves</div>
 
 <!-- no title attribute: the browser tooltip photobombed the ring -->
 <div id="compass-hud" aria-label="the Compass — hover to get your bearings, click to unfold">
@@ -11926,7 +11954,7 @@ function renderStatementField() {
   // no spot in it. Erecting a stele for the introduction would put a monument
   // to the welcome mat in the middle of the lawn.
   const entries = (feedState.entries || [])
-    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e) && !isNotebookEntry(e));
+    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e) && !isNotebookEntry(e) && !isGeneralPost(e));
   // A PROFILE IS NOT A STONE EITHER, and this filter is load-bearing rather
   // than tidy. The deployed gate coerces an unknown kind to 'statement', so
   // until villa-gate learns 'profile' every saved profile comes back from the
@@ -14963,25 +14991,135 @@ function compassSoftEnd() {
 // ============================================================
 const waveSoft = { on: false, timer: null, lastAt: null };
 
+// THE GENERAL POST (Sailor, 2026-08-09): a thing said to the villa at
+// large, standing nowhere. The one kind of speech the ontology lacked —
+// statements stand in places, addresses are the docent's, notes live in
+// books. This one carries the 'dg:feed' marker, crosses today's door like
+// the others, and never becomes a stone.
+const GENERAL_MARK = 'dg:feed';
+function isGeneralPost(e) { return !!(e && e.replyTo === GENERAL_MARK); }
+
 function closeWaveMenu() {
-  const m = document.getElementById('wave-menu');
+  const m = document.getElementById('feed-panel');
   if (m) m.classList.remove('open');
   const hud = document.getElementById('wave-hud');
   if (hud) hud.classList.remove('open');
+  if (typeof waveHintRefresh === 'function') waveHintRefresh();
 }
+
+// ── THE HINT — the first three times only ──
+// dg_wave_opens counts HARD activations; under three, a small tide-mark
+// bobs over the waves. The third opening retires it forever, because chrome
+// that keeps teaching a lesson already learned is nagging.
+function waveOpenCount() {
+  try { return parseInt(localStorage.getItem('dg_wave_opens') || '0', 10) || 0; } catch (e) { return 0; }
+}
+function waveHintRefresh() {
+  const h = document.getElementById('wave-hint');
+  const open = (function () { const m = document.getElementById('feed-panel');
+    return !!(m && m.classList.contains('open')); })();
+  // never while the feed is open — a hint pointing at a door you are
+  // standing inside is the definition of nagging
+  if (h) h.classList.toggle('on', waveOpenCount() < 3 && !open);
+}
+
 function toggleWaveMenu() {
-  const m = document.getElementById('wave-menu');
+  const m = document.getElementById('feed-panel');
   if (!m) return;
   // one unfold at a time: speech and space do not shout over each other
   const nav = document.getElementById('nav-menu');
   if (nav && nav.classList.contains('open')) toggleNavMenu();
   m.classList.toggle('open');
   if (m.classList.contains('open')) {
-    compassRenderTalks();
+    try { localStorage.setItem('dg_wave_opens', String(waveOpenCount() + 1)); } catch (e) {}
+    waveHintRefresh();
+    renderFeedPanel();
     refreshDocentBtn();
+    const note = document.getElementById('fp-note');
+    const id = (typeof feedIdentity === 'function') ? feedIdentity() : null;
+    if (note) note.textContent = (id && id.pass) ? '' : 'reading is free — posting needs your key (⚿)';
+    const box = document.getElementById('fp-text');
+    if (box && !box._bound) {
+      box._bound = true;
+      box.addEventListener('keydown', function (e) { e.stopPropagation(); });   // the compose lesson
+    }
   }
   const hud = document.getElementById('wave-hud');
   if (hud) hud.classList.toggle('open', m.classList.contains('open'));
+}
+
+function toggleFeedTalks() {
+  const t = document.getElementById('cmp-talks');
+  if (!t) return;
+  const showing = t.style.display !== 'none';
+  t.style.display = showing ? 'none' : 'flex';
+  if (!showing) compassRenderTalks();
+}
+
+// ── THE AGGREGATE — every register of speech in one stream ──
+function feedLineFor(e) {
+  const d = document.createElement('div');
+  d.className = 'fp-entry';
+  const who = document.createElement('div');
+  who.className = 'fp-who';
+  const pr = PROFILES[e.author] || { emoji: '·', name: e.author };
+  const kind = profileKind(e.kind, e.replyTo);
+  let where;
+  if (kind === 'address') where = 'addressed the house';
+  else if (isProfileEntry(e)) where = 'wrote their own profile';
+  else if (isNotebookEntry(e)) where = 'in the ' + notebookRoom(e) + ' notebook';
+  else if (isGeneralPost(e)) where = 'to the villa';
+  else where = e.to && PROFILES[e.to] ? ('to ' + PROFILES[e.to].name + (e.place ? ' · ' + e.place : ''))
+             : (e.place ? 'at ' + e.place : 'in the villa');
+  who.textContent = pr.emoji + ' ' + pr.name + ' · ' + where + ' · ' + timeAgo(e.t);
+  d.appendChild(who);
+  if (kind === 'address') {
+    d.classList.add('fp-address');
+    const t = document.createElement('div');
+    t.textContent = '“' + talkTitle(e) + '” — click to hear it';
+    d.appendChild(t);
+    d.onclick = function () { closeWaveMenu(); openThreshold(e, { rewatch: true }); };
+  } else if (isProfileEntry(e)) {
+    d.classList.add('fp-quiet');
+  } else if (isNotebookEntry(e) && /^\[file:/.test(e.text)) {
+    renderNoteText(d, e.text);
+  } else {
+    d.appendChild(document.createTextNode(e.text));
+  }
+  return d;
+}
+
+function renderFeedPanel() {
+  const list = document.getElementById('fp-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const entries = (feedState.entries || [])
+    .filter(function (e) { return e && e.id && e.author; })
+    .sort(function (a, b) { return a.t < b.t ? 1 : -1; })
+    .slice(0, 60);
+  if (!entries.length) {
+    const d = document.createElement('div');
+    d.className = 'fp-entry fp-quiet';
+    d.textContent = 'the villa is quiet. someone has to be first.';
+    list.appendChild(d);
+    return;
+  }
+  entries.forEach(function (e) { list.appendChild(feedLineFor(e)); });
+}
+
+function postGeneral() {
+  const box = document.getElementById('fp-text');
+  const note = document.getElementById('fp-note');
+  const text = (box.value || '').trim();
+  if (!text) { if (note) note.textContent = 'the villa heard nothing'; return; }
+  if (note) note.textContent = 'the villa is listening…';
+  postStatement(text, null, GENERAL_MARK, 'note')
+    .then(function () {
+      box.value = '';
+      if (note) note.textContent = 'said.';
+      renderFeedPanel();
+    })
+    .catch(function (err) { if (note) note.textContent = err.message; });
 }
 
 // The residents gather around the waves, NEAREST TO YOU INNERMOST — the
@@ -15074,6 +15212,7 @@ function waveUnheardTick() {
   });
   setInterval(waveUnheardTick, 8000);
   setTimeout(waveUnheardTick, 12000);
+  setTimeout(waveHintRefresh, 9000);   // after arrival settles — a hint under the threshold is noise
 })();
 
 (function initCompassHud() {
