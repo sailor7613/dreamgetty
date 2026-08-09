@@ -154,8 +154,13 @@
   /* the bearing labels — sprites of text standing around the dial */
   #compass-ring { position: absolute; left: 50%; top: 50%; width: 0; height: 0;
     pointer-events: none; }
+  /* Hidden pills must be DEAF as well as invisible: opacity 0 still takes
+     clicks, and the wave ring showed the other half of the same mistake —
+     its pills answered to #compass-hud.soft, a state they can never be in,
+     so absent voices (inline-dimmed) stood on screen after the waves
+     minimized. One rule for both huds now, and none for either alone. */
   .cmp-bearing { position: absolute; transform: translate(-50%,-50%);
-    white-space: nowrap; pointer-events: auto; cursor: pointer;
+    white-space: nowrap; pointer-events: none; cursor: pointer;
     background: rgba(12,14,18,0.78); border: 1px solid rgba(140,150,165,0.28);
     border-radius: 12px; padding: 3px 9px; font: 11px Georgia, serif;
     color: #e8e4dc; letter-spacing: .04em;
@@ -163,7 +168,9 @@
     backdrop-filter: blur(4px); }
   .cmp-bearing:hover { border-color: rgba(232,224,200,0.6); }
   .cmp-bearing .cb-far { opacity: .5; font-size: 9px; margin-left: 4px; }
-  #compass-hud.soft .cmp-bearing { opacity: 1; }
+  #compass-hud.soft .cmp-bearing, #wave-hud.soft .cmp-bearing {
+    opacity: 1; pointer-events: auto; }
+  #wave-hud.soft .cmp-bearing.cb-dim { opacity: 0.45; }
   /* the waves sit beside the compass: same shelf, same rules */
   #wave-hud { position: fixed; bottom: 34px; left: calc(50% + 118px);
     transform: translateX(-50%); z-index: 12; width: 118px; height: 52px;
@@ -14754,6 +14761,8 @@ function compassSoftEnd() {
   const hud = document.getElementById('compass-hud');
   if (hud) hud.classList.remove('soft');
   if (compassSoft.timer) { clearInterval(compassSoft.timer); compassSoft.timer = null; }
+  const ring = document.getElementById('compass-ring');
+  if (ring) ring.innerHTML = '';               // same cure for the compass's ghost labels
 }
 
 // ============================================================
@@ -14821,7 +14830,7 @@ function waveRefreshSoft() {
     b.style.top = (Math.sin(a) * R * 0.9) + 'px';
     const pr = PROFILES[r.k];
     b.innerHTML = pr.emoji + ' ' + pr.name.replace(/^The /, '').replace(/[<>&]/g, '');
-    if (!r.present) b.style.opacity = '0.45';
+    if (!r.present) b.classList.add('cb-dim');   // a CLASS — an inline opacity outranks every state rule
     b.title = pr.name + ' — ' + (r.present ? 'click to open their card' : 'not in the villa yet — click to call them in');
     b.onclick = function (e) {
       e.stopPropagation();
@@ -14843,6 +14852,8 @@ function waveSoftEnd() {
   const hud = document.getElementById('wave-hud');
   if (hud) hud.classList.remove('soft');
   if (waveSoft.timer) { clearInterval(waveSoft.timer); waveSoft.timer = null; }
+  const ring = document.getElementById('wave-ring');
+  if (ring) ring.innerHTML = '';               // gone means gone, not transparent
 }
 function waveUnheardTick() {
   const hud = document.getElementById('wave-hud');
