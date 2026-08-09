@@ -164,6 +164,49 @@
   .cmp-bearing:hover { border-color: rgba(232,224,200,0.6); }
   .cmp-bearing .cb-far { opacity: .5; font-size: 9px; margin-left: 4px; }
   #compass-hud.soft .cmp-bearing { opacity: 1; }
+  /* the waves sit beside the compass: same shelf, same rules */
+  #wave-hud { position: fixed; bottom: 34px; left: calc(50% + 118px);
+    transform: translateX(-50%); z-index: 12; width: 118px; height: 52px;
+    cursor: pointer; transition: height 0.35s ease; }
+  #wave-hud.soft { height: 208px; }
+  #wave-hud.soft::before { content: ''; position: absolute;
+    left: 50%; top: 26px; width: 380px; height: 360px;
+    transform: translate(-50%, -50%); border-radius: 50%; }
+  #wave-img { position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 118px; display: block;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45)); transition: transform .25s ease; }
+  #wave-hud:hover #wave-img { transform: translateX(-50%) scale(1.08); }
+  #wave-fallback { font-size: 40px; text-align: center; line-height: 52px; }
+  #wave-here { position: absolute; top: 54px; left: 50%; transform: translateX(-50%);
+    white-space: nowrap; font: 10px Georgia, serif; letter-spacing: .16em;
+    color: rgba(232,228,220,0.75); text-shadow: 0 1px 3px rgba(0,0,0,.8);
+    opacity: 0; transition: opacity .3s; }
+  #wave-hud:hover #wave-here, #wave-hud.soft #wave-here { opacity: 1; }
+  #wave-ring { position: absolute; left: 50%; top: 26px; width: 0; height: 0;
+    pointer-events: none; }
+  /* a talk is waiting: one quiet ember on the loudest voice */
+  #wave-hud.unheard::after { content: ''; position: absolute; top: -3px;
+    left: calc(50% + 46px); width: 9px; height: 9px; border-radius: 50%;
+    background: #e05a2b; box-shadow: 0 0 6px rgba(224,90,43,0.8); }
+  #wave-menu {
+    position: absolute; bottom: 108px; left: calc(50% + 118px); transform: translateX(-50%);
+    z-index: 11; display: none; flex-direction: column; gap: 8px; align-items: center;
+    padding: 8px 40px; max-height: 72vh; overflow-y: auto; overscroll-behavior: contain;
+    scrollbar-width: none; }
+  #wave-menu::-webkit-scrollbar { display: none; }
+  #wave-menu.open { display: flex; }
+  #wave-menu .ui-btn, #wave-menu .cmp-note {
+    position: static; background: rgba(12,14,18,0.78); border: 1px solid rgba(140,150,165,0.28);
+    border-radius: 15px; padding: 5px 14px; backdrop-filter: blur(4px);
+    width: auto; text-align: center; flex: none; }
+  #wave-menu .ui-btn:hover { border-color: rgba(232,224,200,0.6); opacity: 1; }
+  #wave-menu .cmp-talk { display: flex; align-items: center; gap: 6px; justify-content: center; }
+  #wave-menu.open > *:nth-child(5n+1) { transform: translateX(-12px); }
+  #wave-menu.open > *:nth-child(5n+2) { transform: translateX(9px); }
+  #wave-menu.open > *:nth-child(5n+3) { transform: translateX(-5px); }
+  #wave-menu.open > *:nth-child(5n+4) { transform: translateX(12px); }
+  #wave-menu.open > *:nth-child(5n) { transform: translateX(-8px); }
+  body.ted-chrome-hidden #wave-hud, body.ted-chrome-hidden #wave-menu,
   body.ted-chrome-hidden #compass-hud,
   body.ted-chrome-hidden .ui-btn, body.ted-chrome-hidden #nav-bar,
   body.ted-chrome-hidden #nav-menu, body.ted-chrome-hidden #follow-card,
@@ -911,6 +954,38 @@
 
      The art is art/icons/compass.png — Sailor's drawing takes over this
      file; the one shipped is a same-palette stand-in. -->
+<!-- ═══════════ THE WAVES (2026-08-09, Sailor) ═══════════
+     The second drawn artifact, and the other half of the villa's deepest
+     split. The compass is SPACE: where am I, where can I go. The waves are
+     SPEECH: who is talking, what has been said. Sailor drew seven crossing
+     voices; they sit beside the compass and carry everything the compass
+     used to hold that was never spatial — Talks, your profile, the docent's
+     address — plus the thing only they could hold: the company as VOICES.
+
+     Same grammar as the compass, deliberately:
+     SOFT — rest the cursor on the waves and the residents gather around
+     them, nearest to you innermost. Click one and their card opens — the
+     activity feed and the leave-word line, which has been the villa's
+     conversation surface since 07-30. The ring, the rise, the hit disc and
+     the rebuild-only-when-you-move are all the compass's, inherited.
+     HARD — click, and the speech menu unfolds as the same floating sprite
+     pills: the Talks series, your profile, the docent's address.
+     A small dot on the waves when a talk is waiting unheard. -->
+<div id="wave-hud" aria-label="the Waves — hover for the voices, click for the talks">
+  <div id="wave-ring"></div>
+  <img id="wave-img" src="art/icons/waves.png" alt=""
+       onerror="this.style.display='none';document.getElementById('wave-fallback').style.display='block'">
+  <div id="wave-fallback" style="display:none">🗣</div>
+  <div id="wave-here"></div>
+</div>
+<div id="wave-menu">
+  <div class="nav-menu-label">The Talks</div>
+  <div id="cmp-talks"></div>
+  <div class="nav-menu-label">Your Word</div>
+  <button class="ui-btn" id="profile-btn" onclick="openProfilePanel()" title="your display name and your bio">✎ profile</button>
+  <button class="ui-btn" id="docent-btn" style="display:none" onclick="closeWaveMenu(); openDocentConsole()">🐾 address</button>
+</div>
+
 <!-- no title attribute: the browser tooltip photobombed the ring -->
 <div id="compass-hud" aria-label="the Compass — hover to get your bearings, click to unfold">
   <div id="compass-dial">
@@ -942,13 +1017,10 @@
   <div class="cmp-view open" id="cmp-root">
     <button class="ui-btn cmp-row" onclick="compassShow('places')" title="Where you can go — and, for each place, who is standing there and what has been said there">🧭 Places&nbsp;▸</button>
     <button class="ui-btn cmp-row" onclick="compassShow('company')" title="Who lives here — tap a resident to lock the camera on them">🎭 Company&nbsp;▸</button>
-    <button class="ui-btn cmp-row" onclick="compassShow('talks')" title="Every address the house has been given, the introduction first — click one to hear it again">🗣 Talks&nbsp;▸</button>
     <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place — where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
     <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Take your body's wheel — WASD or the arrows walk, click the ground to go there. Patrol is what your body does when you're away (RULED 2026-08-07)">🐾 Walk</button>
     <div class="nav-menu-label">You</div>
     <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
-    <button class="ui-btn" id="profile-btn" onclick="openProfilePanel()" title="your display name and your bio">✎ profile</button>
-    <button class="ui-btn" id="docent-btn" style="display:none" onclick="openDocentConsole()">🐾 address</button>
     <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
     <div class="nav-menu-label">Ways of looking</div>
     <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
@@ -961,7 +1033,6 @@
     <button class="ui-btn" id="nav-g4" onclick="navTo('iMac G4')" title="The G4 — the villa's one computer">🖥 The G4</button>
   </div>
   <div class="cmp-view" id="cmp-places"></div>
-  <div class="cmp-view" id="cmp-talks"></div>
   <div class="cmp-view" id="cmp-place"></div>
   <div class="cmp-view" id="cmp-company">
     <button class="ui-btn cmp-back" onclick="compassShow('root')">◂ compass</button>
@@ -9649,7 +9720,7 @@ function compassRenderTalks() {
       ed.className = 'ui-btn cmp-edit';
       ed.textContent = '✎';
       ed.title = 'revise this talk — it keeps its place in the series';
-      ed.onclick = function () { toggleNavMenu(); openDocentConsole(item.entry.id); };
+      ed.onclick = function () { closeWaveMenu(); openDocentConsole(item.entry.id); };
       row.appendChild(ed);
     }
     const b = document.createElement('button');
@@ -9662,7 +9733,7 @@ function compassRenderTalks() {
     b.innerHTML = compassIconHTML('talk-' + i, i === 0 ? '🏛' : '🗣') + ' ' +
       talkTitle(item.entry).replace(/[<>&]/g, '') +
       '<span class="cmp-sub">' + marks.join(' · ') + '</span>';
-    b.onclick = function () { toggleNavMenu(); openThreshold(item.entry, { rewatch: true }); };
+    b.onclick = function () { closeWaveMenu(); openThreshold(item.entry, { rewatch: true }); };
     row.appendChild(b);
     w.appendChild(row);
   });
@@ -14685,6 +14756,122 @@ function compassSoftEnd() {
   if (compassSoft.timer) { clearInterval(compassSoft.timer); compassSoft.timer = null; }
 }
 
+// ============================================================
+// THE WAVES — soft: the voices around you · hard: the talks
+// ============================================================
+const waveSoft = { on: false, timer: null, lastAt: null };
+
+function closeWaveMenu() {
+  const m = document.getElementById('wave-menu');
+  if (m) m.classList.remove('open');
+  const hud = document.getElementById('wave-hud');
+  if (hud) hud.classList.remove('open');
+}
+function toggleWaveMenu() {
+  const m = document.getElementById('wave-menu');
+  if (!m) return;
+  // one unfold at a time: speech and space do not shout over each other
+  const nav = document.getElementById('nav-menu');
+  if (nav && nav.classList.contains('open')) toggleNavMenu();
+  m.classList.toggle('open');
+  if (m.classList.contains('open')) {
+    compassRenderTalks();
+    refreshDocentBtn();
+  }
+  const hud = document.getElementById('wave-hud');
+  if (hud) hud.classList.toggle('open', m.classList.contains('open'));
+}
+
+// The residents gather around the waves, NEAREST TO YOU INNERMOST — the
+// soft ring answers "who is around to talk to" the way the compass's
+// answers "which way is the beach". Clicking a voice opens their card:
+// the activity feed and the leave-word line, the villa's conversation
+// surface since 07-30.
+function waveRefreshSoft() {
+  const ring = document.getElementById('wave-ring');
+  const here = document.getElementById('wave-here');
+  if (!ring) return;
+  const me = summonerPoint();
+  if (waveSoft.lastAt && me.distanceTo(waveSoft.lastAt) < 2) return;
+  waveSoft.lastAt = me.clone();
+  const rows = Object.keys(PROFILES)
+    .filter(function (k) { return k !== 'ted' ? (RESIDENTS[k] && AVATARS[k]) : true; })
+    .map(function (k) {
+      const av = AVATARS[k] && AVATARS[k]();
+      const present = !!(av && av.visible);
+      const d = present ? Math.hypot(av.position.x - me.x, av.position.z - me.z) : 9999;
+      return { k: k, d: d, present: present };
+    })
+    .sort(function (a, b) { return a.d - b.d; })
+    .slice(0, 16);
+  if (here) {
+    const near = rows.filter(function (r) { return r.d < 18; }).length;
+    here.textContent = near ? (near + ' of the company near you') : 'the company';
+  }
+  ring.innerHTML = '';
+  rows.forEach(function (r, i) {
+    const b = document.createElement('button');
+    b.className = 'cmp-bearing';
+    // two rings of eight, the near ring first, dealt clockwise from the top
+    const ringN = Math.floor(i / 8);
+    const slot = i % 8;
+    const a = -Math.PI / 2 + slot * (Math.PI * 2 / 8) + (ringN ? Math.PI / 8 : 0);
+    const R = 96 + ringN * 44;
+    b.style.left = (Math.cos(a) * R * 1.25) + 'px';   // ×1.25: the waves are wide, the ring follows
+    b.style.top = (Math.sin(a) * R * 0.9) + 'px';
+    const pr = PROFILES[r.k];
+    b.innerHTML = pr.emoji + ' ' + pr.name.replace(/^The /, '').replace(/[<>&]/g, '');
+    if (!r.present) b.style.opacity = '0.45';
+    b.title = pr.name + ' — ' + (r.present ? 'click to open their card' : 'not in the villa yet — click to call them in');
+    b.onclick = function (e) {
+      e.stopPropagation();
+      waveSoftEnd();
+      startFollow(r.k);                        // brings them in if absent — 07-31 roster rule
+    };
+    ring.appendChild(b);
+  });
+}
+function waveSoftBegin() {
+  waveSoft.on = true; waveSoft.lastAt = null;
+  waveRefreshSoft();
+  const hud = document.getElementById('wave-hud');
+  if (hud) hud.classList.add('soft');
+  if (!waveSoft.timer) waveSoft.timer = setInterval(waveRefreshSoft, 900);
+}
+function waveSoftEnd() {
+  waveSoft.on = false;
+  const hud = document.getElementById('wave-hud');
+  if (hud) hud.classList.remove('soft');
+  if (waveSoft.timer) { clearInterval(waveSoft.timer); waveSoft.timer = null; }
+}
+function waveUnheardTick() {
+  const hud = document.getElementById('wave-hud');
+  if (!hud || typeof talkSeries !== 'function') return;
+  let dot = false;
+  try { dot = talkSeries().some(function (x) { return !talkHeardAnyVersion(x); }); } catch (e) {}
+  hud.classList.toggle('unheard', dot);
+}
+(function initWaveHud() {
+  const hud = document.getElementById('wave-hud');
+  if (!hud) return;
+  let leaveTimer = null;
+  hud.addEventListener('mouseenter', function () {
+    if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
+    waveSoftBegin();
+  });
+  hud.addEventListener('mouseleave', function () {
+    if (leaveTimer) clearTimeout(leaveTimer);
+    leaveTimer = setTimeout(function () { leaveTimer = null; waveSoftEnd(); }, 200);
+  });
+  hud.addEventListener('click', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('cmp-bearing')) return;
+    waveSoftEnd();
+    toggleWaveMenu();
+  });
+  setInterval(waveUnheardTick, 8000);
+  setTimeout(waveUnheardTick, 12000);
+})();
+
 (function initCompassHud() {
   const hud = document.getElementById('compass-hud');
   if (!hud) return;
@@ -14702,6 +14889,7 @@ function compassSoftEnd() {
   hud.addEventListener('click', function (e) {
     if (e.target && e.target.classList && e.target.classList.contains('cmp-bearing')) return;
     compassSoftEnd();
+    if (typeof closeWaveMenu === 'function') closeWaveMenu();   // one unfold at a time
     toggleNavMenu();
   });
   // the needle keeps its bearing even when nobody is hovering — it is the
@@ -14712,12 +14900,11 @@ function compassSoftEnd() {
 })();
 
 function compassShow(view) {
-  ['root', 'places', 'place', 'company', 'talks'].forEach(function (v) {
+  ['root', 'places', 'place', 'company'].forEach(function (v) {
     const el = document.getElementById('cmp-' + v);
     if (el) el.classList.toggle('open', v === view);
   });
   if (view === 'places') compassRenderPlaces();
-  if (view === 'talks') compassRenderTalks();
 }
 
 function compassRenderPlaces() {
