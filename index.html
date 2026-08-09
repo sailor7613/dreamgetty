@@ -237,10 +237,21 @@
      type is 15px instead of 17px in a 560px column instead of 720px, and
      the address arrives a line at a time (see addressNext) rather than
      standing on the screen as a wall of text with its own scrollbar. */
+  /* THE SHIELD COMES DOWN (2026-08-09, Sailor: "let the user zoom out and
+     pan, but center locked on Ted for the speech").
+     The rect still covers the viewport — it is the scrim — but it no longer
+     EATS the pointer, so drag orbits and the wheel zooms straight through
+     it onto the canvas. What the shield used to do for free is now done on
+     purpose and narrowly: one guard in the pointerup handler kills
+     click-to-go, click-to-follow and photo placement for the duration of a
+     talk, and nothing else is blocked. Losing the free version is the price
+     of the camera being half yours while he speaks. */
   #threshold { position: fixed; inset: 0; z-index: 900; display: none;
+    pointer-events: none;
     align-items: flex-end; justify-content: center; padding: 0 0 4.5vh;
     background: linear-gradient(to top, rgba(8,10,14,.62) 0%, rgba(8,10,14,.30) 13%, rgba(8,10,14,0) 26%); }
   #threshold.open { display: flex; }
+  #th-skip { pointer-events: auto; }
   #th-inner { max-width: 560px; width: 78%; color: #e8e4dc; text-align: left; }
   #th-who { font-family: Georgia, serif; letter-spacing: .22em; font-size: 10px;
     opacity: .45; text-transform: uppercase; }
@@ -797,7 +808,7 @@
     <div class="nav-menu-label">Ways of looking</div>
     <button class="ui-btn" id="skylight-btn" onclick="toggleMode()">Skylight</button>
     <button class="ui-btn" onclick="toggleDiatribe()">Graphmap</button>
-    <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: On</button>
+    <button class="ui-btn" id="orbit-btn" onclick="toggleOrbit()">Orbit: Off</button>
     <button class="ui-btn" id="pierce-btn" onclick="toggleLivingPierce()" title="The living pierce — residents show through walls, roofs and terrain while they are near you. What you cannot command, you can always see. (P)">◈ Pierce · on</button>
   </div>
   <div class="cmp-view" id="cmp-places"></div>
@@ -6155,7 +6166,11 @@ function toggleGraphmap() {
 let diatribeVisible = true;
 function toggleDiatribe() { toggleGraphmap(); diatribeVisible = graphmapVisible; }
 
-let orbitKilled = false;
+// RULED 2026-08-09 (Sailor): orbit is OFF at default. The villa turning
+// slowly under a visitor who has not asked it to is a screensaver; a place
+// holds still until you move in it. A talk is the exception, and it says so
+// for itself — see addressOrbitHeld.
+let orbitKilled = true;
 function toggleOrbit() {
   orbitKilled = !orbitKilled;
   if (orbitKilled) {
@@ -9570,7 +9585,11 @@ function parallaxTick() {
 
 function cameraGlide(look, off, dur) {
   try { if (typeof activeFocus !== 'undefined' && activeFocus) releaseFocus(); } catch (e) {}
-  try { if (typeof stopFollow === 'function') stopFollow(); } catch (e) {}
+  // During a talk the lock on Ted survives the glide: approach outranks the
+  // follow rig while it runs, and when the cue is spent the camera falls
+  // back onto the speaker instead of being left pointing at the library.
+  const talking = (typeof threshold !== 'undefined') && threshold.showing;
+  try { if (!talking && typeof stopFollow === 'function') stopFollow(); } catch (e) {}
   approach.active = true;
   approach.progress = 0;
   approach.startTime = -1;
@@ -9683,14 +9702,18 @@ const TED_REAR = {
   active: false, releasing: false, arrived: false,
   want: 0, now: 0,
   PIVOT_Z: -0.30,        // the hind-leg attach line, from buildCoyote
-  MAX: 1.12,             // 64° — a coyote up on his hind legs, not a circus bear
-  // The one number here that is MEASURED rather than derived, and it is
-  // measured for the same reason HOUSTON_FLOP_SINK is: the arithmetic puts
-  // the hind paws exactly on the stone, and then the hind legs counter-
-  // rotate to stay under him, which tips each paw's ellipsoid and dips its
-  // lowest vertex 26mm below the floor. Not visible; measured. Scaled by
-  // the pitch so it is zero while he is still on four legs.
-  SINK: 0.026,
+  MAX: 1.22,             // 70° — a coyote up on his hind legs, not a circus bear
+  // THE FUDGE FACTOR IS GONE, AND ITS SHRINKING WAS THE PROGRESS REPORT.
+  // It was 0.026 while the hind legs were raked forward, 0.001 once they
+  // stood plumb, and 0.000 once the body pitched about the hip and each leg
+  // was positioned against its own joint. Measured at every step, never
+  // tuned: standing clearance −0.0085, reared clearance −0.0085, to four
+  // decimal places, with no correction applied at all.
+  //
+  // Worth keeping as a smell. A magic constant sitting on top of geometry
+  // that is supposed to be exact is the model telling you the pose is wrong.
+  // This one was saying so for a fortnight before anybody photographed him.
+  SINK: 0,
   base: new THREE.Vector3(),
   mark: new THREE.Vector3(),
   faceYaw: 0,
@@ -9734,32 +9757,97 @@ function tedTailParts() {
 }
 function tedTailSwing(phi) {
   const T = tedTailParts();
-  T.tubes.forEach(function (m) { m.rotation.x = phi; });
+  const comp = tedJointCompensate(TED_TAIL_ROOT, phi);
+  T.tubes.forEach(function (m) { m.rotation.x = phi; m.position.copy(comp); });
   if (T.tip && T.tipRest) {
-    T.tip.position.copy(T.tipRest).applyAxisAngle(_TED_X, phi);
+    T.tip.position.copy(T.tipRest).applyAxisAngle(_TED_X, phi).add(comp);
     T.tip.rotation.x = phi;
   }
 }
 
 const _TED_X = new THREE.Vector3(1, 0, 0);
 const _TED_Y = new THREE.Vector3(0, 1, 0);
+// The base of the neck, off buildCoyote's neck curve (0,0.98,0.30)→(0,1.14,0.40).
+const TED_NECK = new THREE.Vector3(0, 1.06, 0.34);
+const TED_TAIL_ROOT = new THREE.Vector3(0, 0.82, -0.42);   // where the tail leaves the rump
+const TED_HIP = new THREE.Vector3(0, 0.72, -0.30);         // top of the femur, under the haunch
+const TED_LEG_LEN = 0.70;                                  // foot origin → top of the femur
+const TED_LEG_REST = [
+  new THREE.Vector3(0.13, 0, 0.28), new THREE.Vector3(-0.13, 0, 0.28),
+  new THREE.Vector3(0.13, 0, -0.30), new THREE.Vector3(-0.13, 0, -0.30),
+];
+
+// ── EVERY PART TURNS ON ITS OWN JOINT ─────────────────────────────────────
+// Three bugs this session were one bug. buildCoyote hangs almost everything
+// off the model's ORIGIN — a point between his hind paws — so `rotation.x`
+// on any sub-part swings it through an arc about his feet instead of about
+// the joint it actually has. At the ±0.3 rad the patrol and the docent use
+// nobody notices. At the 1.2 a rear needs:
+//
+//   the tail tip   drove 0.33 THROUGH THE FLOOR   (caught by measuring)
+//   the head       flew 1.25 OFF HIS NECK         (caught by photographing)
+//   the legs       hung in the air beside him     (caught by photographing)
+//
+// The fix is the same three lines every time: rotate about the joint, which
+// for a group whose origin is elsewhere means rotate AND translate by
+// (J − R·J). Written once here, used for the tail, the head and both pairs
+// of legs.
+function tedJointCompensate(joint, phi) {
+  return joint.clone().sub(joint.clone().applyAxisAngle(_TED_X, phi));
+}
 function tedRearApply(theta) {
   const legs = tedTurner.userData.legs || [];
   tedTurner.rotation.x = -theta;
-  // Hind pair leans back under the load; front pair hangs, tucked, the way
-  // a dog's forepaws hang when it stands up — not held out like a beggar.
+
+  // ── THE LEGS ──
+  // Third pass, and the first two were both wrong for the same reason: the
+  // leg groups' origin is the PAW, and rotating a leg about its paw does not
+  // put the top of the leg anywhere near the shoulder or the hip it is
+  // supposed to hang from. Both pairs are now positioned as well as rotated,
+  // each against the joint it actually turns on.
+  //
+  //   FRONT — the shoulder stays put and the leg swings from it. Solve for
+  //   the paw: origin = shoulder − Rx(φ)·(0, legLen, 0).
+  //
+  //   HIND — the PAW stays put, planted, while the body pitches about the
+  //   hip above it. Solve for the origin that lands the paw back where it
+  //   stands: p = Rx(θ)·(rest − hip) + hip. At φ = θ the leg is plumb in
+  //   world, and its top arrives at hip height directly under the haunch —
+  //   which is not a coincidence, it is the femur being the length it is.
+  const frontPhi = theta - 0.45;     // hanging, loose, a little forward
+  const hindPhi = theta;             // plumb, bearing the weight
   legs.forEach(function (leg, i) {
-    leg.group.rotation.x = i < 2 ? (theta - 0.62) : (theta * 0.30);
+    const rest = TED_LEG_REST[i];
+    if (i < 2) {
+      leg.group.rotation.x = frontPhi;
+      leg.group.position.set(rest.x, rest.y + TED_LEG_LEN, rest.z)
+        .sub(new THREE.Vector3(0, TED_LEG_LEN, 0).applyAxisAngle(_TED_X, frontPhi));
+    } else {
+      leg.group.rotation.x = hindPhi;
+      leg.group.position.copy(rest).sub(TED_HIP).applyAxisAngle(_TED_X, theta).add(TED_HIP);
+    }
   });
-  tedTailSwing(theta * 0.82);
+
+  tedTailSwing(theta * 0.90);
+
+  // The head: level, then a touch DOWN — the house is at the pool, three
+  // metres below the step he is standing on.
   if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) {
-    tedHeadGroup.rotation.x = theta * 0.74 - 0.08;   // he ends up looking out, not up
+    const phi = theta * 1.0 + 0.06;
+    tedHeadGroup.rotation.x = phi;
+    tedHeadGroup.position.copy(tedJointCompensate(TED_NECK, phi));
   }
-  // Keep the hind paws planted: shift by (I − Rx)·pivot, carried through his
-  // yaw so this is correct at any facing.
+
+  // ── THE BODY ──
+  // Pitched about the HIP, which is where an animal rears from. The hip
+  // holds its standing height and the whole animal shifts forward over its
+  // feet; pitching about the paws instead (pass one) swung the torso out
+  // BEHIND the hind legs like a seesaw, which is what made him read as
+  // furniture rather than a coyote.
   const s = tedTurner.scale.y || 1;
-  const piv = new THREE.Vector3(0, 0, TED_REAR.PIVOT_Z * s);
-  const d = piv.clone().sub(piv.clone().applyAxisAngle(_TED_X, -theta)).applyAxisAngle(_TED_Y, tedTurner.rotation.y);
+  const piv = TED_HIP.clone().multiplyScalar(s);
+  const d = piv.clone().sub(piv.clone().applyAxisAngle(_TED_X, -theta))
+    .applyAxisAngle(_TED_Y, tedTurner.rotation.y);
   const p = tedTurner.position;
   p.x = TED_REAR.base.x + d.x;
   p.z = TED_REAR.base.z + d.z;
@@ -9810,9 +9898,15 @@ function updateTedAddress(t) {
     TED_REAR.now = 0;
     tedRearApply(0);
     tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
-    (tedTurner.userData.legs || []).forEach(function (l) { l.group.rotation.x = 0; });
+    (tedTurner.userData.legs || []).forEach(function (l, i) {
+      l.group.rotation.x = 0;
+      l.group.position.copy(TED_LEG_REST[i]);     // and put the feet back
+    });
     tedTailSwing(0);
-    if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) tedHeadGroup.rotation.set(-0.05, 0, 0);
+    if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) {
+      tedHeadGroup.rotation.set(-0.05, 0, 0);
+      tedHeadGroup.position.set(0, 0, 0);   // and put the neck back
+    }
     TED_REAR.active = false; TED_REAR.releasing = false; TED_REAR.arrived = false;
     // Back into the loop at the nearest waypoint — the photo-exit rule.
     let ni = 0, nd = Infinity;
@@ -9907,7 +10001,13 @@ const TED_MARK = { x: 0, z: 11.0 };
 
 // Per-resident, and deliberately not evenly. Sailor: "don't worry about
 // trying to feature everyone evenly."
-//   water    — the pool is theirs; Trout in it is canon (Compass §4)
+//   water    — the pool is theirs, down its far half. RULED 2026-08-09
+//              (Sailor): Trout gets NO special place. He was the first
+//              avatar in the villa by pure coincidence and the staging kept
+//              quietly treating him as the deuteragonist — he ended up
+//              hanging at eye level beside the speaker in two photographs
+//              running. The swimmers now start at z 18.6, seven and a half
+//              metres out from the step, and the fish is one of five
 //   lip      — the metre of stone at the water's edge: small feet only
 //   lawn     — the grass shoulder, three metres down. The big bodies, and
 //              Petra hauled out on the grass, which is the image 07-31
@@ -9940,7 +10040,7 @@ function addressSeat(key, index) {
   if (seat.tier === 'water') {
     // Down the pool's own axis, alternating sides of the centre line.
     x = (n % 2 ? 1 : -1) * (0.9 + (n % 3) * 0.5);
-    z = 15.0 + n * 2.4;
+    z = 18.6 + n * 1.7;          // the far half of the water, never his shoulder
   } else if (seat.tier === 'lip') {
     // The metre of stone between the water and the drop. Facing in.
     x = (n % 2 ? 1 : -1) * 3.5;
@@ -10085,13 +10185,66 @@ function processionTick(t) {
 // ============================================================
 // PLAYING A TALK
 // ============================================================
-const addressPlay = { segs: [], i: -1, timer: null, ended: true, gathered: false };
+const addressPlay = { segs: [], i: -1, timer: null, ended: true, gathered: false, draftTimer: null };
+
+// ── THE CAMERA DURING A TALK (RULED 2026-08-09, Sailor) ──
+// "orbit on as Ted speaks, but also let the user zoom out and pan, but
+// center locked on Ted for the speech."
+//
+// That is the follow rig, exactly as it was built on 07-30 for clicking a
+// resident: camTarget lerps onto the subject while camTheta / camPhi /
+// camRadius stay the user's, so drag orbits AROUND him and the wheel zooms
+// without the centre ever leaving him. Nothing new was needed — the talk
+// just takes the same lock, with the follow card left closed the way walk
+// mode leaves it.
+//
+// The parallax pendulum stands down for the duration. Two hands on the
+// wheel is worse than either.
+let addressOrbitHeld = false;
+function addressTakeTheCamera() {
+  addressOrbitHeld = true;
+  if (typeof followAnimal !== 'undefined' && AVATARS['ted']) followAnimal.key = 'ted';
+  autoOrbit = true;
+  lastInteraction = 0;
+  parallaxEnd();
+}
+function addressReleaseTheCamera() {
+  addressOrbitHeld = false;
+  if (typeof followAnimal !== 'undefined' && followAnimal.key === 'ted') {
+    try { stopFollow(); } catch (e) { followAnimal.key = null; }
+  }
+  if (orbitKilled) autoOrbit = false;
+}
+
+// ── THE DRAFT ON THE GRAPHMAP (Sailor, 2026-08-09) ──
+// Thirty seconds in, the Iran trace comes up on the graphmap and the easel
+// — the villa showing its work while the docent is still talking. TS01 is
+// already <script src>-loaded and self-registers with PrismTraces, so this
+// is one call and no new data. Flip the key to 'TS02' for the
+// State-Magisterium confrontation instead.
+const ADDRESS_DRAFT_TRACE = 'TS01';
+const ADDRESS_DRAFT_DELAY = 30000;
+function addressShowDraft() {
+  try {
+    if (typeof PrismTraces === 'undefined') return;
+    const td = PrismTraces.get(ADDRESS_DRAFT_TRACE);
+    if (!td) return;
+    // The trace hangs under the graphmap's group: with the graphmap hidden
+    // it would load correctly and render nothing at all.
+    if (typeof graphmapVisible !== 'undefined' && !graphmapVisible &&
+        typeof toggleGraphmap === 'function') toggleGraphmap();
+    loadTraceOnEasel(td);
+    showNavLabel(td.label || td.id);
+  } catch (e) {}
+}
 
 function addressStop() {
   const A = addressPlay;
   A.ended = true;
   if (A.timer) { clearTimeout(A.timer); A.timer = null; }
+  if (A.draftTimer) { clearTimeout(A.draftTimer); A.draftTimer = null; }
   flyoverStop();
+  addressReleaseTheCamera();
   try { if (typeof tedStopSpeaking === 'function') tedStopSpeaking(); } catch (e) {}
   if (TED_REAR.active) tedRearRelease();
   // The gathering is NOT dispersed: it keeps its own patience from here and
@@ -10210,6 +10363,7 @@ function openThreshold(entry, opts) {
   // The villa keeps rendering behind the caption the whole time: Ted talking
   // to an empty frame would be a loading screen with a voice.
   flyoverStop();
+  if (A.draftTimer) { clearTimeout(A.draftTimer); A.draftTimer = null; }
   const series = talkSeries();
   const isIntro = opts.rehearsal || !series.length ||
                   (series[0] && entry.id && series[0].entry.id === entry.id);
@@ -10218,7 +10372,8 @@ function openThreshold(entry, opts) {
   } else {
     cameraGlide([0, 1.5, 18], [6, 7.0, 19], 4.4);   // straight to the pool
   }
-  parallaxBegin({ span: 1.15, speed: 0.05 });  // and it never stops moving between shots
+  addressTakeTheCamera();                      // orbiting, centred on him, yours to zoom
+  if (isIntro) A.draftTimer = setTimeout(addressShowDraft, ADDRESS_DRAFT_DELAY);
 
   addressNext();
 }
@@ -16028,6 +16183,11 @@ let pStart = { x: 0, y: 0 };
 
 container.addEventListener('pointerdown', e => { pStart.x = e.clientX; pStart.y = e.clientY; });
 container.addEventListener('pointerup', e => {
+  // A talk holds the WORLD still even though the camera is half yours: drag
+  // and wheel reach the canvas now that the threshold stopped eating them,
+  // but a click must not walk you off, follow somebody else, or move Ted.
+  // This one line replaces everything the full-bleed shield used to do.
+  if (typeof threshold !== 'undefined' && threshold.showing) return;
   if (Math.abs(e.clientX - pStart.x) > 8 || Math.abs(e.clientY - pStart.y) > 8) return;
   const r = container.getBoundingClientRect();
   mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
@@ -18969,7 +19129,11 @@ function animate() {
   const t = clock.getElapsedTime();
 
   // Auto-orbit
-  if (!autoOrbit && !approach.active && !orbitKilled && Date.now() - lastInteraction > AUTO_RESUME && !isDragging) autoOrbit = true;
+  // A talk overrides the default: the villa orbits while Ted speaks even
+  // with orbit switched off, and resuming after a pan is what lets you take
+  // the camera out, look around, and have the circle pick you back up.
+  const orbitAllowed = !orbitKilled || (typeof addressOrbitHeld !== 'undefined' && addressOrbitHeld);
+  if (!autoOrbit && !approach.active && orbitAllowed && Date.now() - lastInteraction > AUTO_RESUME && !isDragging) autoOrbit = true;
   if (autoOrbit && !approach.active) {
     targetTheta += autoSpeed;
     targetPhi = Math.PI * 0.38 + Math.sin(t * 0.08) * 0.04;
