@@ -10188,19 +10188,83 @@ const ADDRESS_FLYOVER = [
   { look: [0, -3.0, 33],  off: [6, 10, 20],   dur: 5.0 },   // the lawn, filling with the house
   { look: [0, 2.2, 27.5], off: [5, 3.6, 14],  dur: 4.5 },   // and the speaker at the lip, villa behind
 ];
-const flyover = { i: -1, timer: null };
-function flyoverStop() {
-  if (flyover.timer) { clearTimeout(flyover.timer); flyover.timer = null; }
-  flyover.i = -1;
+
+// ── ONE BREATH, NOT SIX (2026-08-10, Sailor: "the camera pans and
+// recenters over and over... it's nauseating") ──
+// The first fly-over was six cameraGlides on six timers, and the sickness
+// had two mechanisms: every glide is smoothstepped, so the camera came to a
+// FULL STOP six times and pulled away six times; and in the gap between a
+// glide ending and the next timer firing, the Ted-lock got one frame of the
+// wheel and yanked the view back to the speaker — pan, recenter, pan,
+// recenter, exactly as reported.
+//
+// Now the six legs are CONTROL POINTS on two Catmull-Rom splines — one for
+// the camera, one for where it looks — flown as a single pass with a
+// trapezoidal speed profile: ease out of the start, ONE cruise, ease into
+// the arrival. The look-target rides its own spline, so attention slides
+// from the break to the beach to the valley to the lawn to the speaker
+// without ever being snatched. The updateCamera branch that flies it
+// returns early, so neither the follow-lock nor the idle orbit can touch
+// the wheel mid-flight, and the handoff seeds the orbit spherical from the
+// final pose — the Ted-lock picks up a camera already looking at him.
+const flyover = { active: false, t0: 0, dur: 0, posCurve: null, lookCurve: null };
+
+function flyoverBegin() {
+  const pts = ADDRESS_FLYOVER.map(function (l) {
+    return new THREE.Vector3(l.look[0] + l.off[0], l.look[1] + l.off[1], l.look[2] + l.off[2]);
+  });
+  const looks = ADDRESS_FLYOVER.map(function (l) {
+    return new THREE.Vector3(l.look[0], l.look[1], l.look[2]);
+  });
+  flyover.posCurve = new THREE.CatmullRomCurve3(pts, false, 'centripetal');
+  flyover.lookCurve = new THREE.CatmullRomCurve3(looks, false, 'centripetal');
+  flyover.dur = ADDRESS_FLYOVER.reduce(function (a, l) { return a + l.dur; }, 0);
+  flyover.t0 = clock.getElapsedTime();
+  flyover.active = true;
+  approach.active = false;   // one hand on the wheel
+  autoOrbit = false;
 }
-function flyoverNext() {
-  flyover.i++;
-  if (flyover.i >= ADDRESS_FLYOVER.length) { flyover.timer = null; return; }
-  const leg = ADDRESS_FLYOVER[flyover.i];
-  cameraGlide(leg.look, leg.off, leg.dur);
-  flyover.timer = setTimeout(flyoverNext, leg.dur * 1000);
+function flyoverStop() { flyover.active = false; }
+
+// Trapezoidal progress: accelerate over the first 12%, cruise, brake over
+// the last 18%. Normalised so s(1) = 1.
+function flyoverProgress(u) {
+  const a = 0.12, b = 0.18;
+  const total = a / 2 + (1 - a - b) + b / 2;
+  let d;
+  if (u < a) d = (u * u) / (2 * a);
+  else if (u < 1 - b) d = a / 2 + (u - a);
+  else { const r = 1 - u; d = total - (r * r) / (2 * b); }
+  return Math.max(0, Math.min(1, d / total));
 }
-function flyoverBegin() { flyoverStop(); flyoverNext(); }
+
+function flyoverTick() {
+  if (!flyover.active) return false;
+  const u = (clock.getElapsedTime() - flyover.t0) / flyover.dur;
+  if (u >= 1) {
+    // the handoff: seed the orbit spherical from the final pose so the
+    // Ted-lock picks up a camera already at rest on him — no snap
+    const endPos = flyover.posCurve.getPointAt(1);
+    const endLook = flyover.lookCurve.getPointAt(1);
+    camera.position.copy(endPos);
+    camTarget.copy(endLook);
+    camera.lookAt(camTarget);
+    const dx = camera.position.x - camTarget.x, dy = camera.position.y - camTarget.y,
+          dz = camera.position.z - camTarget.z;
+    camRadius = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    camPhi = Math.acos(dy / camRadius);
+    camTheta = Math.atan2(dx, dz);
+    targetTheta = camTheta; targetPhi = camPhi; targetRadius = camRadius;
+    flyover.active = false;
+    return false;
+  }
+  const s = flyoverProgress(u);
+  camera.position.copy(flyover.posCurve.getPointAt(s));
+  const lk = flyover.lookCurve.getPointAt(s);
+  camTarget.copy(lk);
+  camera.lookAt(lk);
+  return true;
+}
 
 function addressApplyCue(name) {
   // A mark in the speech is the author directing. It outranks the tour.
@@ -16716,6 +16780,9 @@ const travelTargets = [
 ];
 
 function updateCamera() {
+  // the fly-over owns the wheel outright while it runs — neither the
+  // follow-lock nor the idle orbit gets a frame of it
+  if (typeof flyoverTick === 'function' && flyoverTick()) return;
   if (typeof parallaxTick === 'function') parallaxTick();
   // Screen-locked: hold camera steady on the G4 screen, no orbit
   if (g4State.screenLocked && !approach.active) {

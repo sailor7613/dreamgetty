@@ -256,27 +256,47 @@ const LONG = 'Hello, and welcome to the Dream Getty. [[house]] Everyone here liv
     // the introduction
     openThreshold(feedState.entries[0], { rewatch: true });
     addressPlay.ended = true; if (addressPlay.timer) clearTimeout(addressPlay.timer);
-    out.introFlies = flyover.i === 0;
-    out.startsAtSea = approach.endLook.z > 80;
+    out.introFlies = flyover.active === true;
+    out.startsAtSea = flyover.lookCurve.getPointAt(0).z > 80;
+    // ONE spline, not six glides: sample the whole path and assert the
+    // camera never stops mid-flight (the old sickness) and the look-target
+    // never jumps (the old recenter)
+    let maxStep = 0, minStep = Infinity, maxLookJump = 0;
+    let prevP = flyover.posCurve.getPointAt(0), prevL = flyover.lookCurve.getPointAt(0);
+    for (let i = 1; i <= 200; i++) {
+      const s2 = flyoverProgress(i / 200);
+      const pp = flyover.posCurve.getPointAt(s2), ll = flyover.lookCurve.getPointAt(s2);
+      const st = pp.distanceTo(prevP);
+      if (i > 24 && i < 176) { maxStep = Math.max(maxStep, st); minStep = Math.min(minStep, st); }
+      maxLookJump = Math.max(maxLookJump, ll.distanceTo(prevL));
+      prevP = pp; prevL = ll;
+    }
+    out.cruiseSteady = minStep > 0 && maxStep / minStep < 2.2;   // no full stops mid-flight
+    out.lookNeverJumps = maxLookJump < 3.5;                      // no recentering snatch
+    out.minStep = minStep; out.maxStep = maxStep; out.maxLookJump = maxLookJump;
     out.legs = ADDRESS_FLYOVER.length;
     out.span = ADDRESS_FLYOVER[0].look[2] - ADDRESS_FLYOVER[ADDRESS_FLYOVER.length - 1].look[2];
     out.total = ADDRESS_FLYOVER.reduce((a, l) => a + l.dur, 0);
     out.endsOnTed = Math.abs(ADDRESS_FLYOVER[ADDRESS_FLYOVER.length - 1].look[2] - TED_MARK.z) < 2;
     // a cue outranks the tour
     addressApplyCue('library');
-    out.cueStopsIt = flyover.timer === null && flyover.i === -1;
+    out.cueStopsIt = flyover.active === false;
     endThreshold();
     // a LATER talk does not fly
     const later = talkSeries().find(x => x.entry.id === 'later');
     openThreshold(later.entry, { rewatch: true });
     addressPlay.ended = true; if (addressPlay.timer) clearTimeout(addressPlay.timer);
-    out.laterDoesNotFly = flyover.i === -1;
+    out.laterDoesNotFly = flyover.active === false;
     out.laterOpensOnTheSpeaker = Math.abs(approach.endLook.z - TED_MARK.z) < 3;
     endThreshold();
     return out;
   }, LONG);
   check('the introduction opens with the fly-over', fly.introFlies);
   check('…starting out at sea', fly.startsAtSea);
+  check('ONE breath — the camera never stops mid-flight',
+        fly.cruiseSteady, 'step ' + fly.minStep.toFixed(3) + '…' + fly.maxStep.toFixed(3));
+  check('…and the look never snatches — no recentering',
+        fly.lookNeverJumps, 'max look jump ' + fly.maxLookJump.toFixed(2) + ' per sample');
   check('…crossing the villa end to end', fly.span > 60,
         fly.span + ' units of z over ' + fly.total + 's, ' + fly.legs + ' legs');
   check('…and landing on the speaker', fly.endsOnTed);
