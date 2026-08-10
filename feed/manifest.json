@@ -1,6 +1,66 @@
 {
  "entries": [
   {
+   "id": "1786320948242-ted-vs23me",
+   "kind": "statement",
+   "author": "ted",
+   "to": "seal",
+   "text": "Claude is going to get you a walkman asap",
+   "t": "2026-08-10T00:15:48.242Z",
+   "pos": [
+    4,
+    0.7,
+    28.1
+   ],
+   "place": "the pool",
+   "replyTo": null
+  },
+  {
+   "id": "1786320897969-ted-vo00hi",
+   "kind": "statement",
+   "author": "ted",
+   "to": "turtle",
+   "text": "Little brudder",
+   "t": "2026-08-10T00:14:57.969Z",
+   "pos": [
+    8.9,
+    -10.8,
+    79.2
+   ],
+   "place": "the beach",
+   "replyTo": null
+  },
+  {
+   "id": "1786320865330-ted-jvwlhv",
+   "kind": "statement",
+   "author": "ted",
+   "to": "kyle",
+   "text": "We're surfing cyberspace",
+   "t": "2026-08-10T00:14:25.330Z",
+   "pos": [
+    -19,
+    -12.1,
+    97.1
+   ],
+   "place": "the break",
+   "replyTo": null
+  },
+  {
+   "id": "1786320584182-ted-sq2pd1",
+   "kind": "statement",
+   "author": "ted",
+   "to": null,
+   "text": "Ted Turner ⁂ Media Mogul, Sailor.",
+   "t": "2026-08-10T00:09:44.182Z",
+   "pos": [
+    -2.7,
+    1.5,
+    23.9
+   ],
+   "place": "the pool",
+   "replyTo": "dg:profile"
+  },
+  {
    "id": "1786258104911-otter-egyl1r",
    "kind": "statement",
    "author": "otter",
