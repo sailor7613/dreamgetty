@@ -1098,7 +1098,7 @@
   <button class="ui-btn" id="petra-btn" onclick="tapResident('petra')" title="Petra — tap to lock the camera on her. A great white, working a long circuit offshore. Her dorsal cuts the surface on part of every lap">🦈 Petra</button>
   <button class="ui-btn" id="kyle-btn" onclick="tapResident('kyle')" title="Kyle — tap to lock the camera on him. A bottlenose dolphin who works the break, and leaps out of it">🐬 Kyle</button>
   <button class="ui-btn" id="diddy-btn" onclick="tapResident('diddy')" title="Diddy Kong — tap to lock the camera on him. Lives up on the back range, crossing the saddle and both peaks. Comes down when summoned">🐒 Diddy Kong</button>
-  <button class="ui-btn" id="alrik-btn" onclick="tapResident('alrik')" title="Alrik \u2014 tap to lock the camera on him. A wizard, sculptor and shaper; keeps to the back range with Diddy">🧙 Alrik</button>
+  <button class="ui-btn" id="richard-btn" onclick="tapResident('richard')" title="Richard \u2014 tap to lock the camera on him. A wizard, sculptor and shaper; keeps to the back range with Diddy">🧙 Richard</button>
   <button class="ui-btn" id="raven-btn" onclick="tapResident('raven')" title="Horned Sphere \u2014 asleep on the pavilion ridge. He was already here, and he will not be summoned">🐦 Horned Sphere</button>
   <button class="ui-btn" id="julia-btn" onclick="tapResident('julia')" title="Julia \u2014 tap to lock the camera on her. A great blue heron working the pool and the river shallows; the only resident who flies">🪶 Julia</button>
   <button class="ui-btn" id="emilia-btn" onclick="tapResident('emilia')" title="Emilia \u2014 tap to lock the camera on her. A snow stoat: dart, freeze, dart">🐁 Emilia</button>
@@ -1106,10 +1106,10 @@
   <button class="ui-btn" id="austin-btn" onclick="tapResident('austin')" title="Austin \u2014 tap to lock the camera on him. A brown pelican working the coast; glides low over the swell and goes in bill first">🦢 Austin</button>
   <button class="ui-btn" id="houston-btn" onclick="tapResident('houston')" title="Houston \u2014 tap to lock the camera on him. A greyhound: the length of the terrace flat out, then flat out on his side for a minute">🦮 Houston</button>
   <button class="ui-btn" id="turtle-btn" onclick="tapResident('turtle')" title="The Sea Turtle \u2014 tap to lock the camera on him. Grazes the kelp with the Princess, swims the bay, and hauls himself up the beach to bask on the dry sand">🐢 the turtle</button>
-  <button class="ui-btn" id="edburg-btn" onclick="tapResident('edburg')" title="Edburg \u2014 tap to lock the camera on him. A ginger house cat who lives on the back range with Alrik and Diddy, usually at the wizard’s feet">🐈‍⬛ Edburg</button>
+  <button class="ui-btn" id="edburg-btn" onclick="tapResident('edburg')" title="Edburg \u2014 tap to lock the camera on him. A ginger house cat who lives on the back range with Richard and Diddy, usually at the wizard’s feet">🐈‍⬛ Edburg</button>
   <button class="ui-btn" id="luke-btn" onclick="tapResident('luke')" title="Luke \u2014 tap to lock the camera on him. A wandering albatross on Austin’s coast: banks the troughs of the swell without flapping, and cannot land">🕊 Luke</button>
-  <button class="ui-btn" id="bigcolin-btn" onclick="tapResident('bigcolin')" title="Big Colin \u2014 tap to lock the camera on him. A raccoon, in and out of the villa’s own courtyard">🦝 Big Colin</button>
-  <button class="ui-btn" id="doctorcolin-btn" onclick="tapResident('doctorcolin')" title="Doctor Colin \u2014 tap to lock the camera on him. A blue sparrow, hopping the villa’s low perches">🐦 Doctor Colin</button>
+  <button class="ui-btn" id="bigcolin-btn" onclick="tapResident('bigcolin')" title="Big Colin \u2014 tap to lock the camera on him. A raccoon; lives at the foot of the acacia and works its ground">🦝 Big Colin</button>
+  <button class="ui-btn" id="doctorcolin-btn" onclick="tapResident('doctorcolin')" title="Doctor Colin \u2014 tap to lock the camera on him. A blue sparrow; lives in the acacia’s canopy">🐦 Doctor Colin</button>
   <button class="ui-btn" id="alrik-new-btn" onclick="tapResident('alrik-new')" title="Alrik \u2014 tap to lock the camera on him. A beaver, working a calm reach of the river">🦫 Alrik</button>
   </div>
 </div>
@@ -7880,7 +7880,7 @@ const AVATARS = {
   petra: () => sharkPetra,
   kyle:  () => dolphinKyle,
   diddy: () => diddyKong,
-  alrik: () => wizardAlrik,
+  richard: () => wizardAlrik,
   raven: () => ravenHornedSphere,
   julia: () => heronJulia,
   emilia: () => stoatEmilia,
@@ -10675,7 +10675,7 @@ const ADDRESS_SEATING = {
   kyle:   { rank: 0, slot: 6 }, seal:   { rank: 0, slot: 7 },
   // back rank — the tall and the wide
   y2k:    { rank: 1, slot: 0 }, houston: { rank: 1, slot: 1 },
-  diddy:  { rank: 1, slot: 2 }, alrik:   { rank: 1, slot: 3 },
+  diddy:  { rank: 1, slot: 2 }, richard: { rank: 1, slot: 3 },
   petra:  { rank: 1, slot: 4 }, julia:   { rank: 1, slot: 5 },
   austin: { rank: 1, slot: 6 }, luke:    { rank: 1, slot: 7 },
 };
@@ -10782,7 +10782,7 @@ const ADDRESS_RIDGE = [
 const ADDRESS_FROM = {
   trout: 'sea', seal: 'sea', otter: 'sea', petra: 'sea', kyle: 'sea',
   turtle: 'sea', austin: 'sea', luke: 'sea', julia: 'sea', y2k: 'sea',
-  diddy: 'ridge', alrik: 'ridge', edburg: 'ridge',
+  diddy: 'ridge', richard: 'ridge', edburg: 'ridge',
 };
 
 function addressRoute(key, seat) {
@@ -11260,9 +11260,9 @@ const PROFILES = {
       return 'up at ' + (s ? s.name : 'the mountain');
     },
   },
-  alrik: {
-    emoji: '🧙', name: 'Alrik',
-    bio: 'A wizard, a sculptor and a shaper of surfboards. Keeps to the back range with Diddy Kong, standing where the view is and walking between the peaks when the mood takes him. The stone at the head of his staff is something he carved.',
+  richard: {
+    emoji: '🧙', name: 'Richard',
+    bio: 'A wizard, a sculptor and a shaper of surfboards. Keeps to the back range with Diddy Kong, standing where the view is and walking between the peaks when the mood takes him. The stone at the head of his staff is something he carved. (Carried the name Alrik until 2026-08-10 — the name went with the person, and the person is Richard.)',
     status: function () {
       if (alrikState.mode === 'walk') return 'walking the ridge to ' + (ALRIK_SPOTS[alrikState.spot] || {}).name;
       return 'standing at ' + ((ALRIK_SPOTS[alrikState.spot] || {}).name || 'the range');
@@ -11334,7 +11334,7 @@ const PROFILES = {
   },
   edburg: {
     emoji: '🐈‍⬛', name: 'Edburg',
-    bio: 'A ginger house cat who does not live at the house. Keeps to the back range with Alrik and Diddy Kong, and more often than not is sitting at the wizard’s feet — when Alrik walks the ridge, the place Edburg is going to moves with him.',
+    bio: 'A ginger house cat who does not live at the house. Keeps to the back range with Richard and Diddy Kong, and more often than not is sitting at the wizard’s feet — when Richard walks the ridge, the place Edburg is going to moves with him.',
     status: function () {
       const S = edburgState;
       const where = (EDBURG_SPOTS[S.spot] || {}).name || 'you';   // spot −1 = summoned
@@ -11357,7 +11357,7 @@ const PROFILES = {
   },
   bigcolin: {
     emoji: '🦝', name: 'Big Colin',
-    bio: "A raccoon, and the villa's newest — added the same day as Doctor Colin. In and out of the courtyard, examining whatever he finds with those hands before he decides whether to eat it, and standing up on his hind legs the rest of the time to see what else is going on.",
+    bio: "A raccoon. Lives at the foot of the acacia in the west court — the ground under that tree is his, the way the canopy above it is Doctor Colin's. Works a tight circuit of the trunk, the kerb and the court, examining whatever he finds with those hands before he decides whether to eat it.",
     status: function () {
       const S = bigColinState;
       if (S.mode === 'scamper') return 'bolting across the court';
@@ -11368,7 +11368,7 @@ const PROFILES = {
   },
   doctorcolin: {
     emoji: '🐦', name: 'Doctor Colin',
-    bio: 'A blue sparrow — the smallest resident of the villa by a wide margin. Hops and flutters between the low perches of the courtyard; there is no walk cycle in him at all, only a short arcing flight and a great deal of head-cocking in between.',
+    bio: "A blue sparrow — the smallest resident of the villa by a wide margin. Lives in the acacia: the canopy is his address the way the ground under it is Big Colin's. Flutters between its branches and the crown, comes down to the kerb only briefly, and does a great deal of head-cocking in between.",
     status: function () {
       const S = doctorColinState;
       if (S.mode === 'flutter') return 'fluttering to ' + ((DOCTORCOLIN_SPOTS[S.spot] || {}).name || 'somewhere');
@@ -11679,7 +11679,7 @@ function renderFeedInto(key) {
 // cannot be summoned, so neither is assignable; SPEAKABLE in the gate is the
 // same list, and the gate refuses anything outside it.
 const ASSIGNABLE = ['trout', 'seal', 'y2k', 'otter', 'petra', 'kyle', 'diddy',
-                    'alrik', 'julia', 'emilia', 'adlib', 'austin',
+                    'richard', 'julia', 'emilia', 'adlib', 'austin',
                     'houston', 'turtle', 'edburg', 'luke',
                     'bigcolin', 'doctorcolin', 'alrik-new'];
 // NOTE (2026-08-07): the gate's SPEAKABLE list is the mirror of this one and
@@ -12325,7 +12325,7 @@ const ALRIK_SPOTS = [
 const alrikState = { mode: 'off', from: null, to: null, t0: -1, dur: 0, spot: 0, nextMove: 0, summonUntil: 0, path: null };
 
 function toggleAlrik() {
-  const b = document.getElementById('alrik-btn');
+  const b = document.getElementById('richard-btn');
   if (alrikState.mode === 'off') {
     wizardAlrik.position.copy(diddyGround(ALRIK_SPOTS[0].x, ALRIK_SPOTS[0].z));
     wizardAlrik.visible = true;
@@ -12335,7 +12335,7 @@ function toggleAlrik() {
   } else {
     alrikState.mode = 'off';
     wizardAlrik.visible = false;
-    if (b) { b.classList.remove('active'); b.textContent = '🧙 Alrik'; }
+    if (b) { b.classList.remove('active'); b.textContent = '🧙 Richard'; }
   }
 }
 
@@ -13833,7 +13833,7 @@ function animateTurtle(t) {
 // He is built from buildCat with a different coat (see the palette
 // parameter added there today) because a second cat is a colour, not a
 // second builder. What is genuinely his is where he sits: ONE OF HIS SPOTS
-// IS A PERSON. `follow: 'alrik'` resolves each time he chooses, so "with
+// IS A PERSON. `follow: 'richard'` resolves each time he chooses, so "with
 // the wizard" is not a fixed coordinate on the ridge — it is wherever Alrik
 // has walked to. He is the first resident whose range is another resident,
 // which is exactly what "he should live with the wizard and KB" asks for.
@@ -13855,7 +13855,7 @@ const EDBURG_SPOTS = [
   { name: 'the high river', x: 0, z: -60 },
   { name: 'the treeline', x: 11, z: -48 },
   { name: 'the east peak', x: 20, z: -72 },
-  { name: "Alrik's feet", follow: 'alrik', dx: 0.9, dz: -0.7 },
+  { name: "Richard's feet", follow: 'richard', dx: 0.9, dz: -0.7 },
   { name: 'a rock near Diddy', follow: 'diddy', dx: -1.2, dz: -0.9 },
 ];
 const edburgState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
@@ -14321,9 +14321,9 @@ function lukeDepart(t) {
 function buildRaccoon(p) {
   p = p || {};
   const g = new THREE.Group();
-  const coat = new THREE.MeshStandardMaterial({ color: p.coat !== undefined ? p.coat : 0x5c584e, roughness: 0.85 });
+  const coat = new THREE.MeshStandardMaterial({ color: p.coat !== undefined ? p.coat : 0x413c34, roughness: 0.85 });
   const dark = new THREE.MeshStandardMaterial({ color: p.dark !== undefined ? p.dark : 0x141210, roughness: 0.8 });
-  const pale = new THREE.MeshStandardMaterial({ color: p.pale !== undefined ? p.pale : 0xcfc7ae, roughness: 0.82 });
+  const pale = new THREE.MeshStandardMaterial({ color: p.pale !== undefined ? p.pale : 0xb0a68c, roughness: 0.82 });
   const eyeMat = new THREE.MeshStandardMaterial({ color: 0x0c0a08, roughness: 0.3 });
 
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 8), coat);
@@ -14368,7 +14368,7 @@ function buildRaccoon(p) {
   const legs = [];
   [[-1, 0.14], [1, 0.14], [-1, -0.15], [1, -0.15]].forEach(([s, z]) => {
     const leg = new THREE.Group();
-    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.026, 0.17, 5), coat);
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.026, 0.17, 5), dark);
     l.position.y = -0.085;
     leg.add(l);
     const paw = new THREE.Mesh(new THREE.SphereGeometry(0.036, 6, 5), dark);
@@ -14384,7 +14384,7 @@ function buildRaccoon(p) {
   // Five stacked segments alternating dark and pale, tapering toward the
   // tip, on a pivot so the whole tail can move as one thing.
   const tail = new THREE.Group();
-  const ringPale = new THREE.MeshStandardMaterial({ color: p.ring !== undefined ? p.ring : 0x9a9280, roughness: 0.85 });
+  const ringPale = new THREE.MeshStandardMaterial({ color: p.ring !== undefined ? p.ring : 0x847b66, roughness: 0.85 });
   const segCount = 5;
   for (let i = 0; i < segCount; i++) {
     const u = i / (segCount - 1);
@@ -14405,16 +14405,18 @@ const raccoonBigColin = buildRaccoon();
 raccoonBigColin.visible = false;
 scene.add(raccoonBigColin);
 
-// The villa's own courtyard spots — a raccoon is a curious animal that
-// gets into what the household is doing, not a wilderness range like
-// Diddy and Alrik's ridge. Reusing named landmarks that are already
-// walkable ground, rather than guessing new coordinates.
+// RULED (Sailor, 2026-08-10): both Colins live in the ACACIA — the tree
+// standing in the west court between the Getty and the library — but on
+// SEPARATE paths. Big Colin gets the tree's GROUND: a tight circuit of
+// the trunk, the kerb, and the court around it, the way a raccoon
+// actually holds a den tree. Doctor Colin gets the tree itself (see his
+// spots below); the two share an address and never a path.
 const BIGCOLIN_SPOTS = [
+  { name: "the acacia's roots", x: -12.4, z: 3.5 },
+  { name: 'the acacia kerb', x: -14.8, z: 2.1 },
   { name: 'the west court', x: -12.4, z: 6.6 },
   { name: 'the library steps', x: -17.2, z: 5 },
-  { name: 'the galleria', x: -6, z: 2 },
-  { name: 'the exedra', x: 21, z: 2.5 },
-  { name: 'the pool walk', x: 2.4, z: 15 },
+  { name: "the court's north edge", x: -13.2, z: -0.8 },
 ];
 const bigColinState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
 function bigColinGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
@@ -14579,18 +14581,26 @@ const sparrowDoctorColin = buildSparrow();
 sparrowDoctorColin.visible = false;
 scene.add(sparrowDoctorColin);
 
-// The same courtyard as Big Colin — low garden perches, all already
-// proven walkable ground. `perch` follows Adlib's convention: a small
-// lift above the ground for a ledge or a step.
+// RULED (Sailor, 2026-08-10): Doctor Colin lives IN the acacia — the
+// canopy is his, the ground is Big Colin's, and that split is the whole
+// arrangement. `branch` is a height on the TREE, in the tree's own local
+// units: the acacia stands at BUILDING_Y and is scaled 1.2, so a branch
+// at local y sits at world BUILDING_Y + y × 1.2. The x/z are the branch
+// tips of buildAcaciaTree, worked through the same transform. One spot
+// keeps the old `perch` convention because a sparrow does come down to
+// the kerb — briefly, and always back up.
 const DOCTORCOLIN_SPOTS = [
-  { name: 'the library steps', x: -17.2, z: 5, perch: 0.15 },
-  { name: 'the west court', x: -12.4, z: 6.6, perch: 0 },
-  { name: 'the galleria', x: -6, z: 2, perch: 0.15 },
-  { name: 'the pool walk', x: 2.4, z: 15, perch: 0 },
-  { name: 'the exedra', x: 21, z: 2.5, perch: 0.15 },
+  { name: 'the crown of the acacia', x: -12.3, z: 4.2, branch: 8.2 },
+  { name: 'the east branch', x: -9.9, z: 3.4, branch: 6.2 },
+  { name: 'the west branch', x: -15.7, z: 2.5, branch: 5.6 },   // midsection — the TIP overhangs the library roof and reads as roof, not branch
+  { name: 'the low bough', x: -11.7, z: 3.6, branch: 5.0 },
+  { name: 'the acacia kerb', x: -14.8, z: 2.1, perch: 0.1 },
 ];
-const doctorColinState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, perch: 0 };
+const doctorColinState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, perchY: null };
 function doctorColinGround(spot) {
+  if (spot.branch !== undefined) {
+    return new THREE.Vector3(spot.x, BUILDING_Y + spot.branch * 1.2, spot.z);
+  }
   return new THREE.Vector3(spot.x, getVisitorHeight(spot.x, spot.z) + 0.02 + (spot.perch || 0), spot.z);
 }
 
@@ -14598,7 +14608,7 @@ function toggleDoctorColin() {
   const b = document.getElementById('doctorcolin-btn');
   if (doctorColinState.mode === 'off') {
     sparrowDoctorColin.position.copy(doctorColinGround(DOCTORCOLIN_SPOTS[0]));
-    doctorColinState.perch = DOCTORCOLIN_SPOTS[0].perch || 0;
+    doctorColinState.perchY = sparrowDoctorColin.position.y;
     sparrowDoctorColin.visible = true;
     doctorColinState.mode = 'perch';
     doctorColinState.t0 = -1; doctorColinState.spot = 0;
@@ -14622,7 +14632,10 @@ function animateDoctorColin(t) {
     const p = S.from.clone().lerp(S.to, e);
     const spot = DOCTORCOLIN_SPOTS[S.spot] || { perch: 0, name: 'you' };
     const arc = Math.sin(u * Math.PI);
-    p.y = getVisitorHeight(p.x, p.z) + 0.02 + (spot.perch || 0) * (u > 0.7 ? (u - 0.7) / 0.3 : 0) + arc * 0.6;
+    // from.y and to.y now carry real heights — kerb to canopy — so the
+    // flight is the lerp between them with the arc on top, floored so a
+    // low pass never clips the pavement.
+    p.y = Math.max(p.y + arc * 0.6, getVisitorHeight(p.x, p.z) + 0.05);
     sparrowDoctorColin.position.copy(p);
     const flap = Math.abs(Math.sin(t * 26));
     W.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * (0.3 + flap * 0.9); });
@@ -14630,7 +14643,7 @@ function animateDoctorColin(t) {
     const v = new THREE.Vector3().subVectors(S.to, S.from);
     if (v.lengthSq() > 1e-4) sparrowDoctorColin.rotation.y = Math.atan2(v.x, v.z);
     if (u >= 1) {
-      S.perch = spot.perch || 0;
+      S.perchY = S.to.y;
       S.mode = 'perch';
       S.t0 = t;
       S.until = Math.max(t + 10 + Math.abs(Math.sin(t * 17.1)) * 24, S.summonUntil || 0);
@@ -14641,7 +14654,8 @@ function animateDoctorColin(t) {
     return;
   }
 
-  sparrowDoctorColin.position.y = getVisitorHeight(sparrowDoctorColin.position.x, sparrowDoctorColin.position.z) + 0.02 + S.perch;
+  sparrowDoctorColin.position.y = (S.perchY != null) ? S.perchY
+    : getVisitorHeight(sparrowDoctorColin.position.x, sparrowDoctorColin.position.z) + 0.02;
 
   // Perched: a head-cocked look-around and the odd wing-flick, until he
   // hops. There is no walk cycle for him at all — a sparrow on the ground
@@ -14658,7 +14672,7 @@ function animateDoctorColin(t) {
     S.spot = next;
     S.from = sparrowDoctorColin.position.clone();
     S.to = doctorColinGround(DOCTORCOLIN_SPOTS[next]);
-    S.perch = 0;
+    S.perchY = null;
     const far = S.from.distanceTo(S.to);
     S.dur = Math.max(1.2, far / 7);
     S.mode = 'flutter';
@@ -14669,8 +14683,9 @@ function animateDoctorColin(t) {
 // ============================================================
 // 17. ALRIK'S BEAVER (2026-08-10, Sailor: "let's make Alrik's beaver" —
 // confirming the roster's TO BUILD placeholder). The wizard's own key
-// ('alrik') now belongs to Richard (REASSIGNED 2026-08-05); this is the
-// NEW key the roster held open for Alrik, 'alrik-new', matching the
+// key is 'richard' now (renamed 2026-08-10 — the wizard IS Richard, and
+// the key followed the person); this is the key the roster held open for
+// Alrik, 'alrik-new', matching the
 // Google Sheet exactly so the gate's SPEAKABLE list and this file's
 // ASSIGNABLE agree.
 //
@@ -15016,7 +15031,7 @@ const RESIDENTS = {
   petra: { state: function () { return petraState; }, toggle: togglePetra },
   kyle:  { state: function () { return kyleState; },  toggle: toggleKyle },
   diddy: { state: function () { return diddyState; }, toggle: toggleDiddy },
-  alrik: { state: function () { return alrikState; }, toggle: toggleAlrik },
+  richard: { state: function () { return alrikState; }, toggle: toggleAlrik },
   raven: { state: function () { return ravenState; }, toggle: function () {} },
   julia: { state: function () { return juliaState; }, toggle: toggleJulia },
   emilia:{ state: function () { return emiliaState; }, toggle: toggleEmilia },
@@ -15397,7 +15412,7 @@ function summonResident(key, silent, at) {
     diddyState.mode = 'move';
     diddyState.summonUntil = t + diddyState.dur + 90;
     diddyState.nextMove = t + diddyState.dur + 90;
-  } else if (key === 'alrik') {
+  } else if (key === 'richard') {
     if (alrikState.mode === 'off') toggleAlrik();
     alrikState.from = wizardAlrik.position.clone();
     alrikState.to = diddyGround(here.x + 2.0, here.z + 1.0);
@@ -18443,7 +18458,7 @@ container.addEventListener('pointerup', e => {
     if (sharkPetra.visible) critters.push({ key: 'petra', mesh: sharkPetra });
     if (dolphinKyle.visible) critters.push({ key: 'kyle', mesh: dolphinKyle });
     if (diddyKong.visible) critters.push({ key: 'diddy', mesh: diddyKong });
-    if (wizardAlrik.visible) critters.push({ key: 'alrik', mesh: wizardAlrik });
+    if (wizardAlrik.visible) critters.push({ key: 'richard', mesh: wizardAlrik });
     if (ravenHornedSphere.visible) critters.push({ key: 'raven', mesh: ravenHornedSphere });
     if (heronJulia.visible) critters.push({ key: 'julia', mesh: heronJulia });
     if (stoatEmilia.visible) critters.push({ key: 'emilia', mesh: stoatEmilia });
@@ -21367,7 +21382,7 @@ try { const v = localStorage.getItem('dg_livingpierce'); if (v === '0') livingPi
 const PIERCE_BODIES = [
   ['ted', tedTurner], ['trout', troutFish], ['seal', sealPup], ['y2k', y2kHusky],
   ['otter', otterPrincess], ['petra', sharkPetra], ['kyle', dolphinKyle],
-  ['diddy', diddyKong], ['alrik', wizardAlrik], ['raven', ravenHornedSphere],
+  ['diddy', diddyKong], ['richard', wizardAlrik], ['raven', ravenHornedSphere],
   ['julia', heronJulia], ['emilia', stoatEmilia], ['adlib', catAdlib],
   ['austin', pelicanAustin], ['houston', greyhoundHouston], ['turtle', seaTurtle],
   ['edburg', catEdburg], ['luke', albatrossLuke],
@@ -21667,7 +21682,7 @@ function animate() {
   residentBudget.run('petra',   animateShark,   t, sharkPetra);
   residentBudget.run('kyle',    animateDolphin, t, dolphinKyle);
   residentBudget.run('diddy',   animateDiddy,   t, diddyKong);
-  residentBudget.run('alrik',   animateAlrik,   t, wizardAlrik);
+  residentBudget.run('richard', animateAlrik,   t, wizardAlrik);
   animateRaven(t);   // asleep on the ridge; the cheapest loop in the file, and always in frame
   residentBudget.run('julia',   animateHeron,   t, heronJulia);
   residentBudget.run('emilia',  animateStoat,   t, stoatEmilia);
