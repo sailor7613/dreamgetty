@@ -3,19 +3,82 @@
 // Pipeline output: Parameters project → DreamGetty renderer
 //
 // Event: US Military Strikes on Iran — Operation Epic Fury
-// Object: American military engagement with Iran
-// Status: All four positions pipeline-complete.
-//         Boundary descriptions complete. Keywords complete.
-// Date: April 5, 2026
+// Object (military layer): American military engagement with Iran
+// Object (real, provisional): Dollar re-invoicing / reserve-currency capture
+// Status: Military layer pipeline-complete, unchanged from prior build.
+//         Real-object / projection-gap layer added 2026-08-10 — PROVISIONAL,
+//         per CS07's own discipline ("authored before formalizing... do not
+//         encode as resolved"). Do not treat realObject/projectionGap as
+//         locked the way object/shadow/positions are.
+// Date: April 5, 2026 (military layer) · August 10, 2026 (real-object layer)
+//
+// ------------------------------------------------------------
+// REBUILD NOTE — 2026-08-10 (Sailor + Claude)
+// ------------------------------------------------------------
+// Total reconsideration requested: "the trace as it stands now was a rough
+// epistemological experiment... review all ontological developments... start
+// from the ground up... stabilize our parameters." Findings from that review:
+//
+// 1. Checked against Refraction Grammar v1 / Closed Form v1.2 (this trace's
+//    declared version) directly: the military layer is NOT early-draft by
+//    those documents' own standards. The 8+4 position model (fluid +
+//    denominated per quadrant + boundary description — NOT a third
+//    "coalition" band) is what Closed Form v1.2 (Mar 26 2026) mandates, and
+//    this trace already uses it correctly. The `distinguishability` values
+//    already reflect the corrected three-tier scale (J_dia_operator.md,
+//    June 1 2026), not the retired four-tier one. Structurally current.
+//
+// 2. What was actually thin: coverage, not form.
+//    a. g_compilation.md's own entry for this event (e1.10) flagged Object Z
+//       as an open oscillation (band +0.50 to −0.95, pending outcome) as of
+//       March 2026 — and it was never closed out against what actually
+//       happened. Closed below in findings, WITHOUT changing object.z — see
+//       note there for why leaving it unchanged is the correct resolution,
+//       not an oversight.
+//    b. This trace carried exactly one object/shadow pair (military
+//       delivery vs. quagmire narrative) with no slot for what CS07
+//       (Hormuz MOU, June 19 2026) later did to Hormuz — promoting a
+//       materially real object one layer deeper once the surface object
+//       turned out to be cover. Added below as `realObject` /
+//       `projectionGap`, modeled directly on CS07's precedent.
+//    c. Denomination patterns already attributed to this exact event in
+//       g_compilation.md (#3, #7, #8, #9) were never tagged against this
+//       predicate table. Tagged below.
+//
+// 3. Known, unresolved, NOT fixed by this rebuild: Closed Form v1.2 (Mar 26)
+//    explicitly retired "coalition" as a coordinate-subject band ("not a
+//    coordinate subject... the experience of standing at the boundary").
+//    Denomination_As_Object_Displacement_v1.md (June 25) and the CS04/CS07
+//    case-study format both run live on a fluid/coalition/denominated
+//    three-band model. TS01 stays in the 8+4 model per the boundary-model
+//    lineage it was built in and per Trace_Data_Schema_v1's DreamGetty
+//    consumption contract — this is flagged as open project debt, not
+//    reconciled here.
+//
+// Sourcing for the real-object layer:
+//   - Bessent, CNBC interview, June 24, 2026: "We're seeing in the Iranian
+//     negotiations the Iranians will be invoicing in dollars" / "dollar
+//     dominance is essential" / "Everything we are doing is pushing the
+//     dollar" — Venezuela and Russia named as next.
+//   - Bessent, public remarks, August 8, 2026: the Strait of Hormuz "is
+//     going to become irrelevant" within two years as energy shifts to
+//     pipeline transit.
 // ============================================================
 
 const TS01_TRACE = {
   id: 'TS01',
   label: 'US Military Strikes on Iran — Operation Epic Fury',
+  // eventType is RENDERED — DreamGetty draws it with ctx.fillText at fixed
+  // canvas positions (index.html ~6221 left-aligned after the id, ~6280
+  // centred at x=512) with no wrapping, and folds it into story text
+  // (~19152) and the inspect-panel system prompt (~18803). It must stay
+  // short. Extended description goes in eventTypeExtended, which nothing
+  // reads. Do not lengthen this string without re-photographing the easel.
   eventType: 'Z-inversion',
+  eventTypeExtended: 'Z-inversion (military layer) + projection gap (real-object layer, provisional)',
   prevalentAxis: 'Y',
 
-  // ── Refraction output ──────────────────────────────────
+  // ── Refraction output — military layer (UNCHANGED from prior build) ──
   object:  { x: 0.65, y: 0.85, z: 0.80 },   // Y-prevalent, Z-delivering
   shadow:  { x: 0.80, y: 0.75, z: -0.30 },   // X-sharpened, Y-attenuated, Z-inverted
 
@@ -38,12 +101,17 @@ const TS01_TRACE = {
   // Types: T=Trigger, B=Substrate, M=Mechanism, V=Void, C=Contradiction, F=Frame
   // Axis loadings: 1=positive, 0=neutral, -1=negative
   // Operative predicates position relative to O; F predicates relative to O'
+  // `patterns`: denomination_pattern_library.md numbers, added in this rebuild —
+  //   attribution source is g_compilation.md's own e1.10 entry (📓e1 Event 10)
+  //   plus CS04/CS07's cross-references, not re-derived from scratch here.
   predicates: {
     operative: [
       {
         type: 'T', id: 'T1',
         label: 'US and Israel conduct major strikes across 24 of 31 Iranian provinces; explicit regime change rhetoric; Iranian retaliation hits Tel Aviv and US regional bases',
         x: 1, y: 1, z: 1,
+        patterns: [9],
+        patternNote: 'Pattern #9 (performative glorification) — operation naming and staged framing begin at the trigger itself, per g_compilation e1.10.',
       },
       {
         type: 'B', id: 'B1',
@@ -69,11 +137,15 @@ const TS01_TRACE = {
         type: 'M', id: 'M1',
         label: 'Sanctions regime and economic pressure (1979–2025): decades of escalating sanctions, JCPOA as single institutional interruption then withdrawn — pre-military engagement channel operating at Z-neutral',
         x: 1, y: 1, z: 0,
+        patterns: [3],
+        patternNote: 'Pattern #3 (destroying a mechanism that works) — "maximum pressure" repeated across the sanctions/JCPOA-withdrawal sequence, per g_compilation e1.10.',
       },
       {
         type: 'M', id: 'M2',
         label: 'Congressional abdication on war powers: Massie/Khanna prepare bipartisan resolution, Democratic leadership does not advance it, upper-left Democrats abstain rather than insist on institutional process',
         x: 0, y: -1, z: 1,
+        patterns: [7],
+        patternNote: 'Pattern #7 (captive dreamer\'s definitional retreat) — institutional abstention framed as prudence rather than abdication, per g_compilation e1.10.',
       },
       {
         type: 'V', id: 'V1',
@@ -107,11 +179,38 @@ const TS01_TRACE = {
         type: 'F', id: 'F4',
         label: 'Victory narrative — strategic success, nuclear capability neutralized, compresses operative complexity into claimable narrative',
         x: 1, y: 1, z: 1,
+        patterns: [8],
+        patternNote: 'Pattern #8 (historical revision, Denial mode) — Tim Pool-type retroactive "always planned it" narrative folds into the compressed victory story, per g_compilation e1.10. Also the frame this trace\'s new C2 predicate destabilizes: the "victory" the frame claims is centered on the strait, which the apparatus itself later discards (see realObject / C2 below).',
+      },
+    ],
+
+    // ── Real-object predicate table — NEW, 2026-08-10, PROVISIONAL ────
+    // These do not feed object/shadow above. They ground `realObject` and
+    // `projectionGap` below, modeled on CS07's real-object/shadow-object
+    // move (Hormuz promoted from real object in CS04 to shadow object in
+    // CS07, beneath the petrogas-dollar). Kept in a separate array on
+    // purpose — additive to the schema, not a silent rescoring of the
+    // military layer above.
+    realObject: [
+      {
+        type: 'M', id: 'M3',
+        label: 'Treasury Secretary Bessent, CNBC, June 24 2026: "We\'re seeing in the Iranian negotiations the Iranians will be invoicing in dollars" — "dollar dominance is essential" — "Everything we are doing is pushing the dollar." Venezuela and Russia named as expected to follow into dollar-invoiced trade.',
+        x: 1, y: 1, z: 1,
+        source: 'CNBC, June 24, 2026',
+        note: 'The first on-record confirmation of the petrogas-dollar attribution (Medhurst, May 2026 — CS07\'s "layer 1") from an actual party to the negotiation, not press inference or dissident reading. Layer 1 moves from contested to stated-and-disputed-only-in-degree.',
+      },
+      {
+        type: 'C', id: 'C2',
+        label: 'Bessent, public remarks, August 8 2026: the Strait of Hormuz "is going to become irrelevant" within two years as energy shifts to pipeline transit — the same chokepoint the war\'s F4 victory narrative and the Islamabad Memorandum (CS07) both center as the thing won.',
+        x: 0, y: 1, z: 1,
+        tension: true,
+        source: 'Public remarks, August 8, 2026',
+        note: 'Structurally distinct from C1: not a shadow-discourse credibility flaw, but an admission from inside the operative apparatus itself. It reduces confidence that Hormuz control was ever the terminal object — even for the side that fought to control it — while corroborating realObject.z. The strait was leverage in the currency campaign, not the destination. This is the pattern CS07 named "the pressure valve": open exactly enough to keep the system liquid while the larger restructuring sets, then let the chokepoint go once it has done that work.',
       },
     ],
   },
 
-  // ── Diffraction output — four positions ────────────────
+  // ── Diffraction output — four positions (UNCHANGED) ────
   // Quadrant mapping: A=upper-left (LI), B=upper-right (RI),
   //                   C=lower-left (LP), D=lower-right (RP)
   positions: [
@@ -220,7 +319,7 @@ const TS01_TRACE = {
       binary: 'mandate vs. efficacy',
       distinguishability: 'Denominated dominant',
       status: 'complete',
-      note: 'Shadow maximally congenial to RP — sharpens X-ownership, reduces institutional character. Offers identity confirmation and Z-inversion simultaneously. Rand Paul as fluid benchmark (Diatribe 10 across Iran and Venezuela).',
+      note: 'Shadow maximally congenial to RP — sharpens X-ownership, reduces institutional character. Offers identity confirmation and Z-inversion simultaneously. Rand Paul as fluid benchmark (Diatribe 10 across Iran and Venezuela — cross-session benchmark per g_compilation e1.s6/e4.s8).',
       boundaryDescription: 'Constitutional authorization as legitimacy requirement vs. delivery as self-authorizing. Rand Paul as fluid benchmark.',
       fluidKeywords: [
         { text: 'constitutional', weight: 0.9 },
@@ -241,6 +340,38 @@ const TS01_TRACE = {
     },
   ],
 
+  // ── Real object / projection gap — NEW, 2026-08-10, PROVISIONAL ────
+  // Modeled directly on CS07 (Hormuz MOU, June 19 2026): a shadow object and
+  // a real object that are DIFFERENT objects and BOTH read realized — the
+  // shadow's genuine success is what conceals the real object, because good
+  // news does not get audited. In CS04→CS07, Hormuz was promoted from real
+  // object to shadow object beneath the petrogas-dollar. Here, the existing
+  // military `object` above (delivering, Z+0.80) plays the shadow-object
+  // role: not because it was ever false, but because its being genuinely,
+  // stably true is exactly what let a deeper object run underneath it
+  // unexamined.
+  realObject: {
+    status: 'PROVISIONAL — candidate extension, not formalized. Per CS07: "flagged for formalization... do not encode as resolved." This block strengthens layer-1 attribution; it does not itself resolve the projection-gap type.',
+    id: 'petrogas-dollar',
+    label: 'Dollar re-invoicing / reserve-currency capture',
+    x: 0.75, y: 0.90, z: 0.88,
+    description: 'The object one layer beneath military delivery. Not "was the strike a strategic success" but "what was the strike, and everything after it, actually for." Confirmed on-record by the Treasury Secretary (M3, June 24 2026) as a stated aim of the Iran negotiations specifically, extending to Venezuela and Russia. The physical chokepoint (Hormuz) that CS04 first named as the object beneath the nuclear framing, and that CS07 later promoted to shadow object beneath the petrogas-dollar, is treated by the apparatus itself as expendable once it has done its work (C2, August 8 2026) — corroborating that the currency object, not the strait, is the durable one.',
+    sourcing: {
+      layer1_attribution: 'Medhurst, "How the US Pulled off an Armed Robbery of the World\'s Energy Supply and Created the Petrogas-Dollar," May 2026 — originally the contested dissident reading (CS07\'s framing: "hard to close"). As of this rebuild, corroborated on-record by Bessent (M3) as a stated negotiating aim, not merely inferred from trade data. Disputed only in degree now, not in kind.',
+      layer2_substrate: 'Measurable and independent of layer 1: US LNG ~27% (2021) → ~48% (2024) of EU imports; IMF COFER dollar reserve share below 57% for the first time since 1995 (Q3 2025); Saudi yuan-priced oil to China 15%→22%. Per CS07\'s own discipline, the real object rests on this layer — a reader can disbelieve Medhurst\'s intent claim and the real object is still in the trade data. M3 does not replace layer 2; it closes most of the gap between the two layers.',
+    },
+  },
+
+  projectionGap: {
+    status: 'CANDIDATE — third gap type, not formalized. Distinct from intrinsic gap (Object Z, stated-vs-operative inside one object) and relational gap (one actor across two corpora).',
+    shadowObjectRef: 'object',
+    shadowObjectReading: 'Realized at Z+0.80 — the military engagement genuinely delivered on its own stated terms (see B1–B4 substrate, F4 victory narrative). This is not a false reading being exposed as false.',
+    realObjectRef: 'realObject',
+    realObjectReading: 'Realized at Z+0.88 — the currency-capture object, per M3/C2.',
+    signAgreement: true,
+    description: 'Both objects read realized. That shared sign is the cover: a frustrated shadow trips the alarm; a realized shadow is the perfect cover, because good news (or at least "mission accomplished" news) does not get audited. The quagmire-vs-victory argument that occupied this trace\'s original object/shadow pair (Z-inversion, April 2026) was a real argument, honestly encoded — and also, in retrospect, an argument conducted entirely at the wrong altitude. Resolving it either way (quagmire or victory) would have left the real object exactly as invisible.',
+  },
+
   // ── Structural findings ────────────────────────────────
   findings: [
     'TS01 is a Z-inversion event — shadow sharpens X (+0.15), attenuates Y (-0.10), inverts Z (-1.10).',
@@ -252,6 +383,13 @@ const TS01_TRACE = {
     'Y-prevalence confirmed at diagnostic level — highest-distinguishability positions (LI, RP) both split on institutional process questions.',
     'LI Y-concordance at +0.85 is highest single-axis concordance in table — structural encoding of Democratic complicity through abdication.',
     'C1 contradiction (American operative capacity vs. strategic failure narrative) lives inside shadow discourse, not inside object.',
+    '— 2026-08-10 rebuild —',
+    'Oscillation flag closed WITHOUT rescoring object.z. g_compilation.md (March 2026) predicted this event\'s Z resolving between +0.50 (regime-change-stable) and -0.95 (quagmire); neither happened — ceasefire via Islamabad Memorandum (June 17 2026), nuclear file deferred, no regime change, Strait reopened toll-free for 60 days (CS07). Rescoring object.z toward either predicted pole would answer a question the actual outcome dissolved rather than resolved: both "delivered" and "quagmire" were arguments about the military object, and the real resolution happened one layer down. Leaving object.z at +0.80, unrevised, is the finding, not an omission — see projectionGap.',
+    'Denomination patterns attributed to this event by g_compilation.md (e1.10) but never previously tagged on this predicate table: #9 (performative glorification, T1), #3 (destroying a working mechanism, M1), #7 (captive dreamer\'s definitional retreat, M2), #8 (historical revision, F4). Tagged inline above.',
+    'Pattern #20 (cultural/ideological framing masking economic mechanism) now has two dated instances on this arc: CS04 (nuclear framing suppressing Hormuz, the transit-layer instance) and CS07 (Hormuz-as-relief suppressing the petrogas-dollar, the monetary-layer instance). This trace\'s M3/C2 mark that same pattern operating on the strike itself, chronologically prior to both.',
+    'Pattern #16 (Z-gap by architectural design) applies to realObject: the gap between "the war was about the nuclear threat" and "the war was about currency capture" is not a lie that closes under scrutiny — it is a structural feature the apparatus does not need to hide, because the shadow object (military delivery) is genuinely, stably true.',
+    'Real-object / projection-gap layer (realObject, projectionGap, and predicates.realObject) is a schema extension, additive only — object, shadow, transform, predicates.operative, predicates.stated, and positions are unchanged from the prior build and remain the pipeline-complete military-layer trace.',
+    'Unresolved, flagged, not fixed here: Closed Form v1.2 (Mar 26 2026) retired "coalition" as a coordinate-subject band; Denomination_As_Object_Displacement_v1.md (June 25 2026) and the CS04/CS07 case-study format both run live on a fluid/coalition/denominated three-band model. This trace stays in the 8+4 model it was built in. The two schemas are presently unreconciled project-wide.',
   ],
 
   // ── Pipeline metadata ──────────────────────────────────
@@ -261,7 +399,7 @@ const TS01_TRACE = {
     positionsComplete: 4,
     boundaryDescriptions: 4,
     coordinateSubjects: 8,
-    version: 'Refraction Grammar v1 / Closed Form v1.2',
+    version: 'Refraction Grammar v1 / Closed Form v1.2 (military layer, unchanged) + Real-Object Extension v0.1 — provisional, 2026-08-10',
   },
 };
 
