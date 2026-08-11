@@ -1108,6 +1108,9 @@
   <button class="ui-btn" id="turtle-btn" onclick="tapResident('turtle')" title="The Sea Turtle \u2014 tap to lock the camera on him. Grazes the kelp with the Princess, swims the bay, and hauls himself up the beach to bask on the dry sand">🐢 the turtle</button>
   <button class="ui-btn" id="edburg-btn" onclick="tapResident('edburg')" title="Edburg \u2014 tap to lock the camera on him. A ginger house cat who lives on the back range with Alrik and Diddy, usually at the wizard’s feet">🐈‍⬛ Edburg</button>
   <button class="ui-btn" id="luke-btn" onclick="tapResident('luke')" title="Luke \u2014 tap to lock the camera on him. A wandering albatross on Austin’s coast: banks the troughs of the swell without flapping, and cannot land">🕊 Luke</button>
+  <button class="ui-btn" id="bigcolin-btn" onclick="tapResident('bigcolin')" title="Big Colin \u2014 tap to lock the camera on him. A raccoon, in and out of the villa’s own courtyard">🦝 Big Colin</button>
+  <button class="ui-btn" id="doctorcolin-btn" onclick="tapResident('doctorcolin')" title="Doctor Colin \u2014 tap to lock the camera on him. A blue sparrow, hopping the villa’s low perches">🐦 Doctor Colin</button>
+  <button class="ui-btn" id="alrik-new-btn" onclick="tapResident('alrik-new')" title="Alrik \u2014 tap to lock the camera on him. A beaver, working a calm reach of the river">🦫 Alrik</button>
   </div>
 </div>
 
@@ -7887,6 +7890,9 @@ const AVATARS = {
   turtle: () => seaTurtle,
   edburg: () => catEdburg,
   luke: () => albatrossLuke,
+  bigcolin: () => raccoonBigColin,
+  doctorcolin: () => sparrowDoctorColin,
+  'alrik-new': () => beaverAlrik,
   guest: () => visitorAvatar,
 };
 
@@ -10802,7 +10808,17 @@ function addressGather() {
   const stage = new THREE.Vector3(ADDRESS_STAGE.x, getVisitorHeight(ADDRESS_STAGE.x, ADDRESS_STAGE.z), ADDRESS_STAGE.z);
   gatherBegin('The Lawn', stage);
   const keys = (typeof ASSIGNABLE !== 'undefined' ? ASSIGNABLE : [])
-    .filter(function (k) { return typeof RESIDENTS !== 'undefined' && RESIDENTS[k]; });
+    .filter(function (k) { return typeof RESIDENTS !== 'undefined' && RESIDENTS[k]; })
+    // 2026-08-10 — Big Colin, Doctor Colin and Alrik's beaver sit out the
+    // grand address. The rank/slot table is a fixed two-rank, eight-a-side
+    // grid tuned by measurement (see ADDRESS_SEATING's header) — no free
+    // slot exists for a 17th–19th body, and a third rank breaks the "one
+    // plane" the two existing ranks were tuned to (spread 1.0 against a
+    // 0.7 budget). Left for a proper re-tuning rather than forced in.
+    // They still roam, are still summonable and speakable on their own —
+    // this excuses them from ONE formation, the way raven excuses himself
+    // from every gathering in gatherAdd.
+    .filter(function (k) { return !!ADDRESS_SEATING[k]; });
   let n = 0;
   keys.forEach(function (k, i) {
     const seat = addressSeat(k, i);
@@ -11339,6 +11355,37 @@ const PROFILES = {
       return 'sitting the swell';
     },
   },
+  bigcolin: {
+    emoji: '🦝', name: 'Big Colin',
+    bio: "A raccoon, and the villa's newest — added the same day as Doctor Colin. In and out of the courtyard, examining whatever he finds with those hands before he decides whether to eat it, and standing up on his hind legs the rest of the time to see what else is going on.",
+    status: function () {
+      const S = bigColinState;
+      if (S.mode === 'scamper') return 'bolting across the court';
+      if (S.mode === 'walk') return 'making his way to ' + ((BIGCOLIN_SPOTS[S.spot] || {}).name || 'somewhere');
+      if (S.mode === 'forage') return 'pawing at something, at ' + ((BIGCOLIN_SPOTS[S.spot] || {}).name || 'the court');
+      return 'stood up on his hind legs at ' + ((BIGCOLIN_SPOTS[S.spot] || {}).name || 'the court');
+    },
+  },
+  doctorcolin: {
+    emoji: '🐦', name: 'Doctor Colin',
+    bio: 'A blue sparrow — the smallest resident of the villa by a wide margin. Hops and flutters between the low perches of the courtyard; there is no walk cycle in him at all, only a short arcing flight and a great deal of head-cocking in between.',
+    status: function () {
+      const S = doctorColinState;
+      if (S.mode === 'flutter') return 'fluttering to ' + ((DOCTORCOLIN_SPOTS[S.spot] || {}).name || 'somewhere');
+      return 'perched at ' + ((DOCTORCOLIN_SPOTS[S.spot] || {}).name || 'the court');
+    },
+  },
+  'alrik-new': {
+    emoji: '🦫', name: 'Alrik',
+    bio: "A beaver — confirmed 2026-08-10, after the wizard's own key went to Richard. Works a calm reach of the river between the pool and the estuary: swimming the bend, hauling out onto the bank to gnaw at a stick, and once in a great while, the alarm slap.",
+    status: function () {
+      const S = alrikBeaverState;
+      if (S.mode === 'travel') return alrikBeaverAfloat(beaverAlrik.position.x, beaverAlrik.position.z) ? 'swimming the river' : 'climbing the bank';
+      if (S.mode === 'gnaw') return 'gnawing at ' + ((ALRIK_BEAVER_SPOTS[S.spot] || {}).name || 'the bank');
+      if (S.mode === 'stand') return 'stood on the bank';
+      return 'floating the current';
+    },
+  },
   ted: {
     emoji: '🐾', name: 'Ted Turner',
     bio: "Sailor's avatar and the villa's docent. Walks where you point, faces who's watching.",
@@ -11633,7 +11680,8 @@ function renderFeedInto(key) {
 // same list, and the gate refuses anything outside it.
 const ASSIGNABLE = ['trout', 'seal', 'y2k', 'otter', 'petra', 'kyle', 'diddy',
                     'alrik', 'julia', 'emilia', 'adlib', 'austin',
-                    'houston', 'turtle', 'edburg', 'luke'];
+                    'houston', 'turtle', 'edburg', 'luke',
+                    'bigcolin', 'doctorcolin', 'alrik-new'];
 // NOTE (2026-08-07): the gate's SPEAKABLE list is the mirror of this one and
 // it refuses anything outside itself. Four new keys here means four new keys
 // THERE, in villa-gate, or Houston, the turtle, Edburg and Luke can each be
@@ -14261,6 +14309,615 @@ function lukeDepart(t) {
   if (b && b.classList.contains('active')) b.textContent = '🕊 out to ' + LUKE_SPOTS[next].name;
 }
 
+// ============================================================
+// 15. BIG COLIN — a raccoon (2026-08-10, Sailor: "For Big Colin, a
+// raccoon"). Built off the same skeleton as the two house cats — a
+// headGroup pivot, four short legs, a tail on its own pivot — because a
+// raccoon's silhouette in this stylisation is a stocky cat with a
+// different face and a different tail. The two things that make him read
+// as a raccoon from across a lawn: the black mask over the eyes, and the
+// ringed tail. Everything else is proportion.
+// ============================================================
+function buildRaccoon(p) {
+  p = p || {};
+  const g = new THREE.Group();
+  const coat = new THREE.MeshStandardMaterial({ color: p.coat !== undefined ? p.coat : 0x5c584e, roughness: 0.85 });
+  const dark = new THREE.MeshStandardMaterial({ color: p.dark !== undefined ? p.dark : 0x141210, roughness: 0.8 });
+  const pale = new THREE.MeshStandardMaterial({ color: p.pale !== undefined ? p.pale : 0xcfc7ae, roughness: 0.82 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x0c0a08, roughness: 0.3 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.21, 10, 8), coat);
+  body.scale.set(0.95, 0.85, 1.35);
+  body.position.set(0, 0.27, -0.02);
+  body.castShadow = true;
+  g.add(body);
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 6), pale);
+  belly.scale.set(0.75, 0.6, 1.15);
+  belly.position.set(0, 0.16, 0.0);
+  g.add(belly);
+
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.40, 0.23);
+  g.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.125, 10, 8), coat);
+  head.scale.set(1, 0.92, 0.95);
+  headGroup.add(head);
+  const snout = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), pale);
+  snout.scale.set(0.85, 0.7, 1.1);
+  snout.position.set(0, -0.045, 0.10);
+  headGroup.add(snout);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 4), dark);
+  nose.position.set(0, -0.01, 0.155);
+  headGroup.add(nose);
+  // The mask — the whole reason anyone recognises him at a glance
+  [-1, 1].forEach(s => {
+    const mask = new THREE.Mesh(new THREE.SphereGeometry(0.052, 8, 6), dark);
+    mask.scale.set(0.85, 0.55, 0.4);
+    mask.position.set(s * 0.055, 0.028, 0.095);
+    headGroup.add(mask);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 5), eyeMat);
+    eye.position.set(s * 0.055, 0.03, 0.125);
+    headGroup.add(eye);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.042, 7, 5), coat);
+    ear.scale.set(0.8, 1, 0.6);
+    ear.position.set(s * 0.09, 0.11, -0.015);
+    headGroup.add(ear);
+  });
+
+  const legs = [];
+  [[-1, 0.14], [1, 0.14], [-1, -0.15], [1, -0.15]].forEach(([s, z]) => {
+    const leg = new THREE.Group();
+    const l = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.026, 0.17, 5), coat);
+    l.position.y = -0.085;
+    leg.add(l);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.036, 6, 5), dark);
+    paw.scale.set(0.9, 0.55, 1.15);
+    paw.position.y = -0.165;
+    leg.add(paw);
+    leg.position.set(s * 0.10, 0.20, z);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  // The ringed tail — bushy, arched, the other half of the mask's job.
+  // Five stacked segments alternating dark and pale, tapering toward the
+  // tip, on a pivot so the whole tail can move as one thing.
+  const tail = new THREE.Group();
+  const ringPale = new THREE.MeshStandardMaterial({ color: p.ring !== undefined ? p.ring : 0x9a9280, roughness: 0.85 });
+  const segCount = 5;
+  for (let i = 0; i < segCount; i++) {
+    const u = i / (segCount - 1);
+    const seg = new THREE.Mesh(new THREE.SphereGeometry(0.065 - u * 0.02, 7, 6), i % 2 === 0 ? dark : ringPale);
+    seg.scale.set(1, 0.9, 1.3);
+    seg.position.set(0, u * 0.10, -0.18 - u * 0.34);
+    tail.add(seg);
+  }
+  tail.position.set(0, 0.32, -0.16);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(0.85, 0.85, 0.85);
+  return g;
+}
+
+const raccoonBigColin = buildRaccoon();
+raccoonBigColin.visible = false;
+scene.add(raccoonBigColin);
+
+// The villa's own courtyard spots — a raccoon is a curious animal that
+// gets into what the household is doing, not a wilderness range like
+// Diddy and Alrik's ridge. Reusing named landmarks that are already
+// walkable ground, rather than guessing new coordinates.
+const BIGCOLIN_SPOTS = [
+  { name: 'the west court', x: -12.4, z: 6.6 },
+  { name: 'the library steps', x: -17.2, z: 5 },
+  { name: 'the galleria', x: -6, z: 2 },
+  { name: 'the exedra', x: 21, z: 2.5 },
+  { name: 'the pool walk', x: 2.4, z: 15 },
+];
+const bigColinState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
+function bigColinGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+
+function toggleBigColin() {
+  const b = document.getElementById('bigcolin-btn');
+  if (bigColinState.mode === 'off') {
+    raccoonBigColin.position.copy(bigColinGround(BIGCOLIN_SPOTS[0].x, BIGCOLIN_SPOTS[0].z));
+    raccoonBigColin.visible = true;
+    bigColinState.mode = 'forage';
+    bigColinState.t0 = -1; bigColinState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🦝 at ' + BIGCOLIN_SPOTS[0].name; }
+  } else {
+    bigColinState.mode = 'off';
+    raccoonBigColin.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦝 Big Colin'; }
+  }
+}
+
+function animateBigColin(t) {
+  const S = bigColinState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 14; }
+  const W = raccoonBigColin.userData;
+
+  if (S.mode === 'walk' || S.mode === 'scamper') {
+    const fast = S.mode === 'scamper';
+    const u = travelU(t, S);
+    const e = fast ? u : u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + (fast ? Math.abs(Math.sin(u * Math.PI * 8)) * 0.06 : 0);
+    raccoonBigColin.position.copy(p);
+    raccoonBigColin.rotation.x += (0 - raccoonBigColin.rotation.x) * 0.15;
+    const rate = fast ? 13 : 5.5;
+    W.legs.forEach((l, i) => { l.rotation.x = Math.sin(t * rate + (i % 2 ? Math.PI : 0)) * (fast ? 0.7 : 0.38); });
+    W.tail.rotation.x = fast ? -0.3 : Math.sin(t * 1.8) * 0.12;
+    W.headGroup.rotation.x = 0;
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - raccoonBigColin.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      raccoonBigColin.rotation.y += dy * (fast ? 0.28 : 0.12);
+    }
+    if (u >= 1) {
+      S.mode = Math.abs(Math.sin(t * 53.1)) < 0.4 ? 'forage' : 'stand';
+      S.t0 = t;
+      S.until = Math.max(t + 16 + Math.abs(Math.sin(t * 11.3)) * 30, S.summonUntil || 0);
+      const spot = BIGCOLIN_SPOTS[S.spot];
+      const b = document.getElementById('bigcolin-btn');
+      if (b && b.classList.contains('active')) b.textContent = '🦝 ' + (spot ? 'at ' + spot.name : 'with you');
+    }
+    return;
+  }
+
+  raccoonBigColin.position.y = getVisitorHeight(raccoonBigColin.position.x, raccoonBigColin.position.z) + 0.02;
+
+  if (S.mode === 'forage') {
+    // Down on the forepaws, working at whatever he's found — a raccoon
+    // examines things with his hands before he decides whether to eat them.
+    W.headGroup.rotation.x = 0.55 + Math.sin(t * 4.2) * 0.14;
+    W.legs.forEach((l, i) => { if (i < 2) l.rotation.x = Math.sin(t * 6 + i * 2) * 0.3; });
+    W.tail.rotation.y = Math.sin(t * 0.9) * 0.1;
+    if (t > S.t0 + 9) { S.mode = 'stand'; S.t0 = t; }
+    return;
+  }
+
+  // Stood up on his hind legs, checking around — the other thing he does
+  // with those hands, and the one that reads as "raccoon" at a distance.
+  const rear = Math.max(0, Math.sin(t * 0.29) - 0.75) * 4;
+  raccoonBigColin.rotation.x += (-rear * 0.5 - raccoonBigColin.rotation.x) * 0.1;
+  W.headGroup.rotation.x = Math.sin(t * 0.4) * 0.12 - rear * 0.2;
+  W.headGroup.rotation.y = Math.sin(t * 0.23) * 0.55;
+  W.tail.rotation.y = Math.sin(t * 0.5) * 0.3;
+  W.legs.forEach(l => { l.rotation.x *= 0.9; });
+
+  if (t > S.until && t > (S.summonUntil || 0)) {
+    let next = Math.floor(Math.abs(Math.sin(t * 67.7)) * BIGCOLIN_SPOTS.length) % BIGCOLIN_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % BIGCOLIN_SPOTS.length;
+    S.spot = next;
+    S.from = raccoonBigColin.position.clone();
+    S.to = bigColinGround(BIGCOLIN_SPOTS[next].x, BIGCOLIN_SPOTS[next].z);
+    const far = S.from.distanceTo(S.to);
+    const scamper = Math.abs(Math.sin(t * 89.3)) > 0.82;
+    S.mode = scamper ? 'scamper' : 'walk';
+    S.dur = Math.max(scamper ? 1 : 4, far / (scamper ? 8 : 1.7));
+    S.t0 = t;
+  }
+}
+
+// ============================================================
+// 16. DOCTOR COLIN — a blue sparrow (2026-08-10, Sailor: "Doctor Colin, a
+// blue sparrow"). The smallest resident by a wide margin, and built to
+// look it: half the raven's already-compact geometry, at a smaller scale
+// again. Real sparrows hop and flutter rather than stride or soar, so he
+// gets no legs that walk and no dynamic-soaring rig like Luke's — just a
+// short arcing flutter between perches and a lot of head-cocking in
+// between.
+// ============================================================
+function buildSparrow(p) {
+  p = p || {};
+  const g = new THREE.Group();
+  const feather = new THREE.MeshStandardMaterial({ color: p.feather !== undefined ? p.feather : 0x3a5fa8, roughness: 0.55, metalness: 0.08 });
+  const cap = new THREE.MeshStandardMaterial({ color: p.cap !== undefined ? p.cap : 0x24406e, roughness: 0.5 });
+  const pale = new THREE.MeshStandardMaterial({ color: p.pale !== undefined ? p.pale : 0xd8dde8, roughness: 0.6 });
+  const bill = new THREE.MeshStandardMaterial({ color: p.bill !== undefined ? p.bill : 0xe0a840, roughness: 0.45 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x0c0e14, roughness: 0.5 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.075, 9, 7), feather);
+  body.scale.set(0.9, 0.92, 1.2);
+  body.position.y = 0.11;
+  body.castShadow = true;
+  g.add(body);
+  const breast = new THREE.Mesh(new THREE.SphereGeometry(0.05, 7, 6), pale);
+  breast.scale.set(0.8, 0.85, 0.75);
+  breast.position.set(0, 0.09, 0.035);
+  g.add(breast);
+
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.165, 0.045);
+  g.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 6), cap);
+  headGroup.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(0.014, 0.045, 6), bill);
+  beak.rotation.x = Math.PI / 2 + 0.1;
+  beak.position.set(0, -0.006, 0.045);
+  headGroup.add(beak);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.008, 5, 4), dark);
+    eye.position.set(s * 0.033, 0.008, 0.03);
+    headGroup.add(eye);
+  });
+
+  const wings = [];
+  [-1, 1].forEach(s => {
+    const wing = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 5), feather);
+    wing.scale.set(0.22, 0.55, 0.95);
+    wing.position.set(s * 0.052, 0.11, -0.005);
+    g.add(wing); wings.push(wing);
+  });
+  g.userData.wings = wings;
+
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.14, 5), feather);
+  tail.scale.set(1, 1, 0.4);
+  tail.rotation.x = -Math.PI / 2 - 0.15;
+  tail.position.set(0, 0.10, -0.13);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  [-1, 1].forEach(s => {
+    const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.045, 4), bill);
+    foot.position.set(s * 0.028, 0.02, 0.005);
+    g.add(foot);
+  });
+
+  return g;
+}
+
+const sparrowDoctorColin = buildSparrow();
+sparrowDoctorColin.visible = false;
+scene.add(sparrowDoctorColin);
+
+// The same courtyard as Big Colin — low garden perches, all already
+// proven walkable ground. `perch` follows Adlib's convention: a small
+// lift above the ground for a ledge or a step.
+const DOCTORCOLIN_SPOTS = [
+  { name: 'the library steps', x: -17.2, z: 5, perch: 0.15 },
+  { name: 'the west court', x: -12.4, z: 6.6, perch: 0 },
+  { name: 'the galleria', x: -6, z: 2, perch: 0.15 },
+  { name: 'the pool walk', x: 2.4, z: 15, perch: 0 },
+  { name: 'the exedra', x: 21, z: 2.5, perch: 0.15 },
+];
+const doctorColinState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, perch: 0 };
+function doctorColinGround(spot) {
+  return new THREE.Vector3(spot.x, getVisitorHeight(spot.x, spot.z) + 0.02 + (spot.perch || 0), spot.z);
+}
+
+function toggleDoctorColin() {
+  const b = document.getElementById('doctorcolin-btn');
+  if (doctorColinState.mode === 'off') {
+    sparrowDoctorColin.position.copy(doctorColinGround(DOCTORCOLIN_SPOTS[0]));
+    doctorColinState.perch = DOCTORCOLIN_SPOTS[0].perch || 0;
+    sparrowDoctorColin.visible = true;
+    doctorColinState.mode = 'perch';
+    doctorColinState.t0 = -1; doctorColinState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🐦 at ' + DOCTORCOLIN_SPOTS[0].name; }
+  } else {
+    doctorColinState.mode = 'off';
+    sparrowDoctorColin.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🐦 Doctor Colin'; }
+  }
+}
+
+function animateDoctorColin(t) {
+  const S = doctorColinState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 6; }
+  const W = sparrowDoctorColin.userData;
+
+  if (S.mode === 'flutter') {
+    const u = travelU(t, S);
+    const e = u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    const spot = DOCTORCOLIN_SPOTS[S.spot] || { perch: 0, name: 'you' };
+    const arc = Math.sin(u * Math.PI);
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + (spot.perch || 0) * (u > 0.7 ? (u - 0.7) / 0.3 : 0) + arc * 0.6;
+    sparrowDoctorColin.position.copy(p);
+    const flap = Math.abs(Math.sin(t * 26));
+    W.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * (0.3 + flap * 0.9); });
+    W.tail.rotation.x = -Math.PI / 2 - 0.15 - arc * 0.3;
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) sparrowDoctorColin.rotation.y = Math.atan2(v.x, v.z);
+    if (u >= 1) {
+      S.perch = spot.perch || 0;
+      S.mode = 'perch';
+      S.t0 = t;
+      S.until = Math.max(t + 10 + Math.abs(Math.sin(t * 17.1)) * 24, S.summonUntil || 0);
+      W.wings.forEach(w => { w.rotation.z = 0; });
+      const b = document.getElementById('doctorcolin-btn');
+      if (b && b.classList.contains('active')) b.textContent = '🐦 at ' + spot.name;
+    }
+    return;
+  }
+
+  sparrowDoctorColin.position.y = getVisitorHeight(sparrowDoctorColin.position.x, sparrowDoctorColin.position.z) + 0.02 + S.perch;
+
+  // Perched: a head-cocked look-around and the odd wing-flick, until he
+  // hops. There is no walk cycle for him at all — a sparrow on the ground
+  // hops, and between perches he flies; nothing here strides.
+  const flick = Math.max(0, Math.sin(t * 0.6) - 0.97) * 30;
+  W.wings.forEach((w, i) => { w.rotation.z = (i ? -1 : 1) * flick * 0.4; });
+  W.headGroup.rotation.y += (Math.sin(t * 0.9) * 0.7 - W.headGroup.rotation.y) * 0.08;
+  W.headGroup.rotation.x += (Math.sin(t * 0.5) * 0.1 - W.headGroup.rotation.x) * 0.06;
+  W.tail.rotation.x += ((-Math.PI / 2 - 0.15) - W.tail.rotation.x) * 0.06;
+
+  if (t > S.until && t > (S.summonUntil || 0)) {
+    let next = Math.floor(Math.abs(Math.sin(t * 61.9)) * DOCTORCOLIN_SPOTS.length) % DOCTORCOLIN_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % DOCTORCOLIN_SPOTS.length;
+    S.spot = next;
+    S.from = sparrowDoctorColin.position.clone();
+    S.to = doctorColinGround(DOCTORCOLIN_SPOTS[next]);
+    S.perch = 0;
+    const far = S.from.distanceTo(S.to);
+    S.dur = Math.max(1.2, far / 7);
+    S.mode = 'flutter';
+    S.t0 = t;
+  }
+}
+
+// ============================================================
+// 17. ALRIK'S BEAVER (2026-08-10, Sailor: "let's make Alrik's beaver" —
+// confirming the roster's TO BUILD placeholder). The wizard's own key
+// ('alrik') now belongs to Richard (REASSIGNED 2026-08-05); this is the
+// NEW key the roster held open for Alrik, 'alrik-new', matching the
+// Google Sheet exactly so the gate's SPEAKABLE list and this file's
+// ASSIGNABLE agree.
+//
+// Built off the otter's general plan — a `parts` group offset so a roll
+// turns him about his own spine, a headGroup pivot, webbed hind feet —
+// but with no tiara and no urchins, and the one part that is entirely his
+// own: a flat paddle tail on its own pivot, separate from the swim bob,
+// because the alarm slap has to be able to happen on its own clock.
+//
+// PLACEMENT: no native space has been ruled for him yet (see the Four
+// Friends and Beta Doors handoffs — this is still an open item for every
+// back-range resident). Absent a ruling, he goes where a real beaver
+// would actually work: a calm reach of the river between the pool
+// (Julia's spots, z 17–25) and CLIFF_Z (=40, where the channel widens
+// into the estuary and turns oceanic) — upstream of the otter and the
+// turtle's coastal territory, not on top of it. This is a placement
+// choice, not a ruling; move him freely.
+// ============================================================
+function buildBeaver(p) {
+  p = p || {};
+  const g = new THREE.Group();
+  const parts = new THREE.Group();
+  const pelt = new THREE.MeshStandardMaterial({ color: p.pelt !== undefined ? p.pelt : 0x3c2a18, roughness: 0.88 });
+  const undercoat = new THREE.MeshStandardMaterial({ color: p.belly !== undefined ? p.belly : 0x5a4028, roughness: 0.85 });
+  const dark = new THREE.MeshStandardMaterial({ color: 0x120c08, roughness: 0.8 });
+  const toothMat = new THREE.MeshStandardMaterial({ color: 0xe8b840, roughness: 0.4 });
+  const paddleMat = new THREE.MeshStandardMaterial({ color: 0x1c1410, roughness: 0.55 });
+
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.30, 12, 9), pelt);
+  body.scale.set(0.85, 0.78, 1.35);
+  body.position.set(0, 0.30, 0.02);
+  body.castShadow = true;
+  parts.add(body);
+  const underbelly = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 7), undercoat);
+  underbelly.scale.set(0.75, 0.5, 1.15);
+  underbelly.position.set(0, 0.15, 0.06);
+  parts.add(underbelly);
+
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.36, 0.36);
+  parts.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 8), pelt);
+  head.scale.set(0.95, 0.88, 0.92);
+  headGroup.add(head);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.10, 8, 6), undercoat);
+  muzzle.scale.set(0.95, 0.75, 0.85);
+  muzzle.position.set(0, -0.05, 0.12);
+  headGroup.add(muzzle);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 5), dark);
+  nose.position.set(0, -0.01, 0.20);
+  headGroup.add(nose);
+  // The teeth — the whole reason anyone knows what he is at a glance
+  [-1, 1].forEach(s => {
+    const fang = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.05, 0.012), toothMat);
+    fang.position.set(s * 0.022, -0.075, 0.155);
+    headGroup.add(fang);
+  });
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.022, 6, 5), dark);
+    eye.position.set(s * 0.095, 0.04, 0.11);
+    headGroup.add(eye);
+    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.032, 6, 5), pelt);
+    ear.scale.set(0.9, 0.9, 0.5);
+    ear.position.set(s * 0.13, 0.13, 0.02);
+    headGroup.add(ear);
+  });
+
+  const paws = [];
+  [-1, 1].forEach(s => {
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), pelt);
+    paw.scale.set(0.85, 0.7, 1.0);
+    paw.position.set(s * 0.14, 0.22, 0.28);
+    parts.add(paw); paws.push(paw);
+  });
+  g.userData.paws = paws;
+
+  const feet = [];
+  [-1, 1].forEach(s => {
+    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), dark);
+    foot.scale.set(0.85, 0.35, 1.35);
+    foot.position.set(s * 0.15, 0.24, -0.42);
+    parts.add(foot); feet.push(foot);
+  });
+  g.userData.feet = feet;
+
+  // The paddle tail, on its own pivot — the alarm slap is his, and the
+  // only way to get it is a tail that can move independently of the
+  // swim-bob. A few flattened bumps stand in for scutes, the way the
+  // turtle's shell got its plates without a new material.
+  const tail = new THREE.Group();
+  const paddle = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 6), paddleMat);
+  paddle.scale.set(0.85, 0.12, 1.5);
+  paddle.position.set(0, 0, -0.20);
+  tail.add(paddle);
+  for (let i = 0; i < 6; i++) {
+    const bump = new THREE.Mesh(new THREE.SphereGeometry(0.025, 5, 4), pelt);
+    bump.scale.set(1, 0.3, 1);
+    bump.position.set(((i % 2) - 0.5) * 0.13, 0.05, -0.06 - Math.floor(i / 2) * 0.13);
+    tail.add(bump);
+  }
+  tail.position.set(0, 0.28, -0.34);
+  parts.add(tail);
+  g.userData.tail = tail;
+
+  parts.position.y = -0.28;
+  g.add(parts);
+  g.userData.parts = parts;
+
+  g.scale.set(0.9, 0.9, 0.9);
+  return g;
+}
+
+const beaverAlrik = buildBeaver();
+beaverAlrik.visible = false;
+scene.add(beaverAlrik);
+
+const ALRIK_BEAVER_SPOTS = [
+  { name: 'the millpond bend', x: 0, z: 30, land: false },
+  { name: 'the near bank', x: 3.2, z: 31, land: true },
+  { name: 'the upper bend', x: 0, z: 37, land: false },
+  { name: 'the far bank', x: -3.4, z: 36, land: true },
+];
+const alrikBeaverState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
+
+// Same shape as the turtle's height rule (see this file's section 12): the
+// higher of the walkable ground and the local water surface, so he crawls
+// out of the river instead of stepping off it. `getTerrainHeight` at the
+// exact point stands in for the river ribbon's full monotonic scan from
+// z=-82 — a local approximation, good over four spots twenty metres apart
+// on a short, calm reach; verified on screen, not derived (see handoff).
+function alrikBeaverWaterY(x, z) { return getTerrainHeight(x, z) + 0.38; }
+function alrikBeaverY(x, z) { return Math.max(getVisitorHeight(x, z) + 0.02, alrikBeaverWaterY(x, z)); }
+function alrikBeaverGround(x, z) { return new THREE.Vector3(x, alrikBeaverY(x, z), z); }
+function alrikBeaverAfloat(x, z) { return getVisitorHeight(x, z) + 0.02 < alrikBeaverWaterY(x, z) - 0.02; }
+
+function toggleAlrikBeaver() {
+  const b = document.getElementById('alrik-new-btn');
+  if (alrikBeaverState.mode === 'off') {
+    beaverAlrik.position.copy(alrikBeaverGround(ALRIK_BEAVER_SPOTS[0].x, ALRIK_BEAVER_SPOTS[0].z));
+    beaverAlrik.visible = true;
+    alrikBeaverState.mode = 'travel';
+    alrikBeaverState.t0 = -1; alrikBeaverState.spot = 0;
+    alrikBeaverState.from = beaverAlrik.position.clone();
+    alrikBeaverState.to = beaverAlrik.position.clone();
+    alrikBeaverState.dur = 0.01;
+    if (b) { b.classList.add('active'); b.textContent = '🦫 at ' + ALRIK_BEAVER_SPOTS[0].name; }
+  } else {
+    alrikBeaverState.mode = 'off';
+    beaverAlrik.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦫 Alrik'; }
+  }
+}
+
+function animateAlrikBeaver(t) {
+  const S = alrikBeaverState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 18; }
+  const W = beaverAlrik.userData;
+
+  if (S.mode === 'travel') {
+    const u = travelU(t, S);
+    const e = u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    p.y = alrikBeaverY(p.x, p.z);
+    beaverAlrik.position.copy(p);
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - beaverAlrik.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      beaverAlrik.rotation.y += dy * 0.08;
+    }
+    if (alrikBeaverAfloat(p.x, p.z)) {
+      // Low in the water, only the head and back breaking the surface —
+      // the paddle tail sculls side to side, not up and down like the
+      // otter's flippers.
+      const stroke = Math.sin(t * 2.1);
+      W.tail.rotation.y = stroke * 0.30;
+      W.paws.forEach((pw, i) => { pw.rotation.x = (i ? -1 : 1) * stroke * 0.12; });
+      beaverAlrik.rotation.z = stroke * 0.03;
+      W.parts.position.y += (-0.36 - W.parts.position.y) * 0.1;
+    } else {
+      const waddle = Math.sin(t * 3.4);
+      W.feet.forEach((f, i) => { f.rotation.x = (i ? -1 : 1) * waddle * 0.2; });
+      beaverAlrik.rotation.z = waddle * 0.05;
+      W.parts.position.y += (-0.28 - W.parts.position.y) * 0.1;
+    }
+    if (u >= 1) {
+      const spot = ALRIK_BEAVER_SPOTS[S.spot];
+      S.mode = spot && spot.land ? 'gnaw' : 'float';
+      S.t0 = t;
+      S.until = Math.max(t + (spot && spot.land ? 26 : 18) + Math.abs(Math.sin(t * 15.7)) * 26, S.summonUntil || 0);
+      const b = document.getElementById('alrik-new-btn');
+      if (b && b.classList.contains('active')) {
+        b.textContent = '🦫 ' + (spot ? (spot.land ? 'gnawing at ' + spot.name : 'swimming ' + spot.name) : 'with you');
+      }
+    }
+    return;
+  }
+
+  beaverAlrik.position.y = alrikBeaverY(beaverAlrik.position.x, beaverAlrik.position.z);
+
+  if (S.mode === 'gnaw') {
+    // Up on the bank, forepaws working a stick against those front teeth —
+    // the head does the whole gesture, on the same pivot idiom the
+    // raccoon's mask uses.
+    W.headGroup.rotation.x = 0.30 + Math.sin(t * 5.0) * 0.10;
+    W.paws.forEach(pw => { pw.rotation.x = Math.sin(t * 5.0) * 0.15 - 0.2; });
+    if (t > S.t0 + 12) { S.mode = 'stand'; S.t0 = t; }
+    return;
+  }
+
+  if (S.mode === 'stand') {
+    W.headGroup.rotation.x += (Math.sin(t * 0.3) * 0.12 - W.headGroup.rotation.x) * 0.05;
+    W.headGroup.rotation.y += (Math.sin(t * 0.22) * 0.4 - W.headGroup.rotation.y) * 0.05;
+    if (t > S.until && t > (S.summonUntil || 0)) alrikBeaverDepart(t);
+    return;
+  }
+
+  // Floating — high in the water, drifting on the current's own slow
+  // clock, and every so often the alarm slap: the one thing everybody who
+  // has ever actually seen a beaver remembers about one.
+  const bob = Math.sin(t * 1.3);
+  beaverAlrik.position.y += bob * 0.02;
+  beaverAlrik.rotation.z = bob * 0.025;
+  W.headGroup.rotation.y = Math.sin(t * 0.4) * 0.3;
+  const slap = Math.max(0, Math.sin(t * 0.17) - 0.988) * 90;
+  W.tail.rotation.x = -slap * 0.6;
+  if (t > S.until && t > (S.summonUntil || 0)) alrikBeaverDepart(t);
+}
+
+function alrikBeaverDepart(t) {
+  const S = alrikBeaverState;
+  let next = Math.floor(Math.abs(Math.sin(t * 73.1)) * ALRIK_BEAVER_SPOTS.length) % ALRIK_BEAVER_SPOTS.length;
+  if (next === S.spot) next = (next + 1) % ALRIK_BEAVER_SPOTS.length;
+  S.spot = next;
+  S.from = beaverAlrik.position.clone();
+  const dst = ALRIK_BEAVER_SPOTS[next];
+  S.to = alrikBeaverGround(dst.x, dst.z);
+  const far = S.from.distanceTo(S.to);
+  S.dur = Math.max(4, far / 1.4);   // a beaver in the water is unhurried
+  S.t0 = t;
+  S.mode = 'travel';
+}
+
 // ── Arrivals, continuing the staggered cadence ──
 // Houston runs the terrace, so he comes in late enough that the camera is
 // not still on the threshold when a dog goes past it at speed.
@@ -14268,6 +14925,9 @@ setTimeout(function () { if (houstonState.mode === 'off') toggleHouston(); }, 47
 setTimeout(function () { if (turtleState.mode === 'off') toggleTurtle(); }, 51000);
 setTimeout(function () { if (edburgState.mode === 'off') toggleEdburg(); }, 54500);
 setTimeout(function () { if (lukeState.mode === 'off') toggleLuke(); }, 58000);
+setTimeout(function () { if (bigColinState.mode === 'off') toggleBigColin(); }, 61500);
+setTimeout(function () { if (doctorColinState.mode === 'off') toggleDoctorColin(); }, 65000);
+setTimeout(function () { if (alrikBeaverState.mode === 'off') toggleAlrikBeaver(); }, 68500);
 
 // ── GOING PLACES (Sailor, 2026-08-01) ───────────────────────
 // Orbiting a 3D scene with a scroll wheel is a bad way to get anywhere,
@@ -14366,6 +15026,9 @@ const RESIDENTS = {
   turtle:{ state: function () { return turtleState; }, toggle: toggleTurtle },
   edburg:{ state: function () { return edburgState; }, toggle: toggleEdburg },
   luke:  { state: function () { return lukeState; },   toggle: toggleLuke },
+  bigcolin: { state: function () { return bigColinState; }, toggle: toggleBigColin },
+  doctorcolin: { state: function () { return doctorColinState; }, toggle: toggleDoctorColin },
+  'alrik-new': { state: function () { return alrikBeaverState; }, toggle: toggleAlrikBeaver },
 };
 
 function tapResident(key) {
@@ -17790,6 +18453,9 @@ container.addEventListener('pointerup', e => {
     if (seaTurtle.visible) critters.push({ key: 'turtle', mesh: seaTurtle });
     if (catEdburg.visible) critters.push({ key: 'edburg', mesh: catEdburg });
     if (albatrossLuke.visible) critters.push({ key: 'luke', mesh: albatrossLuke });
+    if (raccoonBigColin.visible) critters.push({ key: 'bigcolin', mesh: raccoonBigColin });
+    if (sparrowDoctorColin.visible) critters.push({ key: 'doctorcolin', mesh: sparrowDoctorColin });
+    if (beaverAlrik.visible) critters.push({ key: 'alrik-new', mesh: beaverAlrik });
     if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
     for (const c of critters) {
       if (raycaster.intersectObject(c.mesh, true).length > 0) {
@@ -20705,6 +21371,7 @@ const PIERCE_BODIES = [
   ['julia', heronJulia], ['emilia', stoatEmilia], ['adlib', catAdlib],
   ['austin', pelicanAustin], ['houston', greyhoundHouston], ['turtle', seaTurtle],
   ['edburg', catEdburg], ['luke', albatrossLuke],
+  ['bigcolin', raccoonBigColin], ['doctorcolin', sparrowDoctorColin], ['alrik-new', beaverAlrik],
 ];
 
 // EVERY light sees the pierce layer — not just the two directionals.
@@ -21010,6 +21677,9 @@ function animate() {
   residentBudget.run('turtle',  animateTurtle,  t, seaTurtle);
   residentBudget.run('edburg',  animateEdburg,  t, catEdburg);
   residentBudget.run('luke',    animateLuke,    t, albatrossLuke);
+  residentBudget.run('bigcolin',    animateBigColin,    t, raccoonBigColin);
+  residentBudget.run('doctorcolin', animateDoctorColin, t, sparrowDoctorColin);
+  residentBudget.run('alrik-new',   animateAlrikBeaver, t, beaverAlrik);
   residentBudget.end();
   addressFaceTheHouse();   // last, after every mover has set its own yaw
   animateBoats(t);
