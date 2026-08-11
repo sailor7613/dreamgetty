@@ -8635,17 +8635,20 @@ function animateOtter(t) {
   while (dr < -Math.PI) dr += Math.PI * 2;
   otterPrincess.rotation.z += dr * 0.045;
 
-  // ── THE HEAD DOES NOT ROLL WITH THE BODY ────────────────────
-  // The bug Sailor caught: rolling her 180° inverted her HEAD too, so she
-  // floated with her face upside down and her tiara pointing at the seabed.
-  // A real otter rolls her body and keeps her head upright — chin toward
-  // her chest, face to the sky. So the head counter-rotates against the
-  // body roll, and the pitch is applied in that un-inverted frame.
+  // ── THE HEAD ROLLS WITH THE BODY, AND THE NECK FLEXES ───────
+  // FIXED 2026-08-10 (Sailor, with the photograph): the old counter-roll
+  // rotated the head 180° against the body about the SPINE axis — an owl
+  // twist. It put her face right way up, which is why it survived a
+  // glance, and it read as a supine body wearing a prone otter's head,
+  // which is why it did not survive a second one. A real otter on her
+  // back does not untwist her neck: everything rolls together, and the
+  // face finds the sky by neck FLEXION — chin curled toward the chest,
+  // crown laid back toward the water. In the rolled frame that is nothing
+  // but a big positive pitch: the face swings from straight ahead up and
+  // over toward her chest, where the urchins are.
   const hg = otterPrincess.userData.headGroup;
-  hg.rotation.z += (-otterPrincess.rotation.z - hg.rotation.z) * 0.06;
-  // Sign flips with the counter-roll — the head's own x-axis is reversed
-  // once it has been turned through 180°. Measured, not reasoned.
-  const wantPitch = supine ? 0.55 : -0.34;
+  hg.rotation.z += (0 - hg.rotation.z) * 0.06;   // no twist — ever
+  const wantPitch = supine ? 1.55 : -0.34;
   hg.rotation.x += (wantPitch - hg.rotation.x) * 0.06;
   // Supine, local −y is world up: drop the pivot to raise her head clear of
   // the surface, so her face is out of the water rather than awash in it.
@@ -11377,11 +11380,15 @@ const PROFILES = {
   },
   'alrik-new': {
     emoji: '🦫', name: 'Alrik',
-    bio: "A beaver — confirmed 2026-08-10, after the wizard's own key went to Richard. Works a calm reach of the river between the pool and the estuary: swimming the bend, hauling out onto the bank to gnaw at a stick, and once in a great while, the alarm slap.",
+    bio: "A beaver — confirmed 2026-08-10, after the wizard's own key went to Richard. Works a calm reach of the river between the pool and the estuary, and has started something on the near bank: a lean of gnawed sticks and a daub of pressed clay. Swims his sticks home in his teeth, works them against those front teeth, pats the clay into shape — and once in a great while, the alarm slap.",
     status: function () {
       const S = alrikBeaverState;
-      if (S.mode === 'travel') return alrikBeaverAfloat(beaverAlrik.position.x, beaverAlrik.position.z) ? 'swimming the river' : 'climbing the bank';
-      if (S.mode === 'gnaw') return 'gnawing at ' + ((ALRIK_BEAVER_SPOTS[S.spot] || {}).name || 'the bank');
+      if (S.mode === 'travel') {
+        if (S.carry) return 'bringing a stick back to the works';
+        return alrikBeaverAfloat(beaverAlrik.position.x, beaverAlrik.position.z) ? 'swimming the river' : 'climbing the bank';
+      }
+      if (S.mode === 'gnaw') return 'working a stick against his teeth at ' + ((ALRIK_BEAVER_SPOTS[S.spot] || {}).name || 'the bank');
+      if (S.mode === 'pat') return 'patting a handful of clay into shape';
       if (S.mode === 'stand') return 'stood on the bank';
       return 'floating the current';
     },
@@ -14754,23 +14761,54 @@ function buildBeaver(p) {
     headGroup.add(ear);
   });
 
+  // LIMBS ON JOINTS (2026-08-10, Sailor: "he just kind of floats, without
+  // any limb articulation"). The first pass rotated the paw and foot
+  // MESHES about their own centres — and rotating an ellipsoid about its
+  // centre is invisible, which is exactly why he read as lifeless. Same
+  // fix as the greyhound's roll pivot: the joint is a GROUP placed at the
+  // shoulder or hip, and the mesh hangs off it, so a rotation swings.
   const paws = [];
   [-1, 1].forEach(s => {
-    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), pelt);
-    paw.scale.set(0.85, 0.7, 1.0);
-    paw.position.set(s * 0.14, 0.22, 0.28);
-    parts.add(paw); paws.push(paw);
+    const arm = new THREE.Group();                       // pivot at the shoulder
+    arm.position.set(s * 0.14, 0.30, 0.24);
+    const pawMesh = new THREE.Mesh(new THREE.SphereGeometry(0.06, 6, 5), pelt);
+    pawMesh.scale.set(0.85, 0.7, 1.0);
+    pawMesh.position.set(0, -0.09, 0.05);                // hangs down and forward
+    arm.add(pawMesh);
+    parts.add(arm); paws.push(arm);
   });
   g.userData.paws = paws;
 
   const feet = [];
   [-1, 1].forEach(s => {
-    const foot = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), dark);
-    foot.scale.set(0.85, 0.35, 1.35);
-    foot.position.set(s * 0.15, 0.24, -0.42);
-    parts.add(foot); feet.push(foot);
+    const ankle = new THREE.Group();                     // pivot at the hip
+    ankle.position.set(s * 0.15, 0.30, -0.34);
+    const footMesh = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), dark);
+    footMesh.scale.set(0.85, 0.35, 1.35);
+    footMesh.position.set(0, -0.06, -0.08);
+    ankle.add(footMesh);
+    parts.add(ankle); feet.push(ankle);
   });
   g.userData.feet = feet;
+
+  // HIS THINGS (same session): a stick, held crosswise against those
+  // teeth, and a handful of clay. Both live on the model and show only
+  // when the behaviour calls for them — the stick rides the head so a
+  // carried stick turns with him.
+  const stickMat = new THREE.MeshStandardMaterial({ color: 0x6e4f2a, roughness: 0.9 });
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.42, 5), stickMat);
+  stick.rotation.z = Math.PI / 2;
+  stick.position.set(0, -0.075, 0.16);
+  stick.visible = false;
+  headGroup.add(stick);
+  g.userData.stick = stick;
+  const clayMat = new THREE.MeshStandardMaterial({ color: 0x7a6a52, roughness: 0.95 });
+  const clay = new THREE.Mesh(new THREE.SphereGeometry(0.09, 7, 6), clayMat);
+  clay.scale.set(1, 0.7, 1);
+  clay.position.set(0, 0.06, 0.46);
+  clay.visible = false;
+  parts.add(clay);
+  g.userData.clay = clay;
 
   // The paddle tail, on its own pivot — the alarm slap is his, and the
   // only way to get it is a tail that can move independently of the
@@ -14803,30 +14841,76 @@ const beaverAlrik = buildBeaver();
 beaverAlrik.visible = false;
 scene.add(beaverAlrik);
 
+// Coordinates MEASURED against the live readers (2026-08-10, the probe
+// that fixed the water rule): the channel cut only exists on the centre
+// line from z ≈ 32 seaward — at z 30 the lawn is still whole — and the
+// dry bank starts at |x| ≈ 3, about 0.67 above the water.
 const ALRIK_BEAVER_SPOTS = [
-  { name: 'the millpond bend', x: 0, z: 30, land: false },
-  { name: 'the near bank', x: 3.2, z: 31, land: true },
-  { name: 'the upper bend', x: 0, z: 37, land: false },
-  { name: 'the far bank', x: -3.4, z: 36, land: true },
+  { name: 'the millpond bend', x: 0, z: 32.5, land: false },
+  { name: 'the near bank', x: 3.2, z: 32.5, land: true },
+  { name: 'the upper bend', x: 0, z: 38, land: false },
+  { name: 'the far bank', x: -3.2, z: 36.5, land: true },
 ];
-const alrikBeaverState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0 };
+const alrikBeaverState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, carry: false };
 
 // Same shape as the turtle's height rule (see this file's section 12): the
-// higher of the walkable ground and the local water surface, so he crawls
-// out of the river instead of stepping off it. `getTerrainHeight` at the
-// exact point stands in for the river ribbon's full monotonic scan from
-// z=-82 — a local approximation, good over four spots twenty metres apart
-// on a short, calm reach; verified on screen, not derived (see handoff).
-function alrikBeaverWaterY(x, z) { return getTerrainHeight(x, z) + 0.38; }
+// higher of the walkable ground and the water surface, so he crawls out
+// of the river instead of stepping off it.
+//
+// FIXED 2026-08-10: the first pass read the water as LOCAL terrain +
+// 0.38, and a surface that follows the terrain follows it up the bank —
+// so "afloat" was true on dry land and false in mid-channel, exactly
+// inverted, and he gnawed his sticks bobbing on open water. The water's
+// height belongs to the CHANNEL CENTRE (riverCenterX), which is where
+// the river actually is; measured across the reach it puts the banks
+// 0.6–0.7 dry and the cut 0.3–0.4 drowned, which is a river.
+function alrikBeaverWaterY(x, z) { return getTerrainHeight(riverCenterX(z), z) + 0.38; }
 function alrikBeaverY(x, z) { return Math.max(getVisitorHeight(x, z) + 0.02, alrikBeaverWaterY(x, z)); }
 function alrikBeaverGround(x, z) { return new THREE.Vector3(x, alrikBeaverY(x, z), z); }
 function alrikBeaverAfloat(x, z) { return getVisitorHeight(x, z) + 0.02 < alrikBeaverWaterY(x, z) - 0.02; }
+
+// ALRIK'S WORKS — a lean of gnawed sticks and a daub of pressed clay on
+// the near bank, just up from where he hauls out. Not a dam (a dam floods
+// the address ground) and not a finished lodge: the START of something,
+// which is the honest state of any beaver project. Placed lazily on his
+// first arrival, because the terrain readers want a live scene.
+const alrikWorks = (function () {
+  const g = new THREE.Group();
+  const stickMat = new THREE.MeshStandardMaterial({ color: 0x6e4f2a, roughness: 0.9 });
+  const clayMat = new THREE.MeshStandardMaterial({ color: 0x7a6a52, roughness: 0.95 });
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.026, 0.55, 5), stickMat);
+    st.position.set(Math.sin(a) * 0.12, 0.17, Math.cos(a) * 0.12);
+    st.rotation.x = Math.cos(a) * 0.55;
+    st.rotation.z = -Math.sin(a) * 0.55;
+    g.add(st);
+  }
+  [[0.3, 0.05, 0.1, 1.2], [-0.26, 0.04, -0.14, -0.8]].forEach(function (d) {
+    const st = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.48, 5), stickMat);
+    st.position.set(d[0], d[1], d[2]);
+    st.rotation.set(Math.PI / 2, 0, d[3]);
+    g.add(st);
+  });
+  const daub = new THREE.Mesh(new THREE.SphereGeometry(0.16, 7, 6), clayMat);
+  daub.scale.set(1.35, 0.35, 1.1);
+  daub.position.y = 0.03;
+  g.add(daub);
+  g.visible = false;
+  scene.add(g);
+  return g;
+})();
 
 function toggleAlrikBeaver() {
   const b = document.getElementById('alrik-new-btn');
   if (alrikBeaverState.mode === 'off') {
     beaverAlrik.position.copy(alrikBeaverGround(ALRIK_BEAVER_SPOTS[0].x, ALRIK_BEAVER_SPOTS[0].z));
     beaverAlrik.visible = true;
+    if (!alrikWorks.userData.placed) {
+      alrikWorks.position.set(4.2, getVisitorHeight(4.2, 32.2) + 0.02, 32.2);
+      alrikWorks.userData.placed = true;
+    }
+    alrikWorks.visible = true;
     alrikBeaverState.mode = 'travel';
     alrikBeaverState.t0 = -1; alrikBeaverState.spot = 0;
     alrikBeaverState.from = beaverAlrik.position.clone();
@@ -14836,6 +14920,7 @@ function toggleAlrikBeaver() {
   } else {
     alrikBeaverState.mode = 'off';
     beaverAlrik.visible = false;
+    alrikWorks.visible = false;
     if (b) { b.classList.remove('active'); b.textContent = '🦫 Alrik'; }
   }
 }
@@ -14860,24 +14945,35 @@ function animateAlrikBeaver(t) {
       while (dy < -Math.PI) dy += Math.PI * 2;
       beaverAlrik.rotation.y += dy * 0.08;
     }
+    W.stick.visible = !!S.carry;   // a stick for the works travels in the teeth
+    W.clay.visible = false;
     if (alrikBeaverAfloat(p.x, p.z)) {
       // Low in the water, only the head and back breaking the surface —
       // the paddle tail sculls side to side, not up and down like the
-      // otter's flippers.
+      // otter's flippers. The hind feet do the actual driving, alternating
+      // strokes off their hip pivots; the forepaws fold up under the chin
+      // the way a swimming beaver actually holds them.
       const stroke = Math.sin(t * 2.1);
       W.tail.rotation.y = stroke * 0.30;
-      W.paws.forEach((pw, i) => { pw.rotation.x = (i ? -1 : 1) * stroke * 0.12; });
+      W.feet.forEach((f, i) => { f.rotation.x = 0.3 + Math.sin(t * 2.1 + (i ? Math.PI : 0)) * 0.55; });
+      W.paws.forEach(pw => { pw.rotation.x += (0.7 - pw.rotation.x) * 0.15; });
+      W.headGroup.rotation.x += (-0.18 - W.headGroup.rotation.x) * 0.1;   // nose up
       beaverAlrik.rotation.z = stroke * 0.03;
       W.parts.position.y += (-0.36 - W.parts.position.y) * 0.1;
     } else {
+      // The waddle: all four limbs swing off their joints, diagonal pairs
+      // together, and the whole body rocks over the stepping side.
       const waddle = Math.sin(t * 3.4);
-      W.feet.forEach((f, i) => { f.rotation.x = (i ? -1 : 1) * waddle * 0.2; });
+      W.feet.forEach((f, i) => { f.rotation.x = (i ? -1 : 1) * waddle * 0.5; });
+      W.paws.forEach((pw, i) => { pw.rotation.x = (i ? 1 : -1) * waddle * 0.45; });
+      W.headGroup.rotation.x += (0.05 + Math.abs(waddle) * 0.05 - W.headGroup.rotation.x) * 0.2;
       beaverAlrik.rotation.z = waddle * 0.05;
       W.parts.position.y += (-0.28 - W.parts.position.y) * 0.1;
     }
     if (u >= 1) {
       const spot = ALRIK_BEAVER_SPOTS[S.spot];
       S.mode = spot && spot.land ? 'gnaw' : 'float';
+      S.carry = false;
       S.t0 = t;
       S.until = Math.max(t + (spot && spot.land ? 26 : 18) + Math.abs(Math.sin(t * 15.7)) * 26, S.summonUntil || 0);
       const b = document.getElementById('alrik-new-btn');
@@ -14891,18 +14987,47 @@ function animateAlrikBeaver(t) {
   beaverAlrik.position.y = alrikBeaverY(beaverAlrik.position.x, beaverAlrik.position.z);
 
   if (S.mode === 'gnaw') {
-    // Up on the bank, forepaws working a stick against those front teeth —
-    // the head does the whole gesture, on the same pivot idiom the
-    // raccoon's mask uses.
-    W.headGroup.rotation.x = 0.30 + Math.sin(t * 5.0) * 0.10;
-    W.paws.forEach(pw => { pw.rotation.x = Math.sin(t * 5.0) * 0.15 - 0.2; });
-    if (t > S.t0 + 12) { S.mode = 'stand'; S.t0 = t; }
+    // Up on the bank, the stick held crosswise in both forepaws and worked
+    // against those front teeth. The paws hold it up off their shoulder
+    // pivots, the head does the chewing, and every so often he turns the
+    // stick to a fresh face — which is the gesture that sells it.
+    W.stick.visible = true;
+    W.clay.visible = false;
+    W.headGroup.rotation.x = 0.32 + Math.sin(t * 5.0) * 0.08;
+    W.paws.forEach(pw => { pw.rotation.x += (-0.85 + Math.sin(t * 5.0) * 0.07 - pw.rotation.x) * 0.25; });
+    W.stick.rotation.y = Math.sin(t * 0.6) * 0.5;
+    W.tail.rotation.x += (0.05 - W.tail.rotation.x) * 0.1;   // flat on the bank
+    if (t > S.t0 + 12) {
+      S.mode = Math.abs(Math.sin(t * 29.3)) > 0.5 ? 'pat' : 'stand';
+      S.t0 = t;
+    }
+    return;
+  }
+
+  if (S.mode === 'pat') {
+    // The clay. Sat back on the tail, a handful of it on the ground in
+    // front of him, and the forepaws patting it into shape in alternation
+    // — a beaver plays with mud the way he works with sticks, and this is
+    // the closest the villa has to watching one of its residents MAKE
+    // something. The lump squashes a little under each pat.
+    W.stick.visible = false;
+    W.clay.visible = true;
+    W.headGroup.rotation.x += (0.45 - W.headGroup.rotation.x) * 0.1;   // watching his hands
+    W.paws.forEach((pw, i) => {
+      const pat = Math.max(0, Math.sin(t * 3.6 + (i ? Math.PI : 0)));
+      pw.rotation.x = -0.55 + pat * 0.5;
+    });
+    W.clay.scale.y = 0.7 + Math.abs(Math.sin(t * 3.6)) * 0.08;
+    if (t > S.t0 + 11) { S.mode = 'stand'; S.t0 = t; }
     return;
   }
 
   if (S.mode === 'stand') {
+    W.stick.visible = false;
+    W.clay.visible = false;
     W.headGroup.rotation.x += (Math.sin(t * 0.3) * 0.12 - W.headGroup.rotation.x) * 0.05;
     W.headGroup.rotation.y += (Math.sin(t * 0.22) * 0.4 - W.headGroup.rotation.y) * 0.05;
+    W.paws.forEach(pw => { pw.rotation.x *= 0.92; });
     if (t > S.until && t > (S.summonUntil || 0)) alrikBeaverDepart(t);
     return;
   }
@@ -14910,9 +15035,13 @@ function animateAlrikBeaver(t) {
   // Floating — high in the water, drifting on the current's own slow
   // clock, and every so often the alarm slap: the one thing everybody who
   // has ever actually seen a beaver remembers about one.
+  W.stick.visible = false;
+  W.clay.visible = false;
   const bob = Math.sin(t * 1.3);
   beaverAlrik.position.y += bob * 0.02;
   beaverAlrik.rotation.z = bob * 0.025;
+  W.feet.forEach((f, i) => { f.rotation.x = 0.35 + Math.sin(t * 0.9 + (i ? Math.PI : 0)) * 0.22; });
+  W.paws.forEach(pw => { pw.rotation.x += (0.6 - pw.rotation.x) * 0.05; });
   W.headGroup.rotation.y = Math.sin(t * 0.4) * 0.3;
   const slap = Math.max(0, Math.sin(t * 0.17) - 0.988) * 90;
   W.tail.rotation.x = -slap * 0.6;
@@ -14928,6 +15057,7 @@ function alrikBeaverDepart(t) {
   const dst = ALRIK_BEAVER_SPOTS[next];
   S.to = alrikBeaverGround(dst.x, dst.z);
   const far = S.from.distanceTo(S.to);
+  S.carry = !!(dst.land && Math.abs(Math.sin(t * 41.3)) > 0.45);
   S.dur = Math.max(4, far / 1.4);   // a beaver in the water is unhurried
   S.t0 = t;
   S.mode = 'travel';
