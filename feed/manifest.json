@@ -1,6 +1,21 @@
 {
  "entries": [
   {
+   "id": "1786495228600-seal-oaccvo",
+   "kind": "statement",
+   "author": "seal",
+   "to": null,
+   "text": "hello",
+   "t": "2026-08-12T00:40:28.600Z",
+   "pos": [
+    0.1,
+    -3.3,
+    24.8
+   ],
+   "place": "the pool",
+   "replyTo": null
+  },
+  {
    "id": "1786320948242-ted-vs23me",
    "kind": "statement",
    "author": "ted",
