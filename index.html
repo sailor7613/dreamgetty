@@ -539,6 +539,16 @@
   #obs-console .ui-btn { position: static; }
   #obs-console .obs-label { font-size: 10px; letter-spacing: 0.08em; opacity: 0.5;
     font-style: italic; margin-right: 4px; }
+  /* the inspector's card — what the panel pierces, in facts */
+  #obs-sat-card {
+    position: absolute; bottom: 136px; left: 50%; transform: translateX(-50%);
+    z-index: 18; display: none; text-align: center; line-height: 1.55;
+    background: rgba(12,10,8,0.85); border: 1px solid rgba(200,160,90,0.4);
+    border-radius: 5px; padding: 8px 14px; font-family: 'Georgia', serif;
+    font-size: 11px; color: rgba(245,240,232,0.85); backdrop-filter: blur(8px); }
+  #obs-sat-card.open { display: block; }
+  #obs-sat-card b { color: rgba(255,225,170,0.95); font-weight: normal;
+    letter-spacing: 0.04em; }
 
   #nav-label {
     position: absolute; bottom: 52px; left: 50%;
@@ -1230,12 +1240,12 @@
 
 <!-- The armrest — the observatory chair's controls (spec §3). Appears only
      while seated. lamp → panel → (the throw happens by itself) → reading. -->
+<div id="obs-sat-card"></div>
 <div id="obs-console">
   <span class="obs-label">the armrest</span>
   <button class="ui-btn" id="obs-lamp-btn" onclick="obsLampToggle()">the lamp</button>
   <button class="ui-btn" id="obs-panel-btn" onclick="obsPanelToggle()">the panel</button>
-  <button class="ui-btn" id="obs-full-btn" onclick="obsFullToggle()">full screen</button>
-  <button class="ui-btn" id="obs-reading-btn" onclick="obsReadingCycle()">the reading</button>
+  <button class="ui-btn" id="obs-veil-btn" onclick="obsVeilToggle()">the veil</button>
   <button class="ui-btn" onclick="obsStand()">stand</button>
 </div>
 
@@ -1389,6 +1399,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="satellite.min.js"></script>
 <script>
 // ============================================================
 // PRISM GRAPHMAP — Factory Pattern
@@ -3904,6 +3915,15 @@ const PrismTraces = (function () {
    the real current instant. Nothing here is painted.
    ============================================================ */
 const DG_LAT = 33.59, DG_LON = -117.88;
+/* DG_TLE (2026-08-12): the embedded element snapshot — CelesTrak GP data
+   fetched by Sailor's own terminal 2026-08-11 (epoch day 26222). The
+   observatory tries a fresh CelesTrak fetch on load and falls back here
+   silently: a stale sky, never a dead one (the spec's freshness rule). */
+const DG_TLE = [
+  { name: 'the ISS', l1: '1 25544U 98067A   26222.82685157  .00003972  00000+0  79129-4 0  9998', l2: '2 25544  51.6327  29.6784 0007446  33.6486 326.4974 15.49406443580225' },
+  { name: 'Hubble', l1: '1 20580U 90037B   26222.89708165  .00003598  00000+0  10816-3 0  9995', l2: '2 20580  28.4729  66.4865 0002394  38.7324 321.3443 15.31314475796960' },
+  { name: 'Tiangong', l1: '1 48274U 21035A   26222.74410935  .00007906  00000+0  10300-3 0  9991', l2: '2 48274  41.4701 350.8167 0001173 259.9143 100.1563 15.58947658301681' },
+];
 /* DG_GEO (2026-08-11): the world's coastlines for the dome's inverted
    geographic globe — Natural Earth 110m via world-atlas (public domain),
    101 rings of [lon*10, lat*10] integer pairs, ~45KB. The satellites
@@ -9642,9 +9662,9 @@ const observatoryShell = (function () {
 // ============================================================
 const obsState = {
   built: false, seated: false, lamp: true,
-  panelFloating: false, fullscreen: false,
-  throwT: 0, reading: 0,
-  savedCam: null, savedFov: null, lastT: -1,
+  panelFloating: false,
+  veil: false, veilT: 0,   // the anthro-atmospheric consciousness (2026-08-12)
+  savedCam: null, lastT: -1,
 };
 let obsChair = null, obsChairBackMat = null, obsLampLight = null, obsLampGroup = null,
     obsSatDome = null, obsDomeMesh = null,
@@ -9652,7 +9672,13 @@ let obsChair = null, obsChairBackMat = null, obsLampLight = null, obsLampGroup =
     obsCandleFlames = [],
     obsPanel = null, obsPanelFace = null, obsPanelBase = null,
     obsTelCam = null, obsTelRT = null,
-    obsPanelDragging = false, obsGlobeDragging = false, obsGazeDragging = false;
+    obsPanelDragging = false, obsGlobeDragging = false, obsGazeDragging = false,
+    obsGlobeMat = null, obsGeoCoast = null, obsGeoSpring = null,
+    obsSatsReady = false, obsSkyMarks = null, obsMoonMark = null,
+    obsGeoHome = null, obsGlobeTouchMs = 0,
+    obsNightTex = null, obsNightData = null, obsNightAt = 0;
+const obsSats = [];
+let obsObserverGd = null;   // built with the satellites
 // where the panel points, chair-relative: theta 0 = north(−z) frame per the
 // orbit's own convention; phi from zenith. Starts on the south meridian.
 const obsPanelSph = { theta: Math.PI, phi: 0.65 };
@@ -9707,6 +9733,8 @@ const obsPanelRest = { pos: new THREE.Vector3(1.05, 1.36, 0.42), quat: new THREE
     side: THREE.DoubleSide, transparent: true,
     clippingPlanes: [springLine],
   });
+  obsGlobeMat = globeMat;      // the veil drives this by hand — not via fadeMats
+  obsGeoSpring = springLine;   // the satellites' paths clip on it too
   const texLoader = new THREE.TextureLoader();
   texLoader.load('art/earth/earth-blue-marble.jpg', function (tex) {
     tex.encoding = THREE.sRGBEncoding;
@@ -9756,9 +9784,50 @@ const obsPanelRest = { pos: new THREE.Vector3(1.05, 1.36, 0.42), quat: new THREE
   const villaArr = unitPt(DG_LON * 10, DG_LAT * 10);
   const villaV = new THREE.Vector3(villaArr[0], villaArr[1], villaArr[2]).normalize();
   obsGeoGroup.quaternion.setFromUnitVectors(villaV, new THREE.Vector3(0, 1, 0));
+  // THE TACK (ruled 2026-08-12): this orientation is the instrument's
+  // TRUTH — the villa at its own zenith. A hand may turn the Earth to
+  // explore; left alone ten seconds, it tacks home like a needle.
+  obsGeoHome = obsGeoGroup.quaternion.clone();
+  // THE TERMINATOR: day and night, live, riding the map wherever it is
+  // dragged — the time of day made visible (redrawn each minute from the
+  // real sun in obsTick). alphaMap grayscale: white = night shade.
+  const nightCanvas = document.createElement('canvas');
+  nightCanvas.width = 256; nightCanvas.height = 128;
+  obsNightData = nightCanvas.getContext('2d');
+  obsNightTex = new THREE.CanvasTexture(nightCanvas);
+  const nightShade = new THREE.Mesh(new THREE.SphereGeometry(4.42, 48, 32),
+    new THREE.MeshBasicMaterial({ color: 0x02050c, alphaMap: obsNightTex,
+      transparent: true, side: THREE.DoubleSide, depthWrite: false, fog: false,
+      clippingPlanes: [springLine] }));
+  nightShade.name = 'obsNightShade';
+  obsGeoGroup.add(nightShade);
+  // THE VEIL'S OUTLINES: the continents as gilt line-work, asleep at
+  // opacity 0 until the veil calls them (ruled 2026-08-12 — "the globe
+  // fades to translucent, outlines for the continents")
+  const coastPts = [];
+  DG_GEO.forEach(function (ring) {
+    for (let i = 0; i + 3 < ring.length; i += 2) {
+      coastPts.push.apply(coastPts, unitPt(ring[i], ring[i + 1]));
+      coastPts.push.apply(coastPts, unitPt(ring[i + 2], ring[i + 3]));
+    }
+  });
+  const coastGeo = new THREE.BufferGeometry();
+  coastGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(coastPts), 3));
+  obsGeoCoast = new THREE.LineSegments(coastGeo,
+    new THREE.LineBasicMaterial({ color: 0xc9a64b, transparent: true, opacity: 0.0, fog: false,
+      clippingPlanes: [springLine] }));
+  obsGeoCoast.scale.setScalar(4.33);
+  obsGeoCoast.visible = false;
+  obsGeoGroup.add(obsGeoCoast);
   observatoryShell.add(obsGeoGroup);
-  observatoryShell.userData.fadeMats.push(globeMat);
 })();
+
+// lon/lat (radians) → the globe's unit frame — one mapping for the map,
+// the outlines, and the satellites' ground
+function obsGeoUnit(lonRad, latRad) {
+  const cl = Math.cos(latRad);
+  return new THREE.Vector3(cl * Math.cos(lonRad), Math.sin(latRad), -cl * Math.sin(lonRad));
+}
 
 function obsRoomCentre() {
   return new THREE.Vector3(observatoryShell.position.x,
@@ -9959,7 +10028,7 @@ function buildObservatoryInterior() {
   // THE PANEL — a screen in the G4's family, resting on a low stand at the
   // chair's right hand. Its face is the telescope's plate.
   obsTelRT = new THREE.WebGLRenderTarget(512, 512);
-  obsTelCam = new THREE.PerspectiveCamera(8, 1, 0.1, 600);
+  obsTelCam = new THREE.PerspectiveCamera(18, 1, 0.1, 600);   // a PIECE of sky — stars keep their colors, satellites cross
   obsTelCam.layers.set(5);
   // the BODY, copy-pasted from the galleria's G4 (ruled 2026-08-11): white
   // dome base, slot line, two-segment chrome arm with the elbow ball —
@@ -10039,6 +10108,7 @@ function buildObservatoryInterior() {
   moonGlow.layers.enable(5);
 
   observatoryShell.add(g);
+  obsSatInit();   // the layer above wakes with the room
 }
 
 // First approach builds the room — ~25 units, and only ever once.
@@ -10051,6 +10121,262 @@ setInterval(function () {
   } catch (e) {}
 }, 2500);
 
+// ============================================================
+// THE SATELLITES (2026-08-12) — the anthro-atmospheric layer, made
+// conscious. Three residents of the layer above the villa: the ISS,
+// Hubble, Tiangong — SGP4-propagated (satellite.js, vendored) from the
+// embedded snapshot Sailor's own terminal fetched, freshened from
+// CelesTrak on load when the network allows, silently stale otherwise.
+// Each satellite lives twice, like everything true in the villa:
+//   · a GROUND mark and orbit path on the globe itself, children of
+//     obsGeoGroup — drag the Earth and its satellites ride with it
+//   · a SKY mark at its real alt-azimuth on the celestial sphere,
+//     layer 5, so the panel's plate catches it crossing the stars
+// The MOON joins the sky marks from a compact lunar ephemeris (~1°).
+// All of it surfaces in THE VEIL; the plate sees the sky marks always.
+// ============================================================
+function obsNameSprite(text, scale) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const x = c.getContext('2d');
+  x.font = '30px Georgia, serif';
+  x.textAlign = 'center';
+  x.fillStyle = 'rgba(255,236,196,0.92)';
+  x.fillText(text, 128, 42);
+  const t = new THREE.CanvasTexture(c);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false, fog: false }));
+  sp.scale.set(4 * scale, scale, 1);
+  return sp;
+}
+function obsMoonRaDec(ms) {
+  // truncated lunar ephemeris (Meeus, largest terms) — a degree or so,
+  // which at the dome's scale is exact enough to point a panel at
+  const d = ms / 86400000 - 10957.5;   // days since J2000
+  const D2R = DG_D2R;
+  const L = (218.316 + 13.176396 * d) * D2R;
+  const M = (134.963 + 13.064993 * d) * D2R;
+  const F = (93.272 + 13.229350 * d) * D2R;
+  const lam = L + 6.289 * D2R * Math.sin(M);
+  const bet = 5.128 * D2R * Math.sin(F);
+  const eps = 23.4393 * D2R;
+  const sl = Math.sin(lam), cl = Math.cos(lam);
+  const sb = Math.sin(bet), cb = Math.cos(bet);
+  const x = cb * cl;
+  const y = Math.cos(eps) * cb * sl - Math.sin(eps) * sb;
+  const z = Math.sin(eps) * cb * sl + Math.cos(eps) * sb;
+  return { ra: Math.atan2(y, x), dec: Math.asin(z) };
+}
+function obsAltAz(raRad, decRad, ms) {
+  const H = (dgLstDeg(ms) * DG_D2R - raRad);
+  const phi = DG_LAT * DG_D2R;
+  const alt = Math.asin(Math.sin(phi) * Math.sin(decRad) + Math.cos(phi) * Math.cos(decRad) * Math.cos(H));
+  const az = Math.atan2(-Math.sin(H) * Math.cos(decRad),
+    Math.sin(decRad) * Math.cos(phi) - Math.cos(decRad) * Math.sin(phi) * Math.cos(H));
+  return { alt: alt, az: az };
+}
+function obsAltAzDir(alt, az) {
+  // world: +x east, −z north, +y up; az from north through east
+  const ca = Math.cos(alt);
+  return new THREE.Vector3(ca * Math.sin(az), Math.sin(alt), -ca * Math.cos(az));
+}
+function obsSunRaDec(ms) {
+  // low-precision solar position — a fraction of a degree, plenty for a
+  // terminator band a hand's width wide
+  const d = ms / 86400000 - 10957.5;
+  const D2R = DG_D2R;
+  const L = 280.460 + 0.9856474 * d;
+  const g = (357.528 + 0.9856003 * d) * D2R;
+  const lam = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * D2R;
+  const eps = 23.4393 * D2R;
+  return { ra: Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)),
+           dec: Math.asin(Math.sin(eps) * Math.sin(lam)) };
+}
+function obsSubsolar(ms) {
+  const sun = obsSunRaDec(ms);
+  const gmstDeg = dgLstDeg(ms) - DG_LON;   // lst = gmst + east longitude
+  let lon = sun.ra / DG_D2R - gmstDeg;
+  lon = ((lon + 540) % 360) - 180;
+  return { lonDeg: lon, decDeg: sun.dec / DG_D2R };
+}
+function obsPaintNight(ms) {
+  const sub = obsSubsolar(ms);
+  const sd = Math.sin(sub.decDeg * DG_D2R), cd = Math.cos(sub.decDeg * DG_D2R);
+  const img = obsNightData.createImageData(256, 128);
+  const px = img.data;
+  for (let y = 0; y < 128; y++) {
+    const lat = (0.5 - (y + 0.5) / 128) * Math.PI;
+    const sp = Math.sin(lat), cp = Math.cos(lat);
+    for (let x = 0; x < 256; x++) {
+      const lon = ((x + 0.5) / 256) * 360 - 180;
+      const cosZ = sp * sd + cp * cd * Math.cos((lon - sub.lonDeg) * DG_D2R);
+      // day → 0; a soft dusk band; deep night → ~140 (the shade's ceiling)
+      const a = Math.max(0, Math.min(1, -cosZ * 4 + 0.15)) * 140;
+      const i = (y * 256 + x) * 4;
+      px[i] = px[i + 1] = px[i + 2] = a; px[i + 3] = 255;
+    }
+  }
+  obsNightData.putImageData(img, 0, 0);
+  obsNightTex.needsUpdate = true;
+  obsNightAt = ms;
+}
+// the next visible rise above 10° within a day — cached ten minutes
+function obsNextPass(s, fromMs) {
+  if (s.np && fromMs - s.np.calc < 600000 && s.np.at > fromMs) return s.np.at;
+  let found = null;
+  for (let t = 0; t < 86400; t += 30) {
+    const d = new Date(fromMs + t * 1000);
+    const pv = satellite.propagate(s.rec, d);
+    if (!pv.position) continue;
+    const la = satellite.ecfToLookAngles(obsObserverGd,
+      satellite.eciToEcf(pv.position, satellite.gstime(d)));
+    if (la.elevation > 10 * DG_D2R) { found = fromMs + t * 1000; break; }
+  }
+  s.np = { at: found, calc: fromMs };
+  return found;
+}
+// THE INSPECTOR (ruled 2026-08-12): sweep the panel onto a crossing and
+// it pierces through — the satellite's facts, on the armrest's card.
+function obsPanelInspectTick(nowMs) {
+  const card = document.getElementById('obs-sat-card');
+  if (!card) return;
+  if (!obsState.panelFloating || !obsSatsReady) { card.classList.remove('open'); return; }
+  const dir = obsPanelDir();
+  const cone = Math.cos(9 * DG_D2R);
+  let best = null, bestDot = cone;
+  for (let i = 0; i < obsSats.length; i++) {
+    const s = obsSats[i];
+    if (!s.sky.visible) continue;
+    const d = s.sky.position.clone().normalize().dot(dir);
+    if (d > bestDot) { bestDot = d; best = s; }
+  }
+  let moonBest = false;
+  if (obsMoonMark && obsMoonMark.visible) {
+    const d = obsMoonMark.position.clone().normalize().dot(dir);
+    if (d > bestDot) { bestDot = d; best = null; moonBest = true; }
+  }
+  if (moonBest) {
+    const ill = Math.round((1 - Math.cos(getLunarPhase() * Math.PI * 2)) / 2 * 100);
+    card.innerHTML = '<b>the moon</b> · ' + ill + '% lit · alt ' +
+      Math.round(Math.asin(obsMoonMark.position.y / 250) / DG_D2R) + '°';
+    card.classList.add('open');
+    return;
+  }
+  if (!best) { card.classList.remove('open'); return; }
+  const gd = best.gd, la = best.la;
+  const ageDays = (nowMs / 86400000 + 2440587.5) - best.rec.jdsatepoch;
+  const np = obsNextPass(best, nowMs);
+  card.innerHTML = '<b>' + best.name + '</b> · ' + Math.round(gd.height) + ' km up · ' +
+    best.velKmS.toFixed(2) + ' km/s<br>over ' +
+    Math.abs(gd.latitude / DG_D2R).toFixed(1) + '°' + (gd.latitude >= 0 ? 'N' : 'S') + ' ' +
+    Math.abs(gd.longitude / DG_D2R).toFixed(1) + '°' + (gd.longitude >= 0 ? 'E' : 'W') +
+    ' · alt ' + Math.round(la.elevation / DG_D2R) + '° az ' +
+    ((Math.round(la.azimuth / DG_D2R) % 360) + 360) % 360 + '°<br>elements ' +
+    ageDays.toFixed(1) + ' days old · next pass ' +
+    (np ? new Date(np).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'none within a day');
+  card.classList.add('open');
+}
+function obsSatInit() {
+  if (obsSatsReady || typeof satellite === 'undefined') return;
+  obsSatsReady = true;
+  obsObserverGd = { latitude: DG_LAT * DG_D2R, longitude: DG_LON * DG_D2R, height: 0.06 };
+  obsSkyMarks = new THREE.Group();
+  obsSkyMarks.name = 'obsSkyMarks';
+  obsSkyMarks.visible = false;   // the veil raises them; layer 5 sees them always
+  scene.add(obsSkyMarks);
+  DG_TLE.forEach(function (t) {
+    const rec = satellite.twoline2satrec(t.l1, t.l2);
+    const sky = new THREE.Group();
+    const dot = new THREE.Mesh(new THREE.SphereGeometry(1.3, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffe9b0, fog: false }));
+    const tag = obsNameSprite(t.name, 4.2);
+    tag.position.y = 4.5;
+    sky.add(dot); sky.add(tag);
+    sky.traverse(function (o) { o.layers.enable(5); });
+    obsSkyMarks.add(sky);
+    const gDot = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xffe9b0, fog: false }));
+    gDot.visible = false;
+    obsGeoGroup.add(gDot);
+    const pathGeo = new THREE.BufferGeometry();
+    pathGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(91 * 3), 3));
+    const path = new THREE.Line(pathGeo, new THREE.LineBasicMaterial({
+      color: 0xe8c877, transparent: true, opacity: 0.55, fog: false,
+      clippingPlanes: [obsGeoSpring] }));
+    path.visible = false;
+    obsGeoGroup.add(path);
+    obsSats.push({ name: t.name, rec: rec, sky: sky, gDot: gDot, path: path, pathAt: 0 });
+  });
+  obsMoonMark = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.35, 8, 24),
+    new THREE.MeshBasicMaterial({ color: 0xdfe8f2, fog: false }));
+  const mtag = obsNameSprite('the moon', 4.2);
+  mtag.position.y = 6;
+  obsMoonMark.add(ring); obsMoonMark.add(mtag);
+  obsMoonMark.traverse(function (o) { o.layers.enable(5); });
+  obsMoonMark.visible = false;
+  obsSkyMarks.add(obsMoonMark);
+  // freshness: ask CelesTrak politely, keep the snapshot on any refusal
+  [['https://celestrak.org/NORAD/elements/gp.php?GROUP=stations&FORMAT=tle', ['25544', '48274']],
+   ['https://celestrak.org/NORAD/elements/gp.php?CATNR=20580&FORMAT=tle', ['20580']]].forEach(function (job) {
+    try {
+      fetch(job[0]).then(function (r) { return r.ok ? r.text() : null; }).then(function (txt) {
+        if (!txt) return;
+        const lines = txt.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+        for (let i = 0; i + 2 < lines.length; i += 3) {
+          const id = lines[i + 1].slice(2, 7);
+          if (job[1].indexOf(id) < 0) continue;
+          obsSats.forEach(function (sat) {
+            if (sat.rec.satnum.trim() === id) {
+              sat.rec = satellite.twoline2satrec(lines[i + 1], lines[i + 2]);
+              sat.pathAt = 0;   // redraw on fresh elements
+            }
+          });
+        }
+      }).catch(function () {});
+    } catch (e) {}
+  });
+}
+function obsSatTick(nowMs) {
+  if (!obsSatsReady) return;
+  const now = new Date(nowMs);
+  const gmst = satellite.gstime(now);
+  if (nowMs - obsNightAt > 60000) obsPaintNight(nowMs);   // the terminator keeps the hour
+  for (let i = 0; i < obsSats.length; i++) {
+    const s = obsSats[i];
+    const pv = satellite.propagate(s.rec, now);
+    if (!pv.position) continue;
+    const gd = satellite.eciToGeodetic(pv.position, gmst);
+    s.gDot.position.copy(obsGeoUnit(gd.longitude, gd.latitude).multiplyScalar(4.33));
+    const ecf = satellite.eciToEcf(pv.position, gmst);
+    const la = satellite.ecfToLookAngles(obsObserverGd, ecf);
+    s.gd = gd; s.la = la;   // the inspector reads these
+    s.velKmS = pv.velocity ? Math.sqrt(pv.velocity.x * pv.velocity.x +
+      pv.velocity.y * pv.velocity.y + pv.velocity.z * pv.velocity.z) : 0;
+    const above = la.elevation > 0;
+    s.sky.visible = above;
+    if (above) s.sky.position.copy(obsAltAzDir(la.elevation, la.azimuth).multiplyScalar(252));
+    // the path: ±45 minutes over the ground, redrawn every two minutes
+    if (nowMs - s.pathAt > 120000) {
+      s.pathAt = nowMs;
+      const attr = s.path.geometry.attributes.position;
+      for (let k = 0; k <= 90; k++) {
+        const d2 = new Date(nowMs + (k - 45) * 60000);
+        const pv2 = satellite.propagate(s.rec, d2);
+        if (pv2.position) {
+          const gd2 = satellite.eciToGeodetic(pv2.position, satellite.gstime(d2));
+          const v = obsGeoUnit(gd2.longitude, gd2.latitude).multiplyScalar(4.31);
+          attr.setXYZ(k, v.x, v.y, v.z);
+        }
+      }
+      attr.needsUpdate = true;
+    }
+  }
+  const m = obsMoonRaDec(nowMs);
+  const aa = obsAltAz(m.ra, m.dec, nowMs);
+  obsMoonMark.visible = aa.alt > 0;
+  if (obsMoonMark.visible) obsMoonMark.position.copy(obsAltAzDir(aa.alt, aa.az).multiplyScalar(250));
+}
+
 // ── the seat ──
 function obsSit() {
   if (obsState.seated || !obsChair) return;
@@ -10061,7 +10387,7 @@ function obsSit() {
   // opening gaze: toward where the panel rises, sky behind it
   obsGaze.yaw = obsPanelSph.theta;
   obsGaze.pitch = Math.PI / 2 - obsPanelSph.phi - 0.1;
-  obsState.panelFloating = true;   // lying back, the panel rises on its own
+  // the panel WAITS to be asked (ruled 2026-08-12) — the armrest summons it
   document.getElementById('obs-console').classList.add('open');
   obsConsoleRefresh();
   showNavLabel('the chair takes your eyes — drag to look, esc to stand');
@@ -10072,26 +10398,18 @@ function obsCameraTick() {
   if (!obsState.seated) return false;
   const head = obsChairHead();
   camera.position.copy(head);
-  let dir;
-  if (obsState.fullscreen) {
-    dir = obsPanelDir();               // the eye rides the panel's line
-  } else {
-    dir = new THREE.Vector3(
-      Math.cos(obsGaze.pitch) * Math.sin(obsGaze.yaw),
-      Math.sin(obsGaze.pitch),
-      Math.cos(obsGaze.pitch) * Math.cos(obsGaze.yaw));
-  }
+  const dir = new THREE.Vector3(
+    Math.cos(obsGaze.pitch) * Math.sin(obsGaze.yaw),
+    Math.sin(obsGaze.pitch),
+    Math.cos(obsGaze.pitch) * Math.cos(obsGaze.yaw));
   camera.lookAt(head.x + dir.x, head.y + dir.y, head.z + dir.z);
   return true;
 }
 function obsStand() {
   if (!obsState.seated) return;
-  if (obsState.fullscreen) obsFullToggle();   // give the eye back first
   obsState.seated = false;
   obsState.lamp = true;
   obsState.panelFloating = false;
-  obsState.reading = 0;
-  obsReadingApply();
   const c = obsState.savedCam;
   if (c) {
     camTarget.copy(c.target);
@@ -10107,15 +10425,13 @@ function obsStand() {
 function obsConsoleRefresh() {
   const lampBtn = document.getElementById('obs-lamp-btn');
   const panelBtn = document.getElementById('obs-panel-btn');
-  const fullBtn = document.getElementById('obs-full-btn');
-  const readBtn = document.getElementById('obs-reading-btn');
+  const veilBtn = document.getElementById('obs-veil-btn');
   if (lampBtn) lampBtn.classList.toggle('on', !obsState.lamp);
   if (panelBtn) panelBtn.classList.toggle('on', obsState.panelFloating);
-  if (fullBtn) {
-    fullBtn.classList.toggle('on', obsState.fullscreen);
-    fullBtn.textContent = obsState.fullscreen ? 'the room' : 'full screen';
+  if (veilBtn) {
+    veilBtn.classList.toggle('on', obsState.veil);
+    veilBtn.textContent = obsState.veil ? 'the earth' : 'the veil';
   }
-  if (readBtn) readBtn.textContent = obsState.reading === 0 ? 'the reading' : 'the reading ·';
 }
 function obsLampToggle() {
   obsState.lamp = !obsState.lamp;
@@ -10124,36 +10440,18 @@ function obsLampToggle() {
 }
 function obsPanelToggle() {
   obsState.panelFloating = !obsState.panelFloating;
-  if (!obsState.panelFloating && obsState.fullscreen) obsFullToggle();
   obsConsoleRefresh();
   showNavLabel(obsState.panelFloating ? 'the panel rises' : 'the panel rests');
 }
-function obsFullToggle() {
-  obsState.fullscreen = !obsState.fullscreen;
-  if (obsState.fullscreen) {
-    obsState.panelFloating = true;
-    obsState.savedFov = camera.fov;
-    camera.fov = 12;                      // the eye narrows onto the panel's line
-    camera.updateProjectionMatrix();
-    showNavLabel('the sky is everything — drag to sweep, esc for the room');
-  } else {
-    if (obsState.savedFov) { camera.fov = obsState.savedFov; camera.updateProjectionMatrix(); }
-    // seated gaze turns to where the panel was pointing — no jump cut
-    obsGaze.yaw = obsPanelSph.theta;
-    obsGaze.pitch = Math.PI / 2 - obsPanelSph.phi - 0.1;
-    showNavLabel('the room returns');
-  }
+// THE VEIL (ruled 2026-08-12) — the consciousness of the layer above.
+// The Blue Marble thins to translucence; the continents hold as gilt
+// outline; the satellites' paths and marks surface over their true
+// ground; the constellation figures stand among the real stars; the
+// moon is tracked. One state, everything true at once.
+function obsVeilToggle() {
+  obsState.veil = !obsState.veil;
   obsConsoleRefresh();
-}
-function obsReadingCycle() {
-  obsState.reading = (obsState.reading + 1) % 2;
-  obsReadingApply();
-  obsConsoleRefresh();
-  showNavLabel(obsState.reading ? 'the figures' : 'the sky alone');
-}
-function obsReadingApply() {
-  dgConstGroup.visible = obsState.reading > 0;
-  dgConstGroup.children[0].material.opacity = obsState.reading > 0 ? 0.5 : 0.0;
+  showNavLabel(obsState.veil ? 'the veil — the layer above' : 'the earth returns');
 }
 
 // direction the panel points, from the chair, in world axes (the orbit's
@@ -10184,18 +10482,36 @@ function obsTick(t) {
     const m = obsCandleFlames[i].material;
     m.opacity += (flameOp - m.opacity) * Math.min(1, dt * 2.5);
   }
-  // the shell's three states (third walk): GONE in full screen (the
-  // throw), THIN when you peer in from outside (target in the room, eye
-  // beyond the dome), WHOLE when you are truly under it — the dome is
-  // the globe now, and from the chair it must stand.
+  // the shell: THIN when you peer in from outside (target in the room,
+  // eye beyond the dome), WHOLE when you are truly under it
   const domeC = obsRoomCentre();
   domeC.y += 0.78 + 3.66;
   const camUnderDome = camera.position.distanceTo(domeC) < 4.6;
-  const fade = obsState.fullscreen ? 0.0
-    : (obsEyeInRoom() && !camUnderDome) ? 0.1 : 1.0;
+  const fade = (obsEyeInRoom() && !camUnderDome) ? 0.1 : 1.0;
   const mats = observatoryShell.userData.fadeMats || [];
   for (let i = 0; i < mats.length; i++) {
     mats[i].opacity += (fade - mats[i].opacity) * Math.min(1, dt * 3.0);
+  }
+  // THE VEIL eases; everything it governs rides one number
+  obsState.veilT += ((obsState.veil ? 1 : 0) - obsState.veilT) * Math.min(1, dt * 1.4);
+  const vt = obsState.veilT;
+  obsGlobeMat.opacity = fade * (1 - 0.88 * vt);          // marble → translucence
+  obsGeoCoast.material.opacity = 0.85 * vt;              // the outlines hold
+  obsGeoCoast.visible = vt > 0.02;
+  obsGeoGrid.material.opacity = 0.22 + 0.3 * vt;
+  dgConstGroup.visible = vt > 0.04;                      // the figures, among real stars
+  dgConstGroup.children[0].material.opacity = 0.5 * vt;
+  if (obsSkyMarks) obsSkyMarks.visible = vt > 0.04;      // layer 5 sees them regardless
+  for (let i = 0; i < obsSats.length; i++) {
+    obsSats[i].gDot.visible = vt > 0.04;
+    obsSats[i].path.visible = vt > 0.04;
+  }
+  obsSatTick(Date.now());
+  obsPanelInspectTick(Date.now());
+  // THE TACK: left alone, the Earth eases home to its truth — slow and
+  // certain, a needle finding north
+  if (obsGeoHome && !obsGlobeDragging && Date.now() - obsGlobeTouchMs > 10000) {
+    obsGeoGroup.quaternion.slerp(obsGeoHome, Math.min(1, dt * 0.5));
   }
   // the panel: rises to its shell around the chair, or rests on its stand
   const head = obsChairHead();
@@ -10209,9 +10525,9 @@ function obsTick(t) {
     obsPanel.position.lerp(obsPanelRest.pos, Math.min(1, dt * 3.0));
     obsPanel.quaternion.slerp(obsPanelRest.quat, Math.min(1, dt * 3.0));
   }
-  obsPanel.visible = !obsState.fullscreen;
+  obsPanel.visible = true;
   // the telescope: render the true sky along the chair→panel line
-  if ((obsState.panelFloating || obsState.fullscreen) && obsTelCam) {
+  if (obsState.panelFloating && obsTelCam) {
     const dir = obsPanelDir();
     obsTelCam.position.copy(head);
     obsTelCam.lookAt(head.clone().add(dir));
@@ -10225,17 +10541,36 @@ function obsTick(t) {
   }
   // FULL SCREEN is the throw: the painted globe yields, and the main eye
   // rides the panel's own line (drag sweeps it; obsPanelSph is the wheel)
-  const wantThrow = obsState.fullscreen ? 1 : 0;
-  obsState.throwT += (wantThrow - obsState.throwT) * Math.min(1, dt * 1.2);
-  const ground = 1 - obsState.throwT;
-  obsGeoGrid.material.opacity = 0.22 * ground;
-  obsGeoGroup.visible = ground > 0.02;   // the globe itself rides fadeMats
+}
+
+// Should this pointer GRAB the Earth? Only if the nearest thing under it
+// is the dome's VISIBLE face — the globe is a full sphere and the
+// raycaster ignores clipping planes, so without the nearest-hit test and
+// the spring-line test the invisible lower half caught every drag in the
+// room and the Earth stole the orbit outright (Sailor's fifth walk:
+// "scrolled into the actual space, it won't let me click/drag at all").
+function obsGlobeGrabHit(ray) {
+  if (!obsDomeMesh) return false;
+  // VISIBLE meshes only: LineSegments raycast with a fat 1-unit threshold
+  // (the graticule would catch every ray a hand's width early), and the
+  // raycaster ignores visible=false — the satellites' waiting dome was
+  // invisibly eating the up-ray. When the satellites arrive and their
+  // dome shows, revisit whether it should yield the pointer too.
+  const hits = ray.intersectObject(observatoryShell, true)
+    .filter(function (h) { return h.object.isMesh && h.object.visible; });
+  if (!hits.length) return false;
+  const top = hits[0].object;
+  // the night shade is the globe's own skin — grabbing dusk turns the Earth
+  if (top !== obsDomeMesh && top.name !== 'obsNightShade') return false;
+  const springY = observatoryShell.position.y + 0.78 + 3.66;
+  return hits[0].point.y > springY - 0.02;
 }
 
 // dragging the dome — the inverse of rotating a globe. Factored out so the
 // suite can turn the Earth by hand.
 function obsGlobeSpinBy(dx, dy) {
   if (!obsGeoGroup) return;
+  obsGlobeTouchMs = Date.now();
   const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
   right.y = 0; right.normalize();
   const qYaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * 0.004);
@@ -18824,7 +19159,7 @@ function toggleTedPhoto() {
   }
 }
 window.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape' && obsState.fullscreen) { obsFullToggle(); return; }  // the room first
+  if (e.key === 'Escape' && obsState.veil) { obsVeilToggle(); return; }   // the earth first
   if (e.key === 'Escape' && obsState.seated) { obsStand(); return; }   // then standing
   if (e.key === 'Escape' && typeof visitorNav !== 'undefined' && visitorNav.active && !tedPhoto.active) { toggleVisitor(); return; }
   if (e.key === 'Escape' && followAnimal.key && !tedPhoto.active) { stopFollow(); return; }
@@ -19296,7 +19631,7 @@ container.addEventListener('pointerdown', e => {
   document.getElementById('touch-hint').style.opacity = '0';
 
   // The observatory panel — grab it and sweep it across the dome
-  if (obsPanel && obsState.panelFloating && !obsState.fullscreen) {
+  if (obsPanel && obsState.panelFloating) {
     const r0 = container.getBoundingClientRect();
     const dm0 = new THREE.Vector2(
       ((e.clientX - r0.left) / r0.width) * 2 - 1,
@@ -19314,7 +19649,7 @@ container.addEventListener('pointerdown', e => {
   // Seated, the CHANDELIER is the hand-hold: grab it and the drag turns
   // the room (the gaze), not the Earth — checked before the dome because
   // the lamp hangs inside it (third walk: "all we can reach is the globe").
-  if (obsState.seated && obsLampGroup && !obsState.fullscreen) {
+  if (obsState.seated && obsLampGroup) {
     const rL = container.getBoundingClientRect();
     const dmL = new THREE.Vector2(
       ((e.clientX - rL.left) / rL.width) * 2 - 1,
@@ -19330,15 +19665,18 @@ container.addEventListener('pointerdown', e => {
   }
 
   // Grab the DOME — it IS the globe now, from either side: touching the
-  // Earth turns it (except in full screen, where drag sweeps the sky).
-  if (obsDomeMesh && !obsState.fullscreen) {
+  // Earth's VISIBLE face turns it (except in full screen, where drag
+  // sweeps the sky). Nearest-hit through the whole building, so walls,
+  // chair, floor and the clipped lower hemisphere all yield the pointer
+  // back to their own uses.
+  if (obsDomeMesh) {
     const r1 = container.getBoundingClientRect();
     const dm1 = new THREE.Vector2(
       ((e.clientX - r1.left) / r1.width) * 2 - 1,
       -((e.clientY - r1.top) / r1.height) * 2 + 1
     );
     raycaster.setFromCamera(dm1, camera);
-    if (raycaster.intersectObject(obsDomeMesh, true).length > 0) {
+    if (obsGlobeGrabHit(raycaster)) {
       obsGlobeDragging = true;
       prevX = e.clientX; prevY = e.clientY;
       container.style.cursor = 'grabbing';
@@ -19382,7 +19720,7 @@ container.addEventListener('pointerdown', e => {
 container.addEventListener('pointermove', e => {
   // The observatory panel rides its sphere — and in full screen, ANY drag
   // sweeps the same sphere: one wheel, two hands (the walk-mode lesson)
-  if (obsPanelDragging || (obsState.fullscreen && isDragging)) {
+  if (obsPanelDragging) {
     const pdx = e.clientX - prevX, pdy = e.clientY - prevY;
     prevX = e.clientX; prevY = e.clientY;
     obsPanelSph.theta -= pdx * 0.0042;

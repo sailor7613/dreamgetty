@@ -61,7 +61,8 @@ function check(name, ok, detail) {
     const r = { zenithY: +up.y.toFixed(5),
       gridVerts: obsGeoGrid.geometry.attributes.position.count,
       hasMap: !!obsDomeMesh.material.map,
-      inFade: observatoryShell.userData.fadeMats.indexOf(obsDomeMesh.material) >= 0,
+      inFade: observatoryShell.userData.fadeMats.indexOf(obsDomeMesh.material) < 0
+        && obsGlobeMat === obsDomeMesh.material,   // the VEIL drives it by hand now
       fullSphere: Math.abs(obsDomeMesh.geometry.parameters.thetaLength - Math.PI) < 1e-6,
       turned: +turned.toFixed(4),
       clipped: obsDomeMesh.material.clippingPlanes.length === 1
@@ -72,10 +73,39 @@ function check(name, ok, detail) {
     return r;
   });
   check('the villa opens at its own zenith', globe.zenithY > 0.9999, 'up·villa ' + globe.zenithY);
-  check('the globe wears a true map, and fades with the shell',
+  check('the globe wears a true map; the veil holds its reins',
     globe.hasMap && globe.inFade, globe.gridVerts + ' graticule verts');
   check('a whole Earth, clipped at the spring line — not a half', globe.fullSphere);
   check('a hand turns the Earth', globe.turned > 0.4, globe.turned + ' rad');
+
+  // ── the grab is honest: only the visible face takes the pointer ──
+  const grab = await p.evaluate(() => {
+    const c = obsRoomCentre();
+    const springY = c.y + 0.78 + 3.66;
+    const ray = new THREE.Raycaster();
+    const inRoom = new THREE.Vector3(c.x, c.y + 2, c.z);
+    // up through the ring at the visible dome: GRAB
+    ray.set(inRoom, new THREE.Vector3(0.1, 1, 0.05).normalize());
+    const up = obsGlobeGrabHit(ray);
+    const dbg = ray.intersectObject(observatoryShell, true).filter(h => h.object.isMesh)
+      .slice(0, 3).map(h => (h.object.name || h.object.type) + '@' + h.point.y.toFixed(2));
+    // horizontally at the wall: the wall is nearer — NO grab
+    ray.set(inRoom, new THREE.Vector3(1, 0.05, 0).normalize());
+    const wall = obsGlobeGrabHit(ray);
+    // from outside, at the sphere's clipped lower half: NO grab
+    ray.set(new THREE.Vector3(c.x + 12, springY - 1.5, c.z),
+            new THREE.Vector3(-1, 0.02, 0).normalize());
+    const lower = obsGlobeGrabHit(ray);
+    // from outside, at the visible crown: GRAB
+    ray.set(new THREE.Vector3(c.x + 12, springY + 6, c.z),
+            new THREE.Vector3(-1, -0.35, 0).normalize());
+    const crown = obsGlobeGrabHit(ray);
+    return { up, wall, lower, crown, dbg };
+  });
+  check('pointing up through the ring grabs the Earth', grab.up === true, JSON.stringify(grab.dbg));
+  check('pointing at the wall does NOT — the room keeps its pointer', grab.wall === false);
+  check('the clipped lower hemisphere never grabs', grab.lower === false);
+  check('the visible crown grabs from outside', grab.crown === true);
   check('below the horizon the Earth is clipped, not deleted', globe.clipped);
   check('the G4 body stands by the chair — chrome arm and all',
     globe.base && globe.baseChrome >= 4, globe.baseChrome + ' chrome pieces');
@@ -95,20 +125,22 @@ function check(name, ok, detail) {
   check('stars, moon, and figures join that layer', tel.starsOn && tel.moonOn && tel.figsOn);
   check('the panel\'s face IS the telescope\'s plate', tel.faceIsPlate);
 
-  // ── sit: the eye IS the chair's; the panel rises; the moon: observable ──
+  // ── sit: the eye IS the chair's; the panel WAITS; the moon: observable ──
   const seat = await p.evaluate(() => {
     obsSit();
     let t = 1000;
     const crank = (sec) => { for (let i = 0; i < sec * 20; i++) { t += 0.05; obsTick(t); } };
-    crank(4);
-    updateCamera();   // one explicit frame of the rig
+    crank(2);
+    updateCamera();
     const head = obsChairHead();
     const eyeAtChair = camera.position.distanceTo(head) < 0.05;
+    const waits = obsState.panelFloating === false && obsPanel.position.y < 2.0;
+    obsPanelToggle();               // the armrest summons it
+    crank(4);
     const risen = obsState.panelFloating && obsPanel.position.y > 2.0;
     const world = new THREE.Vector3();
     obsPanel.getWorldPosition(world);
     const distFromHead = world.distanceTo(head);
-    // sweep by hand: aim the sphere at the MOON and see the telescope agree
     const toMoon = moonDisc.position.clone().sub(head).normalize();
     obsPanelSph.phi = Math.acos(toMoon.y);
     obsPanelSph.theta = Math.atan2(toMoon.x, toMoon.z);
@@ -116,60 +148,127 @@ function check(name, ok, detail) {
     const telDir = new THREE.Vector3();
     obsTelCam.getWorldDirection(telDir);
     const offMoonDeg = telDir.angleTo(toMoon) * 180 / Math.PI;
-    // and the gaze mechanics: full screen must put the MAIN eye on the line
-    obsFullToggle();
-    updateCamera();
-    const mainDir = new THREE.Vector3();
-    camera.getWorldDirection(mainDir);
-    const fsAligned = mainDir.angleTo(obsPanelDir()) * 180 / Math.PI < 0.5;
-    obsFullToggle();
-    return { risen, eyeAtChair, fsAligned, distFromHead: +distFromHead.toFixed(2),
+    return { eyeAtChair, waits, risen, distFromHead: +distFromHead.toFixed(2),
       offMoonDeg: +offMoonDeg.toFixed(3),
       console: document.getElementById('obs-console').classList.contains('open') };
   });
   check('the eye sits IN the chair — no phantom orbit', seat.eyeAtChair);
-  check('full screen rides the panel\'s exact line', seat.fsAligned);
-  check('lying back, the panel rises on its own', seat.risen && seat.console);
-  check('it rides a shell around the chair', Math.abs(seat.distFromHead - 2.25) < 0.15,
+  check('the panel WAITS to be asked', seat.waits && seat.console);
+  check('asked, it rises to its shell', seat.risen && Math.abs(seat.distFromHead - 2.25) < 0.15,
     seat.distFromHead + ' from the eyes');
-  check('swept to the moon, the telescope holds the moon',
+  check('swept to the moon, the plate holds the moon',
     seat.offMoonDeg < 1.0, seat.offMoonDeg + '° off');
 
-  // ── full screen is the throw; the room comes back whole ──
-  const fs = await p.evaluate(() => {
+  // ── the veil: the anthro-atmospheric layer, and the satellites in it ──
+  const veil = await p.evaluate(() => {
     let t = 3000;
     const crank = (sec) => { for (let i = 0; i < sec * 20; i++) { t += 0.05; obsTick(t); } };
-    obsLampToggle();
-    const fovBefore = camera.fov;
-    obsFullToggle();
+    // stand the eye under the dome so no peek-fade muddies the numbers
+    const c = obsRoomCentre();
+    camera.position.set(c.x + 1.2, c.y + 2.2, c.z);
+    camTarget.set(0, 5, 20);
+    const r = { sats: obsSats.length, names: obsSats.map(s2 => s2.name) };
+    // truth check at a fixed instant, against satellite.js itself
+    const ms = 1786510000000;
+    obsSatTick(ms);
+    const now = new Date(ms), gmst = satellite.gstime(now);
+    r.satTruth = obsSats.map(s2 => {
+      const pv = satellite.propagate(s2.rec, now);
+      const gd = satellite.eciToGeodetic(pv.position, gmst);
+      const want = obsGeoUnit(gd.longitude, gd.latitude).multiplyScalar(4.33);
+      const offGround = s2.gDot.position.distanceTo(want);
+      const la = satellite.ecfToLookAngles(obsObserverGd, satellite.eciToEcf(pv.position, gmst));
+      const skyOk = (la.elevation > 0) === s2.sky.visible;
+      const pathPts = s2.path.geometry.attributes.position.count;
+      return { offGround: +offGround.toFixed(5), skyOk, pathPts };
+    });
+    const m = obsMoonRaDec(ms), aa = obsAltAz(m.ra, m.dec, ms);
+    r.moonOk = (aa.alt > 0) === obsMoonMark.visible;
+    // now raise the veil
+    obsVeilToggle();
     crank(6);
-    const dir = obsPanelDir();
-    const narrowed = camera.fov === 12;
-    const thrown = obsState.throwT > 0.9 && !obsGeoGroup.visible
-      && observatoryShell.userData.fadeMats.every(m => m.opacity < 0.1);
-    const panelParked = !obsPanel.visible;
-    updateCamera();
-    const md = new THREE.Vector3(); camera.getWorldDirection(md);
-    const aligned = md.angleTo(dir) * 180 / Math.PI < 0.5;
-    obsReadingCycle();
-    const reading = dgConstGroup.visible;
-    obsFullToggle();
-    crank(5);
-    const fovBack = camera.fov === fovBefore;
-    const globeBack = obsGeoGroup.visible && obsDomeMesh.material.opacity > 0.9;
+    r.veilT = +obsState.veilT.toFixed(3);
+    r.marbleThin = obsGlobeMat.opacity < 0.2;
+    r.outlines = obsGeoCoast.visible && obsGeoCoast.material.opacity > 0.7;
+    r.figures = dgConstGroup.visible && dgConstGroup.children[0].material.opacity > 0.4;
+    r.marks = obsSkyMarks.visible && obsSats.every(s2 => s2.gDot.visible && s2.path.visible);
+    obsVeilToggle();
+    crank(6);
+    r.earthBack = obsGlobeMat.opacity > 0.9 && !obsGeoCoast.visible
+      && !dgConstGroup.visible && !obsSkyMarks.visible;
     obsStand();
-    crank(4);
-    const restored = !obsState.seated && obsState.lamp && !obsState.panelFloating
-      && obsLampLight.intensity > 0.7
+    crank(3);
+    r.stood = !obsState.seated && obsState.lamp
       && !document.getElementById('obs-console').classList.contains('open');
-    return { narrowed, thrown, panelParked, aligned, reading, fovBack, globeBack, restored, fovBefore };
+    return r;
   });
-  check('full screen narrows the eye onto the panel\'s line',
-    fs.narrowed && fs.aligned && fs.panelParked, 'fov 12, from ' + fs.fovBefore);
-  check('full screen IS the throw — the painted globe yields', fs.thrown);
-  check('the reading still answers inside it', fs.reading);
-  check('the room returns whole — fov, globe, lamp, all of it',
-    fs.fovBack && fs.globeBack && fs.restored);
+  check('three residents of the layer above', veil.sats === 3, veil.names.join(' · '));
+  veil.satTruth.forEach((st, i) => {
+    check(veil.names[i] + ' rides its true ground, path drawn',
+      st.offGround < 0.001 && st.skyOk && st.pathPts === 91,
+      'ground off ' + st.offGround + ', ' + st.pathPts + ' path points');
+  });
+  check('the moon is tracked', veil.moonOk);
+  check('the veil thins the marble to translucence', veil.veilT > 0.9 && veil.marbleThin);
+  check('the continents hold as gilt outline', veil.outlines);
+  check('the figures stand among the real stars', veil.figures);
+  check('the satellites surface — marks and paths', veil.marks);
+  check('the earth returns whole when the veil lowers', veil.earthBack);
+  check('standing restores the room', veil.stood);
+
+  // ── the ontology: the tack, the terminator, the inspector ──
+  const onto = await p.evaluate(() => {
+    let t = 9000;
+    const crank = (sec) => { for (let i = 0; i < sec * 20; i++) { t += 0.05; obsTick(t); } };
+    const r = {};
+    // the tack: turn the Earth, backdate the touch, watch it come home
+    obsGlobeSpinBy(400, -200);
+    const away = obsGeoGroup.quaternion.angleTo(obsGeoHome);
+    obsGlobeTouchMs = Date.now() - 60000;
+    crank(14);
+    r.wandered = +away.toFixed(3);
+    r.homed = +obsGeoGroup.quaternion.angleTo(obsGeoHome).toFixed(4);
+    // the terminator: painted, plausible — the subsolar point must sit
+    // where the independent formula puts it
+    const ms = 1786510000000;
+    obsPaintNight(ms);
+    const sub = obsSubsolar(ms);
+    const sun = obsSunRaDec(ms);
+    const aaS = obsAltAz(sun.ra, sun.dec, ms);
+    r.subDecSane = Math.abs(sub.decDeg) < 23.6;
+    r.nightFresh = obsNightAt === ms;
+    r.shade = !!observatoryShell.getObjectByName('obsNightShade');
+    // the sun's OWN altitude from the subsolar frame must agree with the
+    // alt-az route: at the subsolar point the sun is at the zenith
+    const zen = Math.sin(DG_LAT * DG_D2R) * Math.sin(sub.decDeg * DG_D2R) +
+      Math.cos(DG_LAT * DG_D2R) * Math.cos(sub.decDeg * DG_D2R) *
+      Math.cos((DG_LON - sub.lonDeg) * DG_D2R);
+    r.sunAgrees = Math.abs(Math.asin(zen) - aaS.alt) < 0.01;
+    // the inspector: forge a crossing in the panel's cone → the card fills
+    obsSit(); obsPanelToggle();
+    crank(4);
+    const s0 = obsSats[0];
+    s0.sky.visible = true;
+    s0.sky.position.copy(obsPanelDir().multiplyScalar(252));
+    obsPanelInspectTick(Date.now());
+    const card = document.getElementById('obs-sat-card');
+    r.cardShows = card.classList.contains('open') && card.innerHTML.indexOf(s0.name) >= 0;
+    r.cardFacts = card.innerHTML.indexOf('km up') > 0 && card.innerHTML.indexOf('next pass') > 0;
+    // sweep away → the card yields
+    obsPanelSph.theta += 1.2;
+    crank(1);
+    obsPanelInspectTick(Date.now());
+    r.cardHides = !card.classList.contains('open');
+    obsStand(); crank(2);
+    return r;
+  });
+  check('a wandered Earth tacks home to its truth',
+    onto.wandered > 1 && onto.homed < 0.05, onto.wandered + ' → ' + onto.homed + ' rad');
+  check('the terminator keeps the hour — sun checked two ways',
+    onto.nightFresh && onto.shade && onto.subDecSane && onto.sunAgrees);
+  check('a crossing in the cone fills the inspector\'s card',
+    onto.cardShows && onto.cardFacts);
+  check('swept away, the card yields', onto.cardHides);
 
   // ── the eye moves freely in a small room ──
   const comfort = await p.evaluate(() => {
