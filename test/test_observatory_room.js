@@ -21,6 +21,17 @@ function check(name, ok, detail) {
   await p.goto('http://localhost:8899/index.html?q=high', { waitUntil: 'load', timeout: 60000 });
   await p.waitForTimeout(9000);
 
+  // ── THE WALK PLAYS ON LOAD NOW (2026-08-16) ──
+  // A suite that wants a pristine villa has to ASK for one: mark the walk
+  // seen, then reload. Standing it down in place is not enough — by the time
+  // a suite gets control the walk has already gathered nineteen residents
+  // onto the sand and taken the wheel, so every check that reads a live
+  // position (the staging, the routes, who is where) would be measuring the
+  // walk's leftovers. Two suites said so.
+  await p.evaluate(() => { try { localStorage.setItem('dg_tour_seen_v2', '1'); } catch (e) {} });
+  await p.reload({ waitUntil: 'load', timeout: 60000 });
+  await p.waitForTimeout(7000);
+
   // ── build: once, and the new bones ──
   const built = await p.evaluate(() => {
     const before = !!scene.getObjectByName('observatoryInterior');

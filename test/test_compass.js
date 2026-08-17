@@ -19,6 +19,17 @@ function check(name, ok, detail) {
   await p.goto('http://localhost:8899/index.html', { waitUntil: 'load', timeout: 60000 });
   await p.waitForTimeout(7000);
 
+  // ── THE WALK PLAYS ON LOAD NOW (2026-08-16) ──
+  // A suite that wants a pristine villa has to ASK for one: mark the walk
+  // seen, then reload. Standing it down in place is not enough — by the time
+  // a suite gets control the walk has already gathered nineteen residents
+  // onto the sand and taken the wheel, so every check that reads a live
+  // position (the staging, the routes, who is where) would be measuring the
+  // walk's leftovers. Two suites said so.
+  await p.evaluate(() => { try { localStorage.setItem('dg_tour_seen_v2', '1'); } catch (e) {} });
+  await p.reload({ waitUntil: 'load', timeout: 60000 });
+  await p.waitForTimeout(7000);
+
   // ── THE OLD CHROME IS GONE ─────────────────────────────────────────────
   console.log('\n── the changing of the guard ──');
   const guard = await p.evaluate(() => ({
@@ -274,10 +285,21 @@ function check(name, ok, detail) {
     out.tedMoved = before - tedTurner.position.distanceTo(tedTravel.target);
     // nobody's body moves while it is being DRIVEN
     window.feedIdentity = () => ({ avatar: 'emilia', pass: 'x' });
+    // A DRIVEN BODY NOW GOES (ruled 2026-08-16). This block used to assert
+    // the opposite — a body being driven was never sent anywhere, so the
+    // camera could not yank a figure out from under the hand steering it.
+    // Right about drift, wrong about an instruction: `go there` is the
+    // person saying go there. And it was every guest, every time, because
+    // the walk hands the wheel back still held.
     called = null;
     visitorNav.active = true;
+    visitorNav.walking = false;
     goToPlace('beach');
-    out.drivenStaysYours = called === null;
+    out.drivenWalks = visitorNav.walking === true;
+    out.drivenWalkedNotSummoned = called === null;   // its own gait, not a summon
+    out.drivenTargetIsTheBeach =
+      nearestPlace(new THREE.Vector3(visitorNav.target.x, 0, visitorNav.target.z)) === 'the beach';
+    visitorNav.walking = false;
     visitorNav.active = false;
     // and no identity, no body — the camera flies alone
     window.feedIdentity = () => null;
@@ -296,7 +318,9 @@ function check(name, ok, detail) {
   check('Ted walks — the docent finally has a way to just GO',
         body.tedState === 'travel' && body.tedNotSummoned, JSON.stringify(body.tedTarget));
   check('…and covers ground', body.tedMoved > 3, body.tedMoved.toFixed(1) + ' units in 5s');
-  check('a body being driven is not sent anywhere', body.drivenStaysYours);
+  check('a body being driven WALKS there — it is an instruction, not drift', body.drivenWalks);
+  check('…on its own gait, not by summon', body.drivenWalkedNotSummoned);
+  check('…and to the place that was pressed', body.drivenTargetIsTheBeach);
   check('no identity, no body — the camera flies alone', body.anonJustFlies);
 
   // ── PHOTOGRAPH ─────────────────────────────────────────────────────────

@@ -11073,10 +11073,17 @@ function openNotebook(room) {
   notebookState.room = room;
   const el = document.getElementById('notebook-panel');
   if (!el) return;
+  // ANY PLACE MAY HAVE A BOOK (2026-08-16). The title used to be a chain of
+  // three ternaries because there were exactly three books; now every place
+  // that has been spoken in grows one, so the name comes off the registry.
+  const pl = (typeof PLACE_REGISTRY !== 'undefined') &&
+    PLACE_REGISTRY.find(function (r) { return r.key === room; });
   document.getElementById('nb-title').textContent =
     room === 'exedra' ? 'The Exedra Notebook'
     : room === 'bloomburger' ? 'BloomBurger'
-    : 'The Library Notebook';
+    : room === 'library' ? 'The Library Notebook'
+    : pl ? (pl.label + ' Notebook')
+    : 'The Notebook';
   document.getElementById('nb-sub').textContent =
     room === 'exedra' ? 'comments, ideas — and files. what is added here is kept.'
     : room === 'bloomburger' ? 'economic objects worth tracking — instruments, indicators, ideas. a notebook that means to become an application.'
@@ -11217,7 +11224,7 @@ function loadFeed() {
       // The tour is offered ONCE, in the banner, and only to a device that
       // is not being stopped at the door by the introduction — two notices
       // at once is the toll the threshold rulings exist to prevent.
-      if (typeof considerTourOffer === 'function') setTimeout(function () { considerTourOffer(); }, 2600);
+      if (typeof considerTourStart === 'function') setTimeout(function () { considerTourStart(); }, 2600);
     })
     .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; });
 }
@@ -12108,6 +12115,11 @@ function updateTedAddress(t) {
       tedHeadGroup.position.set(0, 0, 0);   // and put the neck back
     }
     TED_REAR.active = false; TED_REAR.releasing = false; TED_REAR.arrived = false;
+    // A travel ordered WHILE he was coming down outranks the homing. Without
+    // this the order took (tedTravelTo set 'travel') and was then overwritten
+    // by 'pausing' one frame later — the same swallowed instruction, moved
+    // from the front door to the back.
+    if (tedPatrol.state === 'travel') return;
     // Back into the loop at the nearest waypoint — the photo-exit rule.
     let ni = 0, nd = Infinity;
     tedPatrol.waypoints.forEach(function (w, i) {
@@ -12690,6 +12702,26 @@ function considerThreshold() {
 const TOUR_TED_SPEED = 0.020;
 const TOUR_TAKEN_KEY = 'dg_tour_taken';
 const TOUR_OFFERED_KEY = 'dg_tour_offered';
+
+// ── THE WALK PLAYS ITSELF (RULED 2026-08-16, Sailor) ──
+// "I want this tutorial to play for every beta user the next time they log
+// on... the first thing users see on their next log on."
+//
+// It used to be OFFERED — a banner, once, which a friend could miss by
+// glancing away. Now it RUNS. Once per device, ever, and `end the walk →`
+// is on screen from the first second, so it can still only ever add a walk,
+// never withhold the villa. That is the threshold's own contract (§3, never
+// a toll, never a wall) applied to the one thing the beta is actually for.
+//
+// THE KEY IS BUMPED, and that is the point of the rename: every device that
+// already saw the old banner — including anyone who pressed `later` — has
+// `dg_tour_offered` set and would have been skipped forever. `_seen_v2` has
+// never been written anywhere, so the whole beta gets it on next load.
+// Bump it again to re-run the walk for everyone after a rewrite.
+const TOUR_AUTOPLAY = true;
+const TOUR_SEEN_KEY = 'dg_tour_seen_v2';
+const TOUR_INVITE =
+  'I’m headed down to the sand with everyone. Come along and I’ll show you how the place works.';
 const tourState = { on: false, i: -1, timer: null, stagers: [] };
 
 // Where Ted stands at each stop — read off the registry's own camera so he
@@ -13286,27 +13318,39 @@ window.addEventListener('keydown', function (e) {
 // tick the feed lands. The mark is now written when the banner is actually
 // SHOWN, which is the considerTroutPrompt pattern: poll patiently, spend
 // the one offer once, never twice.
-function considerTourOffer(tries) {
-  tries = (tries == null) ? 150 : tries;
-  let taken = null, offered = null;
-  try { taken = localStorage.getItem(TOUR_TAKEN_KEY); offered = localStorage.getItem(TOUR_OFFERED_KEY); } catch (e) {}
-  if (taken || offered) return;
-  const busy = tourState.on ||
-               (typeof threshold !== 'undefined' && threshold.showing) ||
-               (typeof announceState !== 'undefined' && (announceState.entry || announceState.custom));
-  if (busy) {
-    if (tries > 0) setTimeout(function () { considerTourOffer(tries - 1); }, 2000);
+function considerTourStart(tries) {
+  tries = (tries == null) ? 200 : tries;
+  let seen = null;
+  try { seen = localStorage.getItem(TOUR_SEEN_KEY); } catch (e) {}
+  if (seen) return;                         // once per device, ever
+  if (tourState.on) return;
+
+  // WAIT FOR THE INTRODUCTION, AND ONLY FOR THAT. The offer version also
+  // stood down for any OTHER banner — and that was a silent hole: a talk
+  // notice sitting undismissed in the corner held the walk off for five
+  // minutes and then it gave up for good, on the one device that most
+  // needed it. The walk now outranks a banner and closes it (§one voice at
+  // a time is enforced the other way round: announceShow refuses while the
+  // walk is on). The threshold still wins, because the introduction is the
+  // one thing that is allowed to hold the door.
+  if (typeof threshold !== 'undefined' && threshold.showing) {
+    if (tries > 0) setTimeout(function () { considerTourStart(tries - 1); }, 1500);
     return;
   }
-  const shown = announceCustom(
-    'I’m headed down to the sand with everyone. Come along and I’ll show you how the place works.',
-    'come along', tourBegin);
-  if (!shown) {
-    if (tries > 0) setTimeout(function () { considerTourOffer(tries - 1); }, 2000);
+  if (!TOUR_AUTOPLAY) {
+    // The kept alternative: offer it in the banner instead of playing it.
+    const shown = announceCustom(TOUR_INVITE, 'come along', tourBegin);
+    if (!shown) { if (tries > 0) setTimeout(function () { considerTourStart(tries - 1); }, 2000); return; }
+    try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) {}
     return;
   }
-  try { localStorage.setItem(TOUR_OFFERED_KEY, '1'); } catch (e) {}
+  announceHide();
+  try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) {}
+  tourBegin();
 }
+// The old name, kept because two call sites and a suite know it.
+function considerTourOffer(tries) { return considerTourStart(tries); }
+
 
 // ── Write: through the gate. No credential, no api.github.com. ──
 // ghPut and ghGetSha are GONE. They were the only two functions in this file
@@ -14274,6 +14318,596 @@ function steleFace(entry, faceTextOverride) {
   return tex;
 }
 
+// ============================================================
+// THE WORD CLOUDS (2026-08-16, Sailor) — what a statement looks like now
+//
+// RULED: "Let's keep Trout's first communication stele, but for the others,
+// let's do a keyword cloud that floats around the given space, using the
+// same design as the keyword clouds on the graphmap in the galleria."
+//
+// So the villa has exactly ONE stone, and it is the oldest thing anybody
+// said here. Everything since is air. That is not a downgrade of the rest —
+// it is what makes his the first: an exception needs a rule to be an
+// exception to, and now there is one.
+//
+// AND A CLOUD OPENS (Sailor, on being told a cloud cannot carry the whole
+// remark): "Click the cloud and the cloud turns into a feed. That feed
+// should be similar to the comms tool's feed, but existing in the 3d space
+// without a window, it should look like an ordered cloud."
+//
+// Two states of one object, and the transition is the idea: scattered
+// becomes ordered. Resting, the keywords orbit the spot the way they orbit
+// a dot on the graphmap. Opened, the same air resolves into a column —
+// author, what was said, and whatever answered it, in time. No panel, no
+// HTML, no window: the reading happens where the speaking did.
+// ============================================================
+const CLOUD_STATEMENTS = true;      // false ⇒ every statement is a stone again
+
+// ── THE THREE NUMBERS, LIVE ──
+// How big a word is, how wide the ring sits, how high it floats over the
+// book. Three passes of guessing these from screenshots got them wrong in
+// both directions, which is what happens when the person sizing a thing
+// cannot stand in front of it. So they are a dial rather than a constant:
+//   CLOUD_TUNE.word = 0.26; cloudRetune()
+// in the console, and the villa redraws every cloud at the new size. When
+// they look right, these three lines are the whole change to keep.
+const CLOUD_TUNE = { word: 0.155, ring: 0.60, lift: 1.62 };
+function cloudRetune(t) {
+  if (t) Object.keys(t).forEach(function (k) { CLOUD_TUNE[k] = t[k]; });
+  try { renderStatementField(); } catch (e) {}
+  return 'word ' + CLOUD_TUNE.word + ' · ring ' + CLOUD_TUNE.ring + ' · lift ' + CLOUD_TUNE.lift;
+}
+const cloudState = { open: null, byPlace: new Map(), pedestals: new Map() };
+
+// ── THE BOOK AND THE CLOUD ARE THE SAME WORDS (2026-08-16, Sailor:
+// "what if we just sync the notebook on the pedestal and the word cloud") ──
+//
+// They were two bodies of text standing a metre apart: the cloud read
+// statements stamped with the place, the book read `dg:note:<place>`
+// entries, and `cloudCorpus` explicitly threw the notes away. So a guest
+// could write a page in the plaza's book and watch the plaza's cloud not
+// change — which makes the pedestal a decoration next to the thing it is
+// supposed to be holding up. One gathering now feeds both: what is said
+// standing here, and what is written in the book here, are what this place
+// has to say.
+function cloudSaidAt(placeKey) {
+  const pl = PLACE_REGISTRY.find(function (r) { return r.key === placeKey; });
+  const lab = pl ? pl.label.toLowerCase() : placeKey;
+  const out = [];
+  (feedState.entries || []).forEach(function (e) {
+    if (!e || !e.id || e.kind === 'address' || isTroutStone(e)) return;
+    if (typeof isProfileEntry === 'function' && isProfileEntry(e)) return;
+    const inBook = (typeof notebookRoom === 'function') && notebookRoom(e) === placeKey;
+    const saidHere = !(typeof isNotebookEntry === 'function' && isNotebookEntry(e)) &&
+                     (e.place || '').toLowerCase() === lab;
+    if (inBook || saidHere) out.push(e);
+  });
+  return out;
+}
+
+// Trout's stone is the exception, and it is either the original 'Hello' or
+// the carve that superseded it — both are "his first communication".
+function isTroutStone(entry) {
+  return !!entry && (entry.id === TROUT_STELE_ID ||
+    (entry.author === 'trout' && entry.replyTo === TROUT_STELE_ID));
+}
+
+// ── THE WORDS: TF-IDF OVER THE VILLA'S OWN FEED ──
+// No model, no key, no network — the corpus is what the villa has said. A
+// word that is frequent HERE and rare EVERYWHERE scores highest, which is
+// the whole of "pick out the most consequential words" and is fifteen lines.
+//
+// The IDF is SMOOTHED — log((N+1)/(df+1)) + 1 — and that is not decoration.
+// Raw IDF is log(N/df), which at today's feed size is zero for a word that
+// appears in every statement and undefined-ish for a corpus of one. The
+// smoothed form stays positive at four statements and still ranks properly
+// at four hundred, so this does not need revisiting as the beta fills up.
+const CLOUD_STOP = new Set(('a an and are as at be been but by can could did do does for from had has have ' +
+  'he her here hers him his how i if in into is it its me my no not of on once one only or our out over ' +
+  'said say she should so some such than that the their them then there these they this those to too up ' +
+  'us was we were what when where which who why will with would you your yours im ive its dont thats just ' +
+  'get got go going really very much lot know think like well now still even also ' +
+  'cannot cant wont shall may might must am being doing having let lets else ever').split(' '));
+
+function cloudTokens(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9'\s-]/g, ' ')
+    .split(/\s+/)
+    .map(function (w) { return w.replace(/^['-]+|['-]+$/g, ''); })
+    .filter(function (w) { return w.length > 2 && !CLOUD_STOP.has(w); });
+}
+
+function cloudCorpus() {
+  return (feedState.entries || []).filter(function (e) {
+    return e && e.id && e.kind !== 'address' &&
+      !(typeof isProfileEntry === 'function' && isProfileEntry(e)) &&
+      !(typeof isNotebookEntry === 'function' && isNotebookEntry(e));
+  });
+}
+
+// ── A COLOUR PER VOICE (RULED 2026-08-16, Sailor: "let's do per avatar") ──
+// The iridescence is not decoration and it is not random: a word is tinted
+// by WHOEVER SAID IT, so a place's cloud tells you how many people are in
+// the conversation before you have read a single word. Three colours means
+// three voices. The hue is hashed off the resident's key, so it is the same
+// colour every time without a table to maintain, and it shimmers a little
+// around that hue so the cloud reads as alive rather than as a legend.
+function cloudHue(author) {
+  let h = 0;
+  const k = String(author || '·');
+  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) >>> 0;
+  return (h % 360) / 360;
+}
+
+// ── THE WORDS OF A PLACE ──
+// The document is no longer one remark, it is EVERYTHING SAID HERE, and the
+// corpus is the other places. So the plaza's cloud says what is distinctive
+// about the plaza rather than what is distinctive about one sentence in it —
+// which is the whole reason a place gets one cloud instead of five.
+function cloudPlaceKeywords(here, byPlace, want) {
+  want = want || 7;
+  const mine = [];
+  const saidBy = {};
+  (byPlace[here] || []).forEach(function (e) {
+    cloudTokens(steleFaceText(e)).forEach(function (w) {
+      mine.push(w);
+      (saidBy[w] = saidBy[w] || {})[e.author] = (saidBy[w][e.author] || 0) + 1;
+    });
+  });
+  if (!mine.length) return [];
+  const tf = {};
+  mine.forEach(function (w) { tf[w] = (tf[w] || 0) + 1; });
+  const places = Object.keys(byPlace);
+  const N = Math.max(1, places.length);
+  const df = {};
+  places.forEach(function (pk) {
+    const seen = new Set();
+    byPlace[pk].forEach(function (e) { cloudTokens(steleFaceText(e)).forEach(function (w) { seen.add(w); }); });
+    seen.forEach(function (w) { df[w] = (df[w] || 0) + 1; });
+  });
+  const scored = Object.keys(tf).map(function (w) {
+    const idf = Math.log((N + 1) / ((df[w] || 0) + 1)) + 1;
+    // whoever leaned on the word hardest here owns its colour
+    let who = null, best = -1;
+    Object.keys(saidBy[w] || {}).forEach(function (a) {
+      if (saidBy[w][a] > best) { best = saidBy[w][a]; who = a; }
+    });
+    return { text: w, score: (tf[w] / mine.length) * idf, author: who };
+  });
+  scored.sort(function (a, b) { return b.score - a.score || (a.text < b.text ? -1 : 1); });
+  const top = scored.slice(0, want);
+  const hi = top.length ? top[0].score : 1;
+  return top.map(function (x) {
+    return { text: x.text, author: x.author, weight: hi ? Math.max(0.25, x.score / hi) : 0.6 };
+  });
+}
+
+function cloudKeywords(entry, want) {
+  want = want || 6;
+  const mine = cloudTokens(steleFaceText(entry));
+  if (!mine.length) return [];
+  const tf = {};
+  mine.forEach(function (w) { tf[w] = (tf[w] || 0) + 1; });
+  const corpus = cloudCorpus();
+  const N = Math.max(1, corpus.length);
+  const df = {};
+  corpus.forEach(function (e) {
+    const seen = new Set(cloudTokens(steleFaceText(e)));
+    seen.forEach(function (w) { df[w] = (df[w] || 0) + 1; });
+  });
+  const scored = Object.keys(tf).map(function (w) {
+    const idf = Math.log((N + 1) / ((df[w] || 0) + 1)) + 1;
+    return { text: w, score: (tf[w] / mine.length) * idf };
+  });
+  scored.sort(function (a, b) {
+    return b.score - a.score || (a.text < b.text ? -1 : 1);   // ties break stably
+  });
+  const top = scored.slice(0, want);
+  const hi = top.length ? top[0].score : 1;
+  return top.map(function (x) { return { text: x.text, weight: hi ? Math.max(0.25, x.score / hi) : 0.6 }; });
+}
+
+// The front face's words only — a stele packs both faces into one field
+// with STELE_FACE_SPLIT, and the back is a separate remark.
+function steleFaceText(entry) {
+  return String((entry && entry.text) || '').split(STELE_FACE_SPLIT)[0];
+}
+
+// ── A KEYWORD, IN THE GRAPHMAP'S OWN HAND ──
+// The graphmap's `makeWordSprite` lives inside the factory's closure and is
+// not reachable from out here. Rather than prise it out — the factory is
+// read-only canon and its words are tuned against a dark metallic plane —
+// this is its twin at module scope: same bold italic Georgia, same white
+// glow halo, same shape. They have to look like one instrument because
+// they ARE one idea, and the villa says so by drawing them the same way.
+function makeCloudWord(text, color, fontSize) {
+  const fs = fontSize || 32;
+  const cvs = document.createElement('canvas');
+  cvs.width = 1024; cvs.height = 128;
+  const ctx = cvs.getContext('2d');
+  ctx.font = 'bold italic ' + fs + 'px Georgia';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  // A DARK HALO, NOT A WHITE ONE — and the first photograph is the reason.
+  // The graphmap's words carry a white glow because they hang against a dark
+  // metallic plane. These hang against the villa: bleached stone by day, the
+  // real sky by night, water, grass. The white glow made them invisible on
+  // the terrace. A dark halo under a warm off-white fill reads on every one
+  // of those, which is what a word standing loose in the world needs.
+  ctx.shadowColor = 'rgba(10,12,16,0.9)';
+  ctx.shadowBlur = fs * 0.55;
+  ctx.strokeStyle = 'rgba(10,12,16,0.55)';
+  ctx.lineWidth = 4;
+  ctx.strokeText(text, 512, 64);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = color || 'rgba(248,244,236,0.96)';
+  ctx.fillText(text, 512, 64);
+  const tex = new THREE.CanvasTexture(cvs);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+  const sp = new THREE.Sprite(mat);
+  // …and BIGGER. The graphmap's scale is tuned to a field you lean over;
+  // these stand at head height in a room you walk through, so they are sized
+  // against a body rather than against a diagram.
+  // Sized against the PEDESTAL it hangs over. At body-scale the words were
+  // three units wide against a one-unit plinth and the cloud sprawled out of
+  // frame — a cloud has to read as belonging to its book.
+  const w = Math.max(text.length * CLOUD_TUNE.word, CLOUD_TUNE.word * 4.4) * (0.80 + (fs / 46) * 0.40);
+  sp.scale.set(w, w * (128 / 1024) * 2.6, 1);
+  return { sprite: sp, material: mat, texture: tex };
+}
+
+// ── A LINE OF THE OPENED FEED ──
+// makeWordSprite's sibling: one LINE per canvas rather than one word, left
+// of centre, no glow halo (a halo reads as emphasis, and a feed is not
+// emphatic). Kept here rather than shared, because the graphmap's words are
+// labels on a field and these are sentences in the air.
+function makeCloudLine(text, opts) {
+  opts = opts || {};
+  const fs = opts.size || 30;
+  const cvs = document.createElement('canvas');
+  cvs.width = 1024; cvs.height = 96;
+  const ctx = cvs.getContext('2d');
+  ctx.font = (opts.italic ? 'italic ' : '') + fs + 'px Georgia';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0,0,0,0.85)'; ctx.shadowBlur = 8;
+  ctx.fillStyle = opts.color || 'rgba(242,238,230,0.95)';
+  ctx.fillText(text, 512, 48);
+  const tex = new THREE.CanvasTexture(cvs);
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false });
+  const sp = new THREE.Sprite(mat);
+  const w = Math.min(3.4, Math.max(0.8, text.length * 0.075));
+  sp.scale.set(w, w * (96 / 1024) * 2.2, 1);
+  sp.renderOrder = 120;
+  return sp;
+}
+
+// Wrap a remark into lines short enough to read in the air.
+function cloudWrap(text, per) {
+  per = per || 34;
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const out = []; let line = '';
+  words.forEach(function (w) {
+    if ((line + ' ' + w).trim().length > per) { if (line) out.push(line); line = w; }
+    else line = (line ? line + ' ' : '') + w;
+  });
+  if (line) out.push(line);
+  return out.slice(0, 10);
+}
+
+// ── A PLACE'S CLOUD ──
+// One per place that has been spoken in, standing over its notebook: the
+// book is where word is left, the cloud is what has been left there, and the
+// two are one object because they are one idea. Replaces the per-statement
+// cloud — five remarks in a plaza made five rings that interleaved into
+// confetti, and the fix was not smaller rings, it was fewer of them.
+function buildPlaceCloud(placeKey, label) {
+  const g = new THREE.Group();
+  const ring = new THREE.Group();
+  const feed = new THREE.Group();
+  feed.visible = false;
+  g.add(ring); g.add(feed);
+  g.userData.isStele = true;        // inherits the field's click plumbing
+  g.userData.isCloud = true;
+  g.userData.placeKey = placeKey;
+  g.userData.label = label;
+  g.userData.ring = ring;
+  g.userData.feed = feed;
+  return g;
+}
+
+function cloudFillRing(g, kws) {
+  const ring = g.userData.ring;
+  while (ring.children.length) {
+    const c = ring.children.pop();
+    if (c.material) { if (c.material.map) c.material.map.dispose(); c.material.dispose(); }
+    ring.remove(c);
+  }
+  const n = Math.max(1, kws.length);
+  kws.forEach(function (kw, i) {
+    const fs = Math.round(26 + kw.weight * 20);
+    const s = makeCloudWord(kw.text, 'rgba(255,255,255,0.98)', fs);
+    const a = (i / n) * Math.PI * 2 + i * 0.31;
+    const R = CLOUD_TUNE.ring + (1 - kw.weight) * 0.20;
+    s.sprite.position.set(Math.cos(a) * R, CLOUD_TUNE.lift + Math.sin(a) * R * 0.70, Math.sin(a) * 0.16);
+    s.sprite.renderOrder = 110;
+    s.sprite.userData = { baseX: s.sprite.scale.x, baseY: s.sprite.scale.y,
+                          phase: i * 1.1, weight: kw.weight, hue: cloudHue(kw.author) };
+    ring.add(s.sprite);
+  });
+}
+
+// ── THE ASTERISK A CLOUD OPENS OUT OF (2026-08-16, Sailor) ──
+// "Maybe there could be a sort of orb/asterisk within that they generate
+// in/out of?" — and the villa already owns this object: the Diatribe
+// asterisk on the pedestal, four coloured rays on the quadrant diagonals
+// around a glowing core. This is that asterisk at a place's own book. The
+// ledger does not appear, it is EMITTED — every line travels out of the
+// core to its turn of the spiral, and returns into it when you let go.
+function buildCloudAsterisk() {
+  const g = new THREE.Group();
+  const L = 0.30;
+  [Math.PI * 0.75, Math.PI * 0.25, -Math.PI * 0.75, -Math.PI * 0.25].forEach(function (a, i) {
+    const geo = new THREE.CylinderGeometry(0.014, 0.004, L, 4);
+    geo.translate(0, L / 2, 0);
+    geo.rotateZ(-a + Math.PI / 2);
+    const col = [C.authLeft, C.authRight, C.libLeft, C.libRight][i];
+    g.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: col, emissive: col, emissiveIntensity: 0.7, roughness: 0.2, metalness: 0.15,
+      transparent: true, opacity: 0.95 })));
+  });
+  [0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach(function (a) {
+    const geo = new THREE.CylinderGeometry(0.009, 0.003, L * 0.7, 4);
+    geo.translate(0, L * 0.35, 0);
+    geo.rotateZ(-a + Math.PI / 2);
+    g.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: C.cream, emissive: C.cream, emissiveIntensity: 0.35,
+      roughness: 0.2, transparent: true, opacity: 0.6 })));
+  });
+  const core = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8),
+    new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xf5f0e8,
+      emissiveIntensity: 0.9, roughness: 0.1, transparent: true, opacity: 0.95 }));
+  g.add(core);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ color: 0xf5f0e8,
+    transparent: true, opacity: 0.16, blending: THREE.AdditiveBlending, depthWrite: false }));
+  halo.scale.set(0.8, 0.8, 1);
+  g.add(halo);
+  g.userData.core = core; g.userData.halo = halo;
+  return g;
+}
+
+// ── THE SCROLL (2026-08-16, Sailor) ──
+// "What if instead of a column, we had a sort of scroll that spiraled back
+// and inward?" A column can only grow taller, and six remarks in a plaza
+// already ran it off the top of the screen. A spiral does not grow, it
+// TIGHTENS: each line turns a little further round, draws a little nearer
+// the axis, and stands a little further back, so time recedes instead of
+// piling up. The newest thing said here is nearest and widest; the oldest
+// has curled away almost into the asterisk it came out of.
+//
+// Built in the feed group's local space, and the group turns to face the
+// reader every frame — so "back" is always away from you, wherever you
+// stand. Sprites billboard, so a line stays legible at any turn.
+function cloudSpiralAt(i, n) {
+  const t = n > 1 ? i / (n - 1) : 0;
+  const a = i * 0.62;                       // the turn
+  const r = 1.30 * (1 - t * 0.80) + 0.14;   // inward
+  // THE AXIS IS THE VIEW, not the vertical. The first version turned about
+  // the up-axis and put the turn's cosine into z, so depth oscillated with
+  // the spiral and a line could stand FORWARD of the one before it — the
+  // suite caught it, and it would have read as a tangle rather than a
+  // scroll. The turn now happens in the plane facing the reader and the
+  // recession is pure: every line is strictly further back than the last.
+  return new THREE.Vector3(
+    Math.sin(a) * r,
+    CLOUD_TUNE.lift + 0.55 + Math.cos(a) * r * 0.62 - t * 0.18,
+    -t * 2.35
+  );
+}
+
+// The opened state: everything said here, oldest first — the place's LEDGER,
+// standing in the place instead of inside the Compass.
+function cloudBuildFeed(g, said) {
+  const feed = g.userData.feed;
+  while (feed.children.length) {
+    const c = feed.children.pop();
+    if (c.material) { if (c.material.map) c.material.map.dispose(); c.material.dispose(); }
+    feed.remove(c);
+  }
+  const who = function (e) {
+    const pr = (typeof PROFILES !== 'undefined' && PROFILES[e.author]) || { name: e.author, emoji: '' };
+    return ((pr.emoji || '') + ' ' + (pr.name || e.author)).trim();
+  };
+  const rows = [{ t: g.userData.label, size: 26, color: 'rgba(226,216,196,0.9)', italic: true }];
+  said.slice().sort(function (a, b) { return a.t < b.t ? -1 : 1; }).forEach(function (e) {
+    rows.push({ t: '', size: 10 });
+    rows.push({ t: who(e) + '  ·  ' + (typeof timeAgo === 'function' ? timeAgo(e.t) : ''),
+                size: 22, color: 'rgba(226,216,196,0.82)', italic: true, hue: cloudHue(e.author) });
+    cloudWrap(steleFaceText(e)).forEach(function (l) {
+      rows.push({ t: l, size: 30, color: 'rgba(244,240,232,0.97)' });
+    });
+  });
+  // NEWEST NEAREST. The rows were gathered oldest-first, which is the
+  // ledger's order; the spiral is read the other way, so the most recent
+  // remark stands at the mouth and the villa's older talk curls away behind
+  // it. Reverse here rather than in the gathering — the ledger's own order
+  // is not the scroll's, and each should keep its own.
+  const live = rows.filter(function (r) { return r.t; }).reverse();
+  const n = live.length;
+  live.forEach(function (r, i) {
+    const sp = makeCloudLine(r.t, { size: r.size, color: r.color, italic: r.italic });
+    if (r.hue != null) sp.material.color.setHSL(r.hue, 0.42, 0.78);
+    const to = cloudSpiralAt(i, n);
+    sp.position.copy(to);
+    // further round the spiral is further away, so it reads smaller — the
+    // sprite is scaled to match rather than left to perspective alone,
+    // because a sprite one unit wide at the mouth and one unit wide four
+    // units back is a poster, not a scroll.
+    const k = 1 - (n > 1 ? i / (n - 1) : 0) * 0.42;
+    sp.scale.multiplyScalar(k);
+    sp.userData = { to: to, base: sp.scale.clone(), from: i * 0.055 };
+    feed.add(sp);
+  });
+  if (!g.userData.star) {
+    const star = buildCloudAsterisk();
+    g.userData.star = star;
+    feed.add(star);
+  } else if (feed.children.indexOf(g.userData.star) === -1) {
+    feed.add(g.userData.star);
+  }
+  g.userData.star.position.copy(cloudSpiralAt(n, Math.max(n, 1)));
+}
+
+function cloudOpen(g) {
+  if (cloudState.open && cloudState.open !== g) cloudClose(cloudState.open);
+  cloudBuildFeed(g, cloudSaidAt(g.userData.placeKey));
+  g.userData.ring.visible = false;
+  g.userData.feed.visible = true;
+  g.userData.closingAt = null;
+  g.userData.openedAt = (typeof clock !== 'undefined') ? clock.getElapsedTime() : 0;
+  cloudState.open = g;
+}
+// Closing is not a hide: the lines run back down the spiral and into the
+// asterisk, and only then does the ring come back. A feed that vanishes was
+// never emitted by anything.
+function cloudClose(g) {
+  g = g || cloudState.open;
+  if (!g) return;
+  g.userData.closingAt = (typeof clock !== 'undefined') ? clock.getElapsedTime() : 0;
+  if (cloudState.open === g) cloudState.open = null;
+}
+function cloudFinishClose(g) {
+  g.userData.closingAt = null;
+  g.userData.ring.visible = true;
+  g.userData.feed.visible = false;
+}
+function cloudToggle(g) {
+  if (cloudState.open === g) cloudClose(g); else cloudOpen(g);
+}
+
+// Per frame: the ring turns, breathes, and shimmers around each voice's hue.
+function statementCloudTick(t) {
+  // the books' meridians turn whether or not anyone is reading them
+  const spinBook = function (ped) {
+    if (!ped || !ped.userData.meridian) return;
+    ped.userData.hoopA.rotation.z = t * 0.09;
+    ped.userData.hoopB.rotation.z = -t * 0.14;
+    ped.userData.meridian.rotation.y = Math.sin(t * 0.07) * 0.35;
+  };
+  if (typeof NOTEBOOKS !== 'undefined') for (const k in NOTEBOOKS) spinBook(NOTEBOOKS[k]);
+  if (cloudState.pedestals) cloudState.pedestals.forEach(spinBook);
+
+  if (!cloudState.byPlace || !cloudState.byPlace.size) return;
+  cloudState.byPlace.forEach(function (g) {
+    const ring = g.userData.ring;
+    if (ring && ring.visible) {
+      ring.rotation.y = Math.sin(t * 0.14 + (g.userData.placeKey || '').length) * 0.20;
+      ring.children.forEach(function (s) {
+        const u = s.userData || {};
+        if (!u.baseX) return;
+        const b = 1 + Math.sin(t * 0.85 + (u.phase || 0)) * 0.055 * (0.4 + (u.weight || 0.5));
+        s.scale.set(u.baseX * b, u.baseY * b, 1);
+        // the iridescence: the voice's own hue, drifting a little either side
+        // SATURATED, AND NOT PALE. The first values — S 0.55, L 0.72–0.88 —
+        // are pastels, and a pastel over open water is white. Sailor
+        // photographed his own villa and there was no colour in it at all.
+        // Colour has to survive the background it is standing against.
+        const h = ((u.hue || 0) + Math.sin(t * 0.22 + (u.phase || 0)) * 0.03 + 1) % 1;
+        s.material.color.setHSL(h, 0.92, 0.58 + (u.weight || 0.5) * 0.10);
+      });
+    }
+    const feed = g.userData.feed;
+    if (feed && feed.visible) {
+      // THE SCROLL TURNS TO THE READER. Built in local space around the
+      // vertical axis, then faced at the camera every frame — so "back" is
+      // away from wherever you happen to be standing, and the spiral reads
+      // as a spiral from every side instead of only from the one it was
+      // authored on.
+      feed.rotation.y = Math.atan2(camera.position.x - g.position.x,
+                                   camera.position.z - g.position.z);
+      const closing = g.userData.closingAt != null;
+      const age = t - (closing ? g.userData.closingAt : (g.userData.openedAt || t));
+      const star = g.userData.star;
+      const from = star ? star.position : null;
+      let live = 0;
+      feed.children.forEach(function (s) {
+        if (s === star) return;
+        const u = s.userData || {};
+        if (!u.to) return;
+        let k = Math.max(0, Math.min(1, (age - (u.from || 0)) * 2.6));
+        if (closing) k = 1 - Math.max(0, Math.min(1, (age - (u.from || 0) * 0.4) * 3.4));
+        if (k > 0.001) live++;
+        const e = k * k * (3 - 2 * k);                       // ease, so it arrives rather than stops
+        if (from) s.position.lerpVectors(from, u.to, e);
+        s.material.opacity = Math.min(1, e * 1.15);
+        if (u.base) s.scale.set(u.base.x * (0.35 + e * 0.65), u.base.y * (0.35 + e * 0.65), 1);
+      });
+      if (star) {
+        const b = 1 + Math.sin(t * 1.6) * 0.10;
+        star.scale.set(b, b, b);
+        star.rotation.y += 0.004;
+        star.rotation.z = Math.sin(t * 0.5) * 0.12;
+      }
+      if (closing && live === 0) cloudFinishClose(g);
+    }
+  });
+}
+
+// Escape closes it, the same key that leaves everything.
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && cloudState.open) cloudClose(cloudState.open);
+});
+
+// ── A FIXTURE FOR THE PLAZA — `plazaDemo()` in the console ──
+// The villa is quiet, so there is nothing for the clouds to be made of and
+// nothing to judge them by. This stands a conversation up in the plaza for
+// as long as the tab is open.
+//
+// IT POSTS NOTHING. Every id is prefixed `demo-`, the entries go straight
+// into `feedState.entries` in memory, and the gate never hears a word of
+// it — reload and the plaza is quiet again. `plazaDemo(false)` clears them.
+// The console entry point is the villa's own convention (`gather(['trout'],
+// 'galleria')` has been one since 08-05).
+//
+// The remarks are written to give TF-IDF something to find: each carries a
+// word or two that appears nowhere else in the set, so the clouds should
+// come out saying different things rather than all saying "villa".
+function plazaDemo(on) {
+  const keep = (feedState.entries || []).filter(function (e) { return !/^demo-/.test(e.id); });
+  if (on === false) {
+    feedState.entries = keep;
+    renderStatementField();
+    return 'the plaza is quiet again';
+  }
+  const said = [
+    ['otter',   'The kelp bed is thicker this summer and nobody has thought to mention it'],
+    ['edburg',  'I have read the shelf by the window twice and the second reading was the better one'],
+    ['y2k',     'Somebody has moved my tennis ball and I would like it returned'],
+    ['richard', 'A shape is an argument you can walk around, which is why I sculpt instead of writing'],
+    ['emilia',  'The warmest stone in the whole villa is the third step, and it is mine'],
+  ];
+  const now = Date.now();
+  const rows = said.map(function (r, i) {
+    const a = (i / said.length) * Math.PI * 2;
+    return {
+      id: 'demo-' + i, author: r[0], kind: 'statement', text: r[1],
+      t: new Date(now - (said.length - i) * 3600000).toISOString(),
+      pos: [10 + Math.cos(a) * 5.2, 0, 6 + Math.sin(a) * 4.4], place: 'the plaza',
+    };
+  });
+  // one answer, so a thread can be seen standing taller than a remark
+  rows.push({ id: 'demo-r', author: 'kyle', kind: 'statement', replyTo: 'demo-0',
+    text: 'It is thicker. I swim through it every morning and it drags now.',
+    t: new Date(now - 600000).toISOString(), pos: [10, 0, 6], place: 'the plaza' });
+  feedState.entries = keep.concat(rows);
+  feedState.loaded = true;
+  renderStatementField();
+  // the camera goes, but goToPlace also toggles the menu and this is a
+  // fixture, not a navigation
+  try { cameraGlide([10, 1.8, 6], [3.5, 7, 12], 2.2); } catch (e) {}
+  return said.length + ' remarks and one answer, standing in the plaza — click a cloud. ' +
+         'plazaDemo(false) clears them; nothing was posted.';
+}
+
 function buildStatementStele(entry) {
   const g = new THREE.Group();
   const stone = new THREE.MeshStandardMaterial({ color: STELE_STONE, roughness: 0.52, metalness: 0.06 });
@@ -14360,15 +14994,30 @@ function renderStatementField() {
   // Oldest first, so the spiral order is the order things were said
   const ordered = visible.slice().sort((a, b) => (a.t < b.t ? -1 : 1));
 
-  ordered.forEach(entry => {
+  // A REPLY DOES NOT GET ITS OWN CLOUD (2026-08-16). It stands inside the
+  // thread of the thing it answers, which is what `cloudBuildFeed` already
+  // gathers — and the first photograph showed why it matters: the reply's
+  // resting ring hung in the same air as its parent's opened column, so the
+  // same six words were on screen twice, once as subject and once as noise.
+  // A stele had no such problem because a stele carries its whole remark and
+  // simply turned to face its parent; a cloud IS the thread, so the thread
+  // is where a reply lives. (Stones are untouched: Trout's carve supersedes
+  // by the 08-08 rule, which runs above.)
+  const answered = new Set(visible.map(e => e.id));
+  // With clouds on, the STONE field is Trout's alone — everything else has
+  // gone into the air over its place's book (below).
+  const standing = CLOUD_STATEMENTS ? ordered.filter(isTroutStone) : ordered;
+
+  // THE STONES. With clouds on this is Trout's alone; with them off it is
+  // every statement, exactly as it was before 08-16.
+  standing.forEach(entry => {
     seen.add(entry.id);
-    const p = entry.pos;
-    const spotKey = Math.round((+p[0] || 0) / 1.2) + ':' + Math.round((+p[2] || 0) / 1.2);
+    const pp = entry.pos;
+    const spotKey = Math.round((+pp[0] || 0) / 1.2) + ':' + Math.round((+pp[2] || 0) / 1.2);
     const ordinal = spots.get(spotKey) || 0;
     spots.set(spotKey, ordinal + 1);
     const at = stelePlacement(entry, ordinal);
     placed.set(entry.id, at);
-
     let g = steleState.byId.get(entry.id);
     if (!g) {
       g = buildStatementStele(entry);
@@ -14376,16 +15025,58 @@ function renderStatementField() {
       steleState.byId.set(entry.id, g);
     }
     g.position.set(at.x, at.y, at.z);
-
-    // Facing: a reply turns to the stele it answers, everything else
-    // addresses the gallery.
-    const target = (entry.replyTo && placed.get(entry.replyTo)) || { x: 0, z: 0 };
-    const dx = target.x - at.x, dz = target.z - at.z;
-    g.rotation.y = (dx * dx + dz * dz) > 1e-4 ? Math.atan2(dx, dz) : 0;
+    g.rotation.y = Math.atan2(-g.position.x, -g.position.z);
   });
 
-  // Statements can only be added, never edited (§5) — but an optimistic post
-  // that failed to commit gets reverted, so drop anything no longer in state.
+  // ── ONE CLOUD PER PLACE, OVER ITS BOOK (2026-08-16, Sailor) ──
+  // "What if they floated in a single cloud for each space? Maybe we could
+  // add a small pedestal and notebook?" — which turned out to be the answer
+  // to the plaza photograph as well as a better idea on its own. A place
+  // that has been spoken in grows a book, and what has been said there
+  // hangs over it. The book is how word is LEFT (the real `dg:note:<place>`
+  // notebook, the library's and the exedra's own machinery, generalised);
+  // the cloud is what has been left. Stones are unaffected: Trout's stele
+  // stands where it always did, alone.
+  if (CLOUD_STATEMENTS) {
+    // ONE GATHERING, and it is cloudSaidAt's — the book's pages and the
+    // place's remarks together, so the pedestal and the cloud over it can
+    // never drift apart again.
+    const byPlace = {};
+    PLACE_REGISTRY.forEach(function (row) {
+      const said = cloudSaidAt(row.key);
+      if (said.length) byPlace[row.key] = said;
+    });
+    // retire the clouds of places that have gone quiet
+    cloudState.byPlace.forEach(function (g, key) {
+      if (byPlace[key]) return;
+      steleField.remove(g);
+      cloudState.byPlace.delete(key);
+      if (cloudState.open === g) cloudState.open = null;
+    });
+    Object.keys(byPlace).forEach(function (key) {
+      const row = PLACE_REGISTRY.find(function (r) { return r.key === key; });
+      const pt = placePoint(key);
+      if (!pt) return;
+      let g = cloudState.byPlace.get(key);
+      if (!g) {
+        g = buildPlaceCloud(key, row.label);
+        steleField.add(g);
+        cloudState.byPlace.set(key, g);
+      }
+      g.position.set(pt.x, pt.y, pt.z);
+      cloudFillRing(g, cloudPlaceKeywords(key, byPlace));
+
+      // its book — unless the place already has one of the original two
+      if (!NOTEBOOKS[key] && !cloudState.pedestals.has(key)) {
+        const yaw = Math.atan2((row.look[0] + row.off[0]) - pt.x,
+                               (row.look[2] + row.off[2]) - pt.z);
+        const ped = buildNotebookPedestal(0, key, { x: pt.x, y: pt.y, z: pt.z, yaw: yaw });
+        scene.add(ped);
+        cloudState.pedestals.set(key, ped);
+      }
+    });
+  }
+
   steleState.byId.forEach((g, id) => {
     if (seen.has(id)) return;
     steleField.remove(g);
@@ -17330,7 +18021,15 @@ setTimeout(function () { if (alrikBeaverState.mode === 'off') toggleAlrikBeaver(
 // patrol's own gait, released at the nearest waypoint like every other exit.
 const tedTravel = { target: new THREE.Vector3() };
 function tedTravelTo(pt) {
-  if (tedPhoto.active || tedDocent.active || TED_REAR.active) return;
+  if (tedPhoto.active || tedDocent.active) return;
+  // COMMITTED is `active AND not releasing`. `TED_REAR.active` alone stays
+  // true for the whole ease-out after a talk or a walk, so this used to
+  // swallow every travel order for the second or so it takes him to come
+  // down off his hind legs — the docent pressed `go there` right after an
+  // address and the villa did nothing, silently. He is coming down anyway;
+  // an order that lands mid-descent is honoured (and the release, below,
+  // no longer clobbers it on the way out).
+  if (TED_REAR.active && !TED_REAR.releasing) return;
   if (typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subject === tedTurner) return;
   tedTravel.target.copy(pt);
   tedPatrol.state = 'travel';
@@ -17347,17 +18046,46 @@ function tedTravelTo(pt) {
 // stronger claim than a click), and never anybody else's body.
 function bodyFollowsTheEye(key) {
   try {
-    if (typeof visitorNav !== 'undefined' && visitorNav.active) return;
+    const pt = placePoint(key);
+    if (!pt) return;
     const mine = (typeof profileMine === 'function') ? profileMine() : null;
+
+    // ── THE WHEEL NO LONGER MEANS "STAY PUT" (RULED 2026-08-16, Sailor) ──
+    // "When a user goes from place to place, their avatar should follow."
+    //
+    // This used to return here: a body being DRIVEN was never sent anywhere,
+    // so that the camera could not yank a figure out from under the hand
+    // steering it. Right about drift — wrong about an instruction. Pressing
+    // `go there` is not the eye wandering, it is the person saying go there,
+    // and refusing it left them standing in the last room watching the villa
+    // leave without them.
+    //
+    // It matters far more than it looks: the walk hands the wheel back STILL
+    // HELD, so from the end of the tour onward this branch was every guest,
+    // every time. They take the walk, learn that the Compass takes you
+    // anywhere, press it, and their body stays on the sand.
+    //
+    // So the wheel now WALKS you there — `visitorWalkTo`, the same call a
+    // click on the ground makes, so it is your own gait over your own ground
+    // and you can override it mid-stride by steering. Not a teleport: the
+    // villa's rule that a body arrives is untouched.
+    if (typeof visitorNav !== 'undefined' && visitorNav.active) {
+      if (mine === 'ted' && typeof TED_REAR !== 'undefined' &&
+          TED_REAR.active && !TED_REAR.releasing) return;
+      if (typeof visitorWalkTo === 'function') visitorWalkTo(pt);
+      return;
+    }
     if (!mine) return;
     // Ted's body is not free to follow the eye while he is ON THE FLOOR —
     // rearing for a talk, or walking the tour. tedTravelTo would fight
     // updateTedAddress for the same position and he would slide between two
     // destinations. (It never arose before the tour, because an address
     // never calls goToPlace; the tour does, at every stop.)
-    if (mine === 'ted' && typeof TED_REAR !== 'undefined' && TED_REAR.active) return;
-    const pt = placePoint(key);
-    if (!pt) return;
+    // `&& !releasing` matters: the rear stays "active" for the whole ease-out
+    // after a walk or a talk ends, and during that second the docent's body
+    // was refusing to follow his own eye — he had handed back, and the villa
+    // had not noticed. Committed is `active AND not releasing`.
+    if (mine === 'ted' && typeof TED_REAR !== 'undefined' && TED_REAR.active && !TED_REAR.releasing) return;
     if (mine === 'ted') { tedTravelTo(pt); return; }
     if (!RESIDENTS[mine]) return;
     if (RESIDENTS[mine].state().mode === 'off') { try { RESIDENTS[mine].toggle(); } catch (e) {} }
@@ -19016,7 +19744,7 @@ function drawSunset(seed, forcePal) {
 // One in each wing, mid-room, book open toward the colonnade a visitor
 // enters through. Same stone as the house, cream pages, dark boards.
 const NOTEBOOKS = {};
-function buildNotebookPedestal(side, room) {
+function buildNotebookPedestal(side, room, at) {
   const g = new THREE.Group();
   g.name = 'notebook-' + room;
   const stoneM = new THREE.MeshStandardMaterial({ color: 0xcfc8bb, roughness: 0.7, metalness: 0.02 });
@@ -19037,8 +19765,50 @@ function buildNotebookPedestal(side, room) {
   });
   const spine = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.045, 0.42), board);
   spine.position.y = 1.05; g.add(spine);
-  g.position.set(side * WING_CX, BUILDING_Y, 3.2);
-  g.rotation.y = side * Math.PI / 2;            // the book opens toward the colonnade
+
+  // ── THE BOOK'S OWN INSTRUMENT (2026-08-16, Sailor: "what if the pedestal
+  // had a funky conceptual thing going on like the graphmap pedestal, but
+  // smaller and different") ──
+  //
+  // The graphmap's plinth carries APERTURE RINGS — two horizontal circles
+  // that open and close on the diatribe, an iris over the field. A book is
+  // not a field, so it does not get an iris. It gets a MERIDIAN: two rings
+  // standing on edge, crossed at right angles, turning against each other
+  // around the open page — an armillary, which is the instrument for
+  // holding one position while everything turns around it, and is what a
+  // ledger does. Same family as the graphmap's rings, opposite axis, a
+  // third the size.
+  const brass = new THREE.MeshStandardMaterial({
+    color: 0xb9a463, roughness: 0.34, metalness: 0.65,
+    emissive: 0x6a5a24, emissiveIntensity: 0.30, transparent: true, opacity: 0.9 });
+  const meridian = new THREE.Group();
+  const hoopA = new THREE.Mesh(new THREE.TorusGeometry(0.30, 0.0075, 6, 40), brass);
+  hoopA.rotation.y = Math.PI / 2;
+  const hoopB = new THREE.Mesh(new THREE.TorusGeometry(0.235, 0.0065, 6, 36), brass.clone());
+  hoopB.rotation.x = Math.PI / 2.6;
+  meridian.add(hoopA); meridian.add(hoopB);
+  // and one mote riding the inner hoop, so the turning has something to be
+  // measured against — the villa's own trick, a reading needs a mark
+  const mote = new THREE.Mesh(new THREE.SphereGeometry(0.017, 8, 6),
+    new THREE.MeshStandardMaterial({ color: 0xf3ead2, emissive: 0xe8dcb8,
+      emissiveIntensity: 0.85, roughness: 0.2 }));
+  mote.position.set(0.235, 0, 0);
+  hoopB.add(mote);
+  meridian.position.y = 1.30;
+  g.add(meridian);
+  g.userData.meridian = meridian;
+  g.userData.hoopA = hoopA;
+  g.userData.hoopB = hoopB;
+  if (at) {
+    // A BOOK OUT IN THE VILLA (2026-08-16). The wings' two were placed by
+    // their side; a place's book is placed by its point, and turns to face
+    // the way you arrive — which is the camera the registry composes.
+    g.position.set(at.x, at.y, at.z);
+    g.rotation.y = (at.yaw != null) ? at.yaw : 0;
+  } else {
+    g.position.set(side * WING_CX, BUILDING_Y, 3.2);
+    g.rotation.y = side * Math.PI / 2;          // the book opens toward the colonnade
+  }
   g.traverse(function (c) { if (c.isMesh) { c.castShadow = true; } });
   g.userData.notebook = room;
   NOTEBOOKS[room] = g;
@@ -20983,7 +21753,17 @@ container.addEventListener('pointerup', e => {
     if (typeof steleField !== 'undefined' && steleField.children.length) {
       const sHits = raycaster.intersectObject(steleField, true);
       if (sHits.length > 0) {
+        let o = sHits[0].object;
+        while (o && !o.userData.isStele) o = o.parent;
         const entry = steleEntryFor(sHits[0].object);
+        if (o && o.userData.isCloud) {
+          // A CLOUD TURNS INTO THE FEED (2026-08-16, Sailor). It does not
+          // open a panel and it does not chase the author — the words that
+          // were hanging in the air reorder themselves into what was said,
+          // in the place it was said. Click it again, or Escape, to scatter.
+          cloudToggle(o);
+          return;
+        }
         if (entry) {
           showNavLabel('“' + entry.text.slice(0, 60) + (entry.text.length > 60 ? '…' : '') +
                        '” — ' + (entry.place || '') + ', ' + timeAgo(entry.t));
@@ -24209,6 +24989,7 @@ function animate() {
   // once a frame — after the movers, because one of them rides Trout's
   // stele and another rides the dome.
   if (typeof tourToastTick === 'function') tourToastTick();
+  if (typeof statementCloudTick === 'function') statementCloudTick(t);
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)

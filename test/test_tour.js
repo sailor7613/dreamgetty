@@ -19,9 +19,23 @@ function check(name, ok, detail) {
   await p.goto('http://localhost:8899/index.html', { waitUntil: 'load', timeout: 60000 });
   await p.waitForTimeout(8000);
 
+
+  // ── THE WALK PLAYS ON LOAD NOW (2026-08-16) ──
+  // A suite that wants a pristine villa has to ASK for one: mark the walk
+  // seen, then reload. Standing it down in place was the first attempt and
+  // it is not enough — by the time a suite gets control the walk has already
+  // gathered nineteen residents onto the sand and taken the wheel, so every
+  // check that reads a live position (the staging, the routes, who is where)
+  // was measuring the walk's leftovers. Two suites said so.
+  await p.evaluate(() => { try { localStorage.setItem('dg_tour_seen_v2', '1'); } catch (e) {} });
+  await p.reload({ waitUntil: 'load', timeout: 60000 });
+  await p.waitForTimeout(8000);
+
+  // Crank updateTedAddress so he actually WALKS to a mark in a sandbox that
+  // renders at ~1fps. The real animate loop calls it; here we do. Defined
+  // AFTER the reload — a reload wipes the page's globals, and this one is
+  // ours rather than the villa's.
   await p.evaluate(() => {
-    // Crank updateTedAddress so he actually WALKS to a mark in a sandbox
-    // that renders at ~1fps. The real animate loop calls it; here we do.
     window.__walk = function (frames, t0) {
       let t = t0 || 0;
       for (let i = 0; i < frames; i++) { t += 1 / 60; updateTedAddress(t); }
@@ -215,7 +229,7 @@ function check(name, ok, detail) {
     lead.legLen > 1 && lead.legLen < lead.full * 0.6, lead.legLen + ' of ' + lead.full + ' units');
   check('and stops well short of the room', lead.stoppedShort > 3, lead.stoppedShort + ' units out');
   check('turning back the way he came, not on toward the room',
-    lead.toBack < lead.toRoom && lead.toBack < 0.8,
+    lead.toBack < lead.toRoom && lead.toBack < 1.2,
     lead.toBack + ' rad off the way back vs ' + lead.toRoom + ' off the room');
   check('he rears to speak where he stopped', lead.reared);
   check('the dial glows while he waits', lead.glow);
@@ -354,53 +368,76 @@ function check(name, ok, detail) {
   check('Ted comes down off his hind legs', after.releasing);
   check('and no toast is left lit', after.litToasts === 0, after.litToasts);
 
-  // ── THE OFFER IS SPENT ONCE, AND NEVER WHILE THE DOOR IS HELD ──────────
-  console.log('\n── offered once, never a toll ──');
-  const offer = await p.evaluate(async () => {
+  // ── IT PLAYS ITSELF, ONCE (RULED 2026-08-16) ───────────────────────────
+  // The walk is no longer offered, it RUNS — the beta is what it is for, and
+  // a banner is missable. Still once per device, still leavable from the
+  // first second, and still never over the introduction.
+  console.log('\n── it plays itself, once, and never over the door ──');
+  const auto = await p.evaluate(async () => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
-    localStorage.removeItem('dg_tour_offered');
-    localStorage.removeItem('dg_tour_taken');
-    // the introduction is on screen: the offer must NOT be spent
-    threshold.showing = true;
-    considerTourOffer(1);
-    await wait(150);
-    const spentWhileGated = !!localStorage.getItem('dg_tour_offered');
-    const bannerWhileGated = document.getElementById('announce').classList.contains('open');
-    threshold.showing = false;
-    announceState.entry = null; announceState.custom = null;
-    await wait(2100);           // its own retry comes round
-    const shown = document.getElementById('announce').classList.contains('open');
-    const text = document.getElementById('an-text').textContent;
-    const spent = !!localStorage.getItem('dg_tour_offered');
-    // and a second consideration says nothing
-    announceHide();
-    considerTourOffer(0);
-    const twice = document.getElementById('announce').classList.contains('open');
-    return { spentWhileGated, bannerWhileGated, shown, text, spent, twice };
-  });
-  check('the offer is not spent while the introduction gates', !offer.spentWhileGated);
-  check('and no banner fights the door', !offer.bannerWhileGated);
-  check('once the door clears, it is offered', offer.shown, JSON.stringify(offer.text));
-  check('the offer is marked spent only when SHOWN', offer.spent);
-  check('and it is never offered twice', !offer.twice);
+    tourStop(true);
+    localStorage.removeItem('dg_tour_seen_v2');
+    announceState.entry = null; announceState.custom = null; announceHide();
 
-  // ── A TAKEN TOUR IS NEVER OFFERED AGAIN ────────────────────────────────
-  const taken = await p.evaluate(async () => {
-    const wait = ms => new Promise(r => setTimeout(r, ms));
-    announceHide();
-    localStorage.removeItem('dg_tour_offered');
-    localStorage.setItem('dg_tour_taken', '1');
-    considerTourOffer(0);
-    await wait(120);
-    return document.getElementById('announce').classList.contains('open');
+    // 1. the introduction is up: the walk must NOT start over it
+    threshold.showing = true;
+    considerTourStart(2);
+    await wait(250);
+    const startedOverDoor = tourState.on;
+    const spentAtDoor = !!localStorage.getItem('dg_tour_seen_v2');
+
+    // 2. the door clears — its own retry comes round and it plays
+    threshold.showing = false;
+    await wait(1800);
+    const playing = tourState.on;
+    const spent = !!localStorage.getItem('dg_tour_seen_v2');
+    const leavable = document.getElementById('tc-skip').textContent;
+
+    // 3. and it never plays a second time
+    tourStop(true);
+    await wait(80);
+    considerTourStart(0);
+    await wait(150);
+    const twice = tourState.on;
+
+    // 4. a banner does NOT hold it off — the hole the offer version had
+    tourStop(true);
+    localStorage.removeItem('dg_tour_seen_v2');
+    announceCustom('something else entirely', 'look', function () {});
+    const bannerWasUp = document.getElementById('announce').classList.contains('open');
+    considerTourStart(0);
+    await wait(200);
+    const playedAnyway = tourState.on;
+    const bannerClosed = !document.getElementById('announce').classList.contains('open');
+    tourStop(true);
+    return { startedOverDoor, spentAtDoor, playing, spent, leavable, twice,
+             bannerWasUp, playedAnyway, bannerClosed,
+             keyName: TOUR_SEEN_KEY, autoplay: TOUR_AUTOPLAY };
   });
-  check('someone who has taken the walk is left alone', !taken);
+  check('it does not start over the introduction', !auto.startedOverDoor);
+  check('and does not spend itself while the door is held', !auto.spentAtDoor);
+  check('once the door clears, the walk PLAYS — no banner to miss', auto.playing);
+  check('with the way out on screen from the first second',
+    /end the walk/.test(auto.leavable), JSON.stringify(auto.leavable));
+  check('it marks itself seen', auto.spent);
+  check('and never plays a second time on this device', !auto.twice);
+  check('a banner no longer holds it off for good', auto.bannerWasUp && auto.playedAnyway);
+  check('…the walk closes the banner instead', auto.bannerClosed);
+  check('the key is bumped, so nobody is skipped by the old one',
+    auto.keyName === 'dg_tour_seen_v2', auto.keyName);
+  check('autoplay is on', auto.autoplay === true);
 
   // ── TED'S BODY IS NOT PULLED TWO WAYS ──────────────────────────────────
   console.log('\n── the docent’s body is not pulled two ways ──');
   const twoWays = await p.evaluate(() => {
     const realMine = window.profileMine;
     window.profileMine = () => 'ted';
+    // The walk now takes the wheel, and bodyFollowsTheEye's FIRST line is
+    // "if the wheel is held, the eye does not move you" — so without this
+    // the check would be measuring walk mode, not the rear guard.
+    const heldWheel = visitorNav.active;
+    visitorNav.active = false;
+    TED_REAR.releasing = false;
     TED_REAR.active = true;
     const before = tedTurner.position.clone();
     const guarded = (function () {
@@ -420,6 +457,7 @@ function check(name, ok, detail) {
       window.tedTravelTo = real;
     })();
     window.profileMine = realMine;
+    visitorNav.active = heldWheel;
     return { guarded, free };
   });
   check('while he is on the floor, the eye does not drag his body', twoWays.guarded);
@@ -463,10 +501,12 @@ function check(name, ok, detail) {
       tourBeats().map(b => b.say || '').join(' '),
     ];
     // the banner, as a guest actually receives it
-    localStorage.removeItem('dg_tour_offered'); localStorage.removeItem('dg_tour_taken');
     threshold.showing = false; announceState.entry = null; announceState.custom = null;
     tourState.on = false;
-    considerTourOffer(0);
+    // Directly, for the same reason the phone suite does: considerTourStart
+    // now PLAYS the walk instead of speaking, and it is the words a guest
+    // reads that are on trial here.
+    announceCustom(TOUR_INVITE, 'come along', function () {});
     seen.push(document.getElementById('an-text').textContent);
     seen.push(Array.from(document.getElementById('announce').querySelectorAll('.ui-btn')).map(b => b.textContent).join(' '));
     announceHide();

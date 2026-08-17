@@ -34,6 +34,17 @@ const CHROME = ['compass-hud', 'wave-hud', 'wave-hint', 'announce', 'nav-menu', 
     await p.goto('http://localhost:8899/index.html', { waitUntil: 'load', timeout: 60000 });
     await p.waitForTimeout(7000);
 
+
+  // ── THE WALK PLAYS ON LOAD NOW (2026-08-16) ──
+  // A suite that wants a pristine villa has to ASK for one: mark the walk
+  // seen, then reload. Standing it down in place was the first attempt and
+  // it is not enough — by the time a suite gets control the walk has already
+  // gathered nineteen residents onto the sand and taken the wheel, so every
+  // check that reads a live position (the staging, the routes, who is where)
+  // was measuring the walk's leftovers. Two suites said so.
+  await p.evaluate(() => { try { localStorage.setItem('dg_tour_seen_v2', '1'); } catch (e) {} });
+  await p.reload({ waitUntil: 'load', timeout: 60000 });
+  await p.waitForTimeout(7000);
     const r = await p.evaluate(async (CHROME) => {
       const wait = ms => new Promise(x => setTimeout(x, ms));
       const box = id => {
@@ -45,10 +56,13 @@ const CHROME = ['compass-hud', 'wave-hud', 'wave-hint', 'announce', 'nav-menu', 
       // Put every piece of chrome up AT ONCE — the worst case a guest can
       // reach, not a convenient one.
       document.getElementById('wave-hint').classList.add('on');
-      localStorage.removeItem('dg_tour_offered'); localStorage.removeItem('dg_tour_taken');
       threshold.showing = false; announceState.entry = null; announceState.custom = null;
       tourState.on = false;
-      considerTourOffer(0);
+      // Raise the banner DIRECTLY. Going through considerTourStart would now
+      // PLAY the walk rather than show anything, and the banner is what this
+      // suite measures. Same string a guest reads, so the width it needs is
+      // the width it is asked for.
+      announceCustom(TOUR_INVITE, 'come along', function () {});
       if (!document.getElementById('nav-menu').classList.contains('open')) toggleNavMenu();
       compassShow('places'); compassOpenPlace('beach');
       const cap = document.getElementById('tour-caption');
