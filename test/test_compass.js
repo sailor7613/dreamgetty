@@ -136,26 +136,46 @@ function check(name, ok, detail) {
         osc.gapIsStillTheCompass);
   check('standing still, labels are not rebuilt under the hand', osc.sameNode);
 
-  // ── DISCOVERY IS NOT LEAKED ────────────────────────────────────────────
-  console.log('\n── hidden-until-visited ──');
+  // ── NOTHING IS LOCKED (RULED 2026-08-16, and this block was rewritten) ──
+  // Hidden-until-visited was SHELVED for the beta: Sailor keeps the no-map
+  // argument and the discovery rule that follows from it, but reintroduces
+  // both after the beta, to a general audience, once the map is
+  // ontologically complete. A guest this month finds every place on the
+  // Compass from the day they arrive.
+  //
+  // This block used to assert the opposite, and it was RIGHT to fail when
+  // the ruling landed — that is the suite doing its job. It now asserts the
+  // two things that are actually true: the ring is open, and the machinery
+  // is only switched off, so the rule can come back whole.
+  console.log('\n── nothing is locked (the shelf, and its reversibility) ──');
   const hidden = await p.evaluate(() => {
     PLACE_REGISTRY.push({ key: 'testchapel', label: 'The Test Chapel', x: -30, z: 50,
                           look: [-30, 0, 50], off: [5, 5, 10], hidden: true });
     compassSoftBegin();
-    const before = !!Array.from(document.querySelectorAll('.cmp-bearing'))
+    const unvisited = !!Array.from(document.querySelectorAll('.cmp-bearing'))
       .find(el => /Test Chapel/.test(el.title));
     compassSoftEnd();
     compassMarkVisited('testchapel');
     compassSoftBegin();
-    const after = !!Array.from(document.querySelectorAll('.cmp-bearing'))
+    const visited = !!Array.from(document.querySelectorAll('.cmp-bearing'))
       .find(el => /Test Chapel/.test(el.title));
     compassSoftEnd();
+    const row = PLACE_REGISTRY[PLACE_REGISTRY.length - 1];
+    // the shelved rule, computed by hand off the same row the function reads
+    compassVisited.delete('testchapel');
+    const wouldHide = !!row.hidden && !compassVisited.has('testchapel');
+    compassMarkVisited('testchapel');
+    const wouldShow = !row.hidden || compassVisited.has('testchapel');
     PLACE_REGISTRY.pop();
     compassVisited.delete('testchapel');
-    return { before, after };
+    // NOT window.* — a top-level const is not a property of window
+    return { unvisited, visited, flag: COMPASS_HIDES_UNVISITED, wouldHide, wouldShow };
   });
-  check('an unfound place is absent from the ring', !hidden.before);
-  check('…and appears the day it is found', hidden.after);
+  check('a place nobody has stood in is on the ring anyway', hidden.unvisited);
+  check('and standing in it changes nothing, because nothing was withheld', hidden.visited);
+  check('the shelf is one constant', hidden.flag === false, 'COMPASS_HIDES_UNVISITED = ' + hidden.flag);
+  check('and the rule it shelves is still whole underneath',
+    hidden.wouldHide && hidden.wouldShow);
 
   // ── A LABEL IS A DOOR; THE DIAL IS THE UNFOLD ──────────────────────────
   console.log('\n── the two activations ──');

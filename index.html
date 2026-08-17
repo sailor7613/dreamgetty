@@ -172,7 +172,12 @@
     opacity: 1; pointer-events: auto; }
   #wave-hud.soft .cmp-bearing.cb-dim { opacity: 0.45; }
   /* the waves sit beside the compass: same shelf, same rules */
-  #wave-hud { position: fixed; bottom: 34px; left: calc(50% + 118px);
+  /* The split between the dial and the waves — one number, three rules
+     (the hud, its hint, and the phone override below) instead of three
+     hand-copies of 118px, which is how the hint came to be pinned to a
+     desktop offset it could not honour on a phone. */
+  :root { --hud-split: 118px; }
+  #wave-hud { position: fixed; bottom: 34px; left: calc(50% + var(--hud-split));
     transform: translateX(-50%); z-index: 12; width: 118px; height: 52px;
     cursor: pointer; transition: height 0.35s ease; }
   #wave-hud.soft { height: 208px; }
@@ -218,7 +223,7 @@
   #fp-note { margin-top: 8px; font-size: 12px; opacity: .7; }
   /* the first-times hint: a small tide-mark over the waves, gone for good
      after the third opening */
-  #wave-hint { position: fixed; bottom: 96px; left: calc(50% + 118px);
+  #wave-hint { position: fixed; bottom: 96px; left: calc(50% + var(--hud-split));
     transform: translateX(-50%); z-index: 12; display: none;
     background: rgba(12,14,18,0.82); border: 1px solid rgba(140,150,165,0.3);
     border-radius: 14px; padding: 4px 12px; font: 11px Georgia, serif;
@@ -462,17 +467,90 @@
     transition: opacity .3s; }
   #th-skip:hover { opacity: 1; }
 
+  /* ── THE WALK (2026-08-13) — Ted's walkthrough for the beta group.
+     A talk that MOVES: same Georgia register as the threshold, but a low
+     caption bar that never shields the pointer — the whole point is that
+     the visitor watches the Compass click itself. The toasts are little
+     labels that burn off objects after a few cycles: pinned to a world
+     point each frame, then they rise and go. */
+  /* THE CAPTION GOES TO THE TOP, and two photographs are why.
+     The threshold speaks from the bottom because nothing else is down
+     there during a talk. The walk is the opposite case: the Compass dial
+     stands at bottom centre and its unfold grows UP from bottom 122px
+     through the whole middle of the screen. The first framing put the
+     caption at 4.5vh and it read straight through the dial; the second
+     moved it to 118px and the place page — the exact thing Ted is
+     pointing at — opened underneath the words.
+     The walk is the one talk that must never cover the instrument it is
+     teaching, so it speaks from above and leaves the bottom column to the
+     Compass. The dial's own label goes BESIDE it for the same reason. */
+  #tour-caption { position: fixed; left: 0; right: 0; top: 4.5vh;
+    z-index: 890; display: none; pointer-events: none;
+    flex-direction: column; align-items: center; text-align: center; }
+  #tour-caption.open { display: flex; }
+  #tc-who { font-family: Georgia, serif; letter-spacing: .22em; font-size: 10px;
+    opacity: .45; text-transform: uppercase; color: #e8e4dc;
+    text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+  #tc-text { font-family: Georgia, serif; font-size: 15px; line-height: 1.56;
+    max-width: 560px; width: 78%; color: #e8e4dc; white-space: pre-wrap;
+    opacity: 0; text-shadow: 0 1px 4px rgba(0,0,0,.78);
+    transition: opacity .45s ease; }
+  #tc-text.in { opacity: .93; }
+  #tc-skip { position: static; pointer-events: auto; margin-top: 9px;
+    font-size: 11px; opacity: .4; transition: opacity .3s; }
+  #tc-skip:hover { opacity: 1; }
+  #tour-toasts { position: fixed; inset: 0; z-index: 860; pointer-events: none; }
+  .tour-toast { position: absolute; transform: translate(-50%, -100%);
+    font-family: Georgia, serif; font-size: 12px; line-height: 1.4;
+    color: #f0eee6; background: rgba(14, 16, 20, .68);
+    border: 1px solid rgba(240, 238, 230, .22); border-radius: 3px;
+    padding: 5px 9px; max-width: 230px; text-align: center;
+    opacity: 0; transition: opacity .5s ease, margin-top 1.1s ease; }
+  .tour-toast.lit { opacity: .94; }
+  /* a label for a piece of CHROME points at it from the side — the column
+     above the compass belongs to the caption */
+  .tour-toast.side { transform: translate(0, -50%); }
+  .tour-toast.burn { opacity: 0; margin-top: -26px;
+    transition: opacity 1.1s ease, margin-top 1.1s ease; }
+  /* the row the walk is about to press for you */
+  .tour-pulse { animation: tourPulse 0.65s ease-in-out 3; }
+  @keyframes tourPulse {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 0 2px rgba(240, 230, 200, .75), 0 0 14px rgba(240, 230, 200, .45); }
+  }
+  /* THE COMPASS IS CALLING YOU (2026-08-16, Sailor: "the compass can pulse
+     glow around the edges"). Ted has set off and stopped to wait; the dial
+     glows at its rim until you open it. It is a summons, not a hint, so it
+     does not time out — it stops when the walk moves on. */
+  #compass-hud.calling #compass-dial,
+  #compass-hud.calling { animation: tourCalling 1.9s ease-in-out infinite; border-radius: 50%; }
+  @keyframes tourCalling {
+    0%, 100% { filter: drop-shadow(0 0 3px rgba(244, 228, 176, .55)); }
+    50%      { filter: drop-shadow(0 0 15px rgba(244, 228, 176, .95))
+                       drop-shadow(0 0 26px rgba(244, 214, 130, .55)); }
+  }
+
   /* ── THE ANNOUNCEMENT BANNER (2026-08-09) ──
      The threshold's own rule is that it may never become a toll. With one
      address that cost nothing; with a SERIES it is the whole design problem,
      because twelve talks in, a visitor would be stopped at the door twelve
      times. So: the introduction gates a first arrival and NOTHING else ever
      does. A later talk waits here, in the corner, and is taken or dismissed. */
-  #announce { position: fixed; left: 50%; bottom: 3.2vh; transform: translateX(-50%);
-    z-index: 880; display: none; align-items: center; gap: 10px;
+  /* IT STOOD ON THE COMPASS, AND HAD SINCE IT WAS WRITTEN (fixed 08-13).
+     Centred at 50% with bottom 3.2vh puts it in exactly the dial's column,
+     18–102px off the same bottom edge — so every announcement the villa
+     has ever made has been laid over the instrument it wants you to use.
+     Found while measuring the phone; it was never a phone bug. It now sits
+     at the bottom LEFT and is capped at half the screen less the dial's
+     half-width, so the two cannot meet at any width. (On a phone it moves
+     to the top instead — see the end of this sheet.) */
+  #announce { position: fixed; left: 12px; bottom: 3.2vh; transform: none;
+    max-width: min(520px, calc(50vw - 70px)); box-sizing: border-box;
+    z-index: 880; display: none; align-items: center; gap: 10px; flex-wrap: wrap;
     background: rgba(12,14,18,0.82); color: #e8e4dc; padding: 9px 12px 9px 16px;
     border: 1px solid rgba(140,150,165,0.22); border-radius: 30px;
     font: 12px/1.4 Georgia, serif; backdrop-filter: blur(6px); }
+  #an-text { flex: 1 1 210px; }
   #announce.open { display: flex; }
   #an-text { opacity: .8; }
   #announce .ui-btn { position: static; font-size: 11px; }
@@ -992,6 +1070,86 @@
   body.light #story-hud .hud-axis { color: rgba(60, 90, 140, 0.45); }
   body.light #story-hud .hud-val { color: rgba(20, 50, 100, 0.85); }
 
+
+  /* THE PHONE AND THE LANDSCAPE LIVE AT THE END OF THE SHEET, and that
+     is not tidiness. They were written up beside the wave rules they
+     were about, three hundred lines above #announce's own rule — same
+     specificity, later wins, so every declaration that collided was
+     silently dropped and only `top` survived. The banner then had BOTH
+     a top and the base rule's bottom, and stretched the height of the
+     phone. Measurement missed it (the hint moved, because its base rule
+     is above); the photograph caught it. An override belongs after the
+     thing it overrides. */
+  /* ════════════════════════════════════════════════════════════════════
+     THE PHONE (2026-08-13) — the villa's FIRST @media rules
+     ════════════════════════════════════════════════════════════════════
+     There were none until today. Every guest link the beta sends is
+     opened on a phone first, and three things were measured broken at
+     375–390 CSS px before a line of this was written:
+
+     1. THE BANNER. `#announce` is a flex ROW with no width cap and no
+        wrap, sitting at bottom 3.2vh — on top of the dial and the
+        unfold. At 390px the text column collapses to about 50px and
+        Ted's invitation renders one word per line. That banner is how
+        the walk is offered, so it is the first thing a friend meets
+        after the introduction, and it was unreadable.
+     2. THE HINT. `the villa's voices — click the waves` is `nowrap`,
+        pinned to the desktop split — 22px off the right edge at 375,
+        15px at 390.
+     3. THE WAVES themselves clear the edge by 10px at 375. Not clipped,
+        but that is not clearance, it is luck.
+
+     The fix keeps the dial where it is (it is the centre of the villa's
+     composition, and its unfold hangs off the same 50%) and ANCHORS THE
+     WAVES TO THE RIGHT EDGE instead of to the centre. A right-anchored
+     element cannot run off the right; the failure mode is arithmetic,
+     not taste, so it is gone rather than tuned.
+
+     NOTE what is NOT here: the hover problem. On every phone viewport
+     `hover: false, pointer: coarse`, and both HUDs put their soft ring
+     behind `mouseenter` alone — so the bearings and the who-is-near-you
+     reading are not degraded on a phone, they are UNREACHABLE. That is a
+     gesture, not a layout, and it is ruled (hold = soft, tap = unfold)
+     and owed. CSS cannot fix it and should not pretend to. */
+  @media (max-width: 470px) {
+    /* the waves leave the centre and take the right edge */
+    #wave-hud, #wave-hint {
+      left: auto; right: 8px; transform: none; }
+    #wave-hud.soft::before { left: 50%; }
+    #wave-hint { max-width: calc(100vw - 20px); white-space: normal;
+      text-align: center; }
+    @keyframes waveHintBob { 0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); } }
+    /* the banner stops being a row: the words get the full width and the
+       two answers fall onto their own line under them. And it goes to the
+       TOP, because the bottom of a phone belongs to the dial and its
+       unfold — the banner was standing on both. */
+    #announce {
+      bottom: auto; top: 12px;
+      left: 12px; right: 12px; transform: none;
+      max-width: none;                  /* the base cap is the dial's column,
+                                           and up here there is no dial */
+      flex-wrap: wrap; justify-content: flex-end; gap: 8px;
+      box-sizing: border-box; border-radius: 16px; padding: 11px 13px; }
+    #an-text { flex: 1 1 100%; }
+    #announce .ui-btn { font-size: 12px; padding: 6px 13px; }
+  }
+
+  /* LANDSCAPE — 390px of height and plenty of width, which is the exact
+     inverse of the case above. The unfold is centred and narrow, so the
+     walk's caption stops fighting it for vertical room and takes the
+     width the screen actually has: a column down the left, clear of the
+     menu horizontally instead of vertically. */
+  @media (max-height: 500px) and (orientation: landscape) {
+    /* The width is arithmetic, not taste: the unfold is centred and about
+       208px across, so its left edge sits at 50vw − 104. The caption gets
+       what is left of the half, minus a gutter. */
+    #tour-caption { left: 14px; right: auto; align-items: flex-start;
+      text-align: left; width: min(calc(50vw - 130px), 340px); top: 3vh; }
+    #tc-text { width: 100%; font-size: 13.5px; }
+    #tc-who, #tc-skip { align-self: flex-start; }
+  }
+
 </style>
 </head>
 <body>
@@ -1105,6 +1263,7 @@
     <button class="ui-btn cmp-row" onclick="compassShow('company')" title="Who lives here — tap a resident to lock the camera on them">🎭 Company&nbsp;▸</button>
     <button class="ui-btn" onclick="openMeet()" title="Pick someone and pick a place — where they are, where you are, an instrument, an artwork, or another resident">🤝 Meet…</button>
     <button class="ui-btn" id="visitor-btn" onclick="toggleVisitor()" title="Take your body's wheel — WASD or the arrows walk, click the ground to go there. Patrol is what your body does when you're away (RULED 2026-08-07)">🐾 Walk</button>
+    <button class="ui-btn" id="tour-btn" onclick="tourBegin()" title="Down to the sand, where everyone gathers, and Ted shows you how the place works — the Compass, the places, how word is left. About five minutes; Escape leaves it any time">🐾 walk with Ted</button>
     <div class="nav-menu-label">You</div>
     <button class="ui-btn" id="identity-btn" onclick="openIdentityPanel()">⚿ identity</button>
     <button class="ui-btn" id="ted-photo-btn" onclick="toggleTedPhoto()" title="Ted photo mode — click the ground to place him; he faces you and holds the pose while you frame the shot">📷 Ted</button>
@@ -1236,6 +1395,18 @@
     <div id="th-text"></div>
     <button class="ui-btn" id="th-skip" onclick="endThreshold()">enter the villa &rarr;</button>
   </div>
+</div>
+
+<!-- ═══ THE WALK (2026-08-13) — Ted shows a new arrival around ═══
+     A talk that moves. The caption bar is the threshold's register without
+     the threshold's gate: nothing is shielded, because the visitor is meant
+     to WATCH the Compass unfold and press its own rows. The toast layer
+     carries the little labels that burn off objects as Ted passes them. -->
+<div id="tour-toasts"></div>
+<div id="tour-caption">
+  <div id="tc-who">TED TURNER &middot; the walk</div>
+  <div id="tc-text"></div>
+  <button class="ui-btn" id="tc-skip" onclick="tourStop(true)">end the walk &rarr;</button>
 </div>
 
 <!-- The armrest — the observatory chair's controls (spec §3). Appears only
@@ -3919,6 +4090,11 @@ const DG_LAT = 33.59, DG_LON = -117.88;
    fetched by Sailor's own terminal 2026-08-11 (epoch day 26222). The
    observatory tries a fresh CelesTrak fetch on load and falls back here
    silently: a stale sky, never a dead one (the spec's freshness rule). */
+const DG_TLE_LORE = {
+  'the ISS': 'crewed without pause since 2000 · 109 m tip to tip · the largest thing people have built off the planet',
+  'Hubble': 'launched 1990, seeing clearly since the 1993 repair · a 2.4 m mirror riding above the air',
+  'Tiangong': 'assembled 2021–22 · three modules in a T · China\'s outpost, crews of three',
+};
 const DG_TLE = [
   { name: 'the ISS', l1: '1 25544U 98067A   26222.82685157  .00003972  00000+0  79129-4 0  9998', l2: '2 25544  51.6327  29.6784 0007446  33.6486 326.4974 15.49406443580225' },
   { name: 'Hubble', l1: '1 20580U 90037B   26222.89708165  .00003598  00000+0  10816-3 0  9995', l2: '2 20580  28.4729  66.4865 0002394  38.7324 321.3443 15.31314475796960' },
@@ -7214,23 +7390,35 @@ tedTurner.userData.jawRestY = 1.11;
 
 // Ted Turner patrol system — walks through the Getty and around the grounds
 // Height-aware: uses BUILDING_Y on the stylobate, getTerrainHeight outside
+// ── ONE PREDICATE, AND THIS TIME THE WHOLE OF IT (2026-08-13) ──
+//
+// 07-30 replaced the hand-copied STONE TEST with onVillaStone and left the
+// hand-copied EDGE BLEND standing. That leftover was
+//
+//     min( max(0, |x|−14), max(0, −9−z), max(0, z−12) )
+//
+// which is 0 whenever the point is inside the slab on ANY ONE axis — so
+// every point with |x| < 14, at any z on the map, blended to full
+// BUILDING_Y. The beach at (11.5, 80.5) reported 1.5 against sand at
+// −10.8: Ted standing twelve units in the air over the strand.
+//
+// It never showed because Ted never left the terrace. His nine patrol
+// waypoints and the address mark are all on real stone, where
+// onVillaStone answers first and the blend is never reached. The Compass
+// opened the beach to walking on 08-07 and the tour is the first thing
+// that ever sent him down it — the same shape as the waterline rule that
+// session retired, a clause that was true when written and quietly false
+// once the ground under it changed.
+//
+// getVisitorHeight has carried the correct form all along — a Euclidean
+// distance from each terrace rectangle, the pool walk included. So Ted's
+// footing now IS the visitor's footing: not a corrected copy, the same
+// function, which is the only version of this that cannot drift again.
+// Verified identical on every surface he already stood on (the nine
+// waypoints, the address mark, the wings, tedTravelTo's targets), and
+// different only where he could not previously stand at all.
 function getTedHeight(x, z) {
-  // One predicate for the whole terrace (2026-07-30). This used to be a
-  // second hand-copy of the stylobate test, which meant the wings would
-  // have been invisible to Ted's footing.
-  if (onVillaStone(x, z)) return BUILDING_Y;
-  // Smooth transition at edges
-  const bx = Math.abs(x), bz = z;
-  const edgeDist = Math.min(
-    Math.max(0, bx - 14),
-    Math.max(0, -9 - bz),
-    Math.max(0, bz - 12)
-  );
-  if (edgeDist < 3) {
-    const blend = edgeDist / 3;
-    return BUILDING_Y * (1 - blend) + getTerrainHeight(x, z) * blend;
-  }
-  return getTerrainHeight(x, z);
+  return getVisitorHeight(x, z);
 }
 
 // ============================================================
@@ -9676,7 +9864,8 @@ let obsChair = null, obsChairBackMat = null, obsLampLight = null, obsLampGroup =
     obsGlobeMat = null, obsGeoCoast = null, obsGeoSpring = null,
     obsSatsReady = false, obsSkyMarks = null, obsMoonMark = null,
     obsGeoHome = null, obsGlobeTouchMs = 0,
-    obsNightTex = null, obsNightData = null, obsNightAt = 0;
+    obsNightTex = null, obsNightData = null, obsNightAt = 0,
+    obsInspectSat = null, obsModelCam = null, obsModelSpin = 0;
 const obsSats = [];
 let obsObserverGd = null;   // built with the satellites
 // where the panel points, chair-relative: theta 0 = north(−z) frame per the
@@ -10234,25 +10423,58 @@ function obsNextPass(s, fromMs) {
   s.np = { at: found, calc: fromMs };
   return found;
 }
-// THE INSPECTOR (ruled 2026-08-12): sweep the panel onto a crossing and
-// it pierces through — the satellite's facts, on the armrest's card.
+// THE INSPECTOR (ruled 2026-08-12, deepened same day): a live crossing in
+// the panel's cone pierces on its own; CLICKING a satellite's path or
+// mark selects it outright — above your horizon or not — and the plate
+// turns from sky to the machine's own portrait. Everything the elements
+// know, on the card.
+function obsSatCardHTML(s, nowMs, live) {
+  const gd = s.gd, la = s.la;
+  const ageDays = (nowMs / 86400000 + 2440587.5) - s.rec.jdsatepoch;
+  const np = obsNextPass(s, nowMs);
+  // the orbit, from the elements themselves
+  const nRadMin = s.rec.no;                                  // rad/min
+  const periodMin = 2 * Math.PI / nRadMin;
+  const mu = 398600.4418;
+  const aKm = Math.pow(mu / Math.pow(nRadMin / 60, 2), 1 / 3);
+  const apo = Math.round(aKm * (1 + s.rec.ecco) - 6371);
+  const per = Math.round(aKm * (1 - s.rec.ecco) - 6371);
+  const incDeg = (s.rec.inclo / DG_D2R).toFixed(1);
+  const intl = s.l1.slice(9, 15).trim();                     // e.g. 98067A
+  const yr2 = parseInt(intl.slice(0, 2), 10);
+  const launchYr = yr2 > 56 ? 1900 + yr2 : 2000 + yr2;
+  const overTxt = Math.abs(gd.latitude / DG_D2R).toFixed(1) + '°' + (gd.latitude >= 0 ? 'N' : 'S') + ' ' +
+    Math.abs(gd.longitude / DG_D2R).toFixed(1) + '°' + (gd.longitude >= 0 ? 'E' : 'W');
+  const posTxt = (la.elevation > 0)
+    ? 'in your sky — alt ' + Math.round(la.elevation / DG_D2R) + '° az ' +
+      (((Math.round(la.azimuth / DG_D2R)) % 360) + 360) % 360 + '°'
+    : 'below your horizon';
+  return '<b>' + s.name + '</b> · #' + s.rec.satnum.trim() + ' · ' + intl + ' · aloft since ' + launchYr +
+    (live ? ' · <b>LIVE</b>' : '') +
+    '<br>' + Math.round(gd.height) + ' km up · ' + s.velKmS.toFixed(2) + ' km/s · ' +
+    periodMin.toFixed(0) + ' min around · inclined ' + incDeg + '° · ' + per + '×' + apo + ' km' +
+    '<br>over ' + overTxt + ' · ' + posTxt +
+    '<br>elements ' + ageDays.toFixed(1) + ' days old · next pass ' +
+    (np ? new Date(np).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'none within a day') +
+    (DG_TLE_LORE[s.name] ? '<br><i>' + DG_TLE_LORE[s.name] + '</i>' : '');
+}
 function obsPanelInspectTick(nowMs) {
   const card = document.getElementById('obs-sat-card');
   if (!card) return;
   if (!obsState.panelFloating || !obsSatsReady) { card.classList.remove('open'); return; }
   const dir = obsPanelDir();
   const cone = Math.cos(9 * DG_D2R);
-  let best = null, bestDot = cone;
+  let live = null, bestDot = cone;
   for (let i = 0; i < obsSats.length; i++) {
     const s = obsSats[i];
     if (!s.sky.visible) continue;
     const d = s.sky.position.clone().normalize().dot(dir);
-    if (d > bestDot) { bestDot = d; best = s; }
+    if (d > bestDot) { bestDot = d; live = s; }
   }
   let moonBest = false;
-  if (obsMoonMark && obsMoonMark.visible) {
+  if (!obsInspectSat && obsMoonMark && obsMoonMark.visible) {
     const d = obsMoonMark.position.clone().normalize().dot(dir);
-    if (d > bestDot) { bestDot = d; best = null; moonBest = true; }
+    if (d > bestDot) { bestDot = d; live = null; moonBest = true; }
   }
   if (moonBest) {
     const ill = Math.round((1 - Math.cos(getLunarPhase() * Math.PI * 2)) / 2 * 100);
@@ -10261,23 +10483,106 @@ function obsPanelInspectTick(nowMs) {
     card.classList.add('open');
     return;
   }
-  if (!best) { card.classList.remove('open'); return; }
-  const gd = best.gd, la = best.la;
-  const ageDays = (nowMs / 86400000 + 2440587.5) - best.rec.jdsatepoch;
-  const np = obsNextPass(best, nowMs);
-  card.innerHTML = '<b>' + best.name + '</b> · ' + Math.round(gd.height) + ' km up · ' +
-    best.velKmS.toFixed(2) + ' km/s<br>over ' +
-    Math.abs(gd.latitude / DG_D2R).toFixed(1) + '°' + (gd.latitude >= 0 ? 'N' : 'S') + ' ' +
-    Math.abs(gd.longitude / DG_D2R).toFixed(1) + '°' + (gd.longitude >= 0 ? 'E' : 'W') +
-    ' · alt ' + Math.round(la.elevation / DG_D2R) + '° az ' +
-    ((Math.round(la.azimuth / DG_D2R) % 360) + 360) % 360 + '°<br>elements ' +
-    ageDays.toFixed(1) + ' days old · next pass ' +
-    (np ? new Date(np).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'none within a day');
+  const target = live || obsInspectSat;
+  if (!target || !target.gd) { card.classList.remove('open'); return; }
+  card.innerHTML = obsSatCardHTML(target, nowMs, !!live);
   card.classList.add('open');
+}
+// clicking a path, a ground mark, or a sky mark selects the satellite —
+// and, seated, summons the panel to show its portrait
+function obsSatClickHit(ray) {
+  if (!obsSatsReady) return null;
+  const old = ray.params.Line ? ray.params.Line.threshold : 1;
+  if (ray.params.Line) ray.params.Line.threshold = 0.12;
+  let found = null;
+  for (let i = 0; i < obsSats.length && !found; i++) {
+    const s = obsSats[i];
+    const targets = [];
+    if (s.path.visible) targets.push(s.path);
+    if (s.gDot.visible) targets.push(s.gDot);
+    if (s.sky.visible) targets.push(s.sky);
+    if (targets.length && ray.intersectObjects(targets, true).length > 0) found = s;
+  }
+  if (ray.params.Line) ray.params.Line.threshold = old;
+  return found;
+}
+// THE MODELS (ruled 2026-08-12): the actual machines, in the villa's own
+// geometry — parked far under the world on layer 7, which only the
+// panel's model-camera sees. Select a satellite and its portrait turns
+// slowly on the plate.
+function obsBuildSatModels() {
+  const park = new THREE.Group();
+  park.name = 'obsSatPark';
+  park.position.set(0, -800, 0);
+  const foil = new THREE.MeshStandardMaterial({ color: 0xd8d2c0, roughness: 0.4, metalness: 0.4 });
+  const white = new THREE.MeshStandardMaterial({ color: 0xe8e6e0, roughness: 0.55 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xb08a4a, roughness: 0.45, metalness: 0.3 });
+  const navy = new THREE.MeshStandardMaterial({ color: 0x2a3f66, roughness: 0.5, metalness: 0.25 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0x8a8d92, roughness: 0.6, metalness: 0.4 });
+  function mk(g, geo, mat, x, y, z, rx, ry, rz) {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    if (rx) m.rotation.x = rx; if (ry) m.rotation.y = ry; if (rz) m.rotation.z = rz;
+    g.add(m); return m;
+  }
+  const models = {};
+  // the ISS — the long truss, four paired golden wings, the module stack
+  const iss = new THREE.Group();
+  mk(iss, new THREE.BoxGeometry(3.8, 0.1, 0.12), grey, 0, 0, 0);
+  [-1.65, -1.15, 1.15, 1.65].forEach(function (x) {
+    mk(iss, new THREE.BoxGeometry(0.42, 0.02, 1.15), gold, x, 0, 0.62);
+    mk(iss, new THREE.BoxGeometry(0.42, 0.02, 1.15), gold, x, 0, -0.62);
+  });
+  [-0.55, 0, 0.55].forEach(function (z, i) {
+    mk(iss, new THREE.CylinderGeometry(0.13, 0.13, 0.55, 12), white, 0, 0, z, Math.PI / 2);
+  });
+  mk(iss, new THREE.CylinderGeometry(0.1, 0.1, 0.8, 10), white, 0, 0, -1.1, Math.PI / 2);
+  mk(iss, new THREE.BoxGeometry(0.9, 0.02, 0.3), grey, -0.5, -0.25, 0, 0, 0, 0.2);
+  mk(iss, new THREE.BoxGeometry(0.9, 0.02, 0.3), grey, 0.5, -0.25, 0, 0, 0, -0.2);
+  models['the ISS'] = iss;
+  // Hubble — the foil barrel, the aperture door, two straight panels
+  const hst = new THREE.Group();
+  mk(hst, new THREE.CylinderGeometry(0.34, 0.34, 1.7, 16), foil, 0, 0, 0);
+  mk(hst, new THREE.CylinderGeometry(0.3, 0.3, 0.25, 16), grey, 0, 0.95, 0);
+  const door = mk(hst, new THREE.BoxGeometry(0.62, 0.02, 0.62), foil, 0, 1.28, -0.28, -0.9);
+  mk(hst, new THREE.BoxGeometry(1.35, 0.015, 0.42), navy, -0.95, 0, 0);
+  mk(hst, new THREE.BoxGeometry(1.35, 0.015, 0.42), navy, 0.95, 0, 0);
+  mk(hst, new THREE.CylinderGeometry(0.02, 0.02, 0.7, 6), grey, 0.2, -1.0, 0.1, 0.4);
+  models['Hubble'] = hst;
+  // Tiangong — the T: core, two labs, two great wings
+  const css = new THREE.Group();
+  mk(css, new THREE.CylinderGeometry(0.16, 0.16, 1.5, 12), white, 0, 0, 0, Math.PI / 2);
+  mk(css, new THREE.CylinderGeometry(0.14, 0.14, 1.0, 12), white, 0, 0, -0.55, 0, 0, Math.PI / 2);
+  mk(css, new THREE.CylinderGeometry(0.14, 0.14, 1.0, 12), white, 0, 0, 0.55, 0, 0, Math.PI / 2);
+  mk(css, new THREE.BoxGeometry(1.5, 0.015, 0.4), navy, -1.35, 0, 0);
+  mk(css, new THREE.BoxGeometry(1.5, 0.015, 0.4), navy, 1.35, 0, 0);
+  mk(css, new THREE.BoxGeometry(0.02, 0.5, 0.5), foil, 0, 0.35, 0.75);
+  models['Tiangong'] = css;
+  let slot = 0;
+  Object.keys(models).forEach(function (k) {
+    models[k].position.x = slot * 20;
+    slot++;
+    models[k].traverse(function (o) { o.layers.set(7); });
+    park.add(models[k]);
+  });
+  scene.add(park);
+  // the models' own daylight — layer 7 only, so the villa never sees it
+  const sun7 = new THREE.DirectionalLight(0xffffff, 1.2);
+  sun7.position.set(4, 6, 5);
+  sun7.target.position.set(0, -800, 0);
+  sun7.layers.set(7);
+  scene.add(sun7); scene.add(sun7.target);
+  const amb7 = new THREE.AmbientLight(0x445566, 0.9);
+  amb7.layers.set(7);
+  scene.add(amb7);
+  obsModelCam = new THREE.PerspectiveCamera(30, 1, 0.1, 100);
+  obsModelCam.layers.set(7);
+  return models;
 }
 function obsSatInit() {
   if (obsSatsReady || typeof satellite === 'undefined') return;
   obsSatsReady = true;
+  const satModels = obsBuildSatModels();
   obsObserverGd = { latitude: DG_LAT * DG_D2R, longitude: DG_LON * DG_D2R, height: 0.06 };
   obsSkyMarks = new THREE.Group();
   obsSkyMarks.name = 'obsSkyMarks';
@@ -10304,7 +10609,8 @@ function obsSatInit() {
       clippingPlanes: [obsGeoSpring] }));
     path.visible = false;
     obsGeoGroup.add(path);
-    obsSats.push({ name: t.name, rec: rec, sky: sky, gDot: gDot, path: path, pathAt: 0 });
+    obsSats.push({ name: t.name, rec: rec, sky: sky, gDot: gDot, path: path, pathAt: 0,
+      model: satModels[t.name] || null, l1: t.l1 });
   });
   obsMoonMark = new THREE.Group();
   const ring = new THREE.Mesh(new THREE.TorusGeometry(3.2, 0.35, 8, 24),
@@ -10407,6 +10713,7 @@ function obsCameraTick() {
 }
 function obsStand() {
   if (!obsState.seated) return;
+  obsInspectSat = null;
   obsState.seated = false;
   obsState.lamp = true;
   obsState.panelFloating = false;
@@ -10526,16 +10833,27 @@ function obsTick(t) {
     obsPanel.quaternion.slerp(obsPanelRest.quat, Math.min(1, dt * 3.0));
   }
   obsPanel.visible = true;
-  // the telescope: render the true sky along the chair→panel line
+  // the plate: the true sky along the chair→panel line — or, with a
+  // satellite SELECTED, the machine's own portrait, slowly turning
   if (obsState.panelFloating && obsTelCam) {
-    const dir = obsPanelDir();
-    obsTelCam.position.copy(head);
-    obsTelCam.lookAt(head.clone().add(dir));
     const oldTarget = renderer.getRenderTarget();
     renderer.setRenderTarget(obsTelRT);
     renderer.setClearColor(0x050910, 1);
     renderer.clear();
-    renderer.render(scene, obsTelCam);
+    if (obsInspectSat && obsInspectSat.model && obsModelCam) {
+      obsModelSpin += dt * 0.35;
+      obsInspectSat.model.rotation.y = obsModelSpin;
+      const mp = new THREE.Vector3();
+      obsInspectSat.model.getWorldPosition(mp);
+      obsModelCam.position.set(mp.x + Math.sin(0.6) * 5.2, mp.y + 1.6, mp.z + Math.cos(0.6) * 5.2);
+      obsModelCam.lookAt(mp);
+      renderer.render(scene, obsModelCam);
+    } else {
+      const dir = obsPanelDir();
+      obsTelCam.position.copy(head);
+      obsTelCam.lookAt(head.clone().add(dir));
+      renderer.render(scene, obsTelCam);
+    }
     renderer.setRenderTarget(oldTarget);
     renderer.setClearColor(0x000000, 0);
   }
@@ -10896,6 +11214,10 @@ function loadFeed() {
       if (followAnimal.key) renderFeedInto(followAnimal.key);
       if (typeof renderStatementField === 'function') renderStatementField();
       if (typeof considerThreshold === 'function') considerThreshold();
+      // The tour is offered ONCE, in the banner, and only to a device that
+      // is not being stopped at the door by the introduction — two notices
+      // at once is the toll the threshold rulings exist to prevent.
+      if (typeof considerTourOffer === 'function') setTimeout(function () { considerTourOffer(); }, 2600);
     })
     .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; });
 }
@@ -11218,6 +11540,12 @@ const announceState = { entry: null, custom: null };
 function announceShow(entry, why) {
   if (!entry || announceState.entry === entry) return;
   if (threshold.showing) return;
+  // …and not over the walk. The banner used to be guarded against a TALK
+  // only, because a talk was the only thing that owned the screen. On a
+  // phone the banner now lives at the top, which is exactly where the
+  // walk's caption speaks — so a talk arriving mid-walk would have landed
+  // on Ted's own sentence. One voice at a time, the threshold's own rule.
+  if (typeof tourState !== 'undefined' && tourState.on) return;
   announceState.entry = entry;
   announceState.custom = null;
   const el = document.getElementById('announce');
@@ -11234,6 +11562,7 @@ function announceShow(entry, why) {
 // BloomBurger, below.
 function announceCustom(text, openLabel, onOpen) {
   if (threshold.showing) return false;
+  if (typeof tourState !== 'undefined' && tourState.on) return false;   // §one unfold at a time
   announceState.entry = null;
   announceState.custom = { onOpen: onOpen || null };
   const el = document.getElementById('announce');
@@ -11578,6 +11907,7 @@ const TED_REAR = {
   // that is supposed to be exact is the model telling you the pose is wrong.
   // This one was saying so for a fortnight before anybody photographed him.
   SINK: 0,
+  speed: 0.045,          // the approach lerp — the tour slows it (see §the walk)
   base: new THREE.Vector3(),
   mark: new THREE.Vector3(),
   faceYaw: 0,
@@ -11735,7 +12065,13 @@ function updateTedAddress(t) {
     const dx = TED_REAR.mark.x - p.x, dz = TED_REAR.mark.z - p.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
     if (dist > 0.28) {
-      p.x += dx * 0.045; p.z += dz * 0.045;
+      // The pace is a field now, not a literal (2026-08-16, Sailor: "have
+      // Ted move a little more slowly"). An address still crosses the
+      // terrace at 0.045 — nobody is watching him walk, they are waiting
+      // for him to start — but on the tour the walk IS the content, and a
+      // docent who bolts to the next room is not leading anybody.
+      const k = (typeof TED_REAR.speed === 'number') ? TED_REAR.speed : 0.045;
+      p.x += dx * k; p.z += dz * k;
       p.y = getTedHeight(p.x, p.z) + Math.abs(Math.sin(t * 4)) * 0.02;
       tedTurner.rotation.y = Math.atan2(dx, dz);
       (tedTurner.userData.legs || []).forEach(function (leg, i) {
@@ -12315,6 +12651,661 @@ function considerThreshold() {
   }
   const unheard = series.slice(1).filter(function (s) { return !talkHeardAnyVersion(s); });
   if (unheard.length) announceShow(unheard[unheard.length - 1].entry);
+}
+
+// ============================================================
+// THE TOUR (2026-08-13) — the walkthrough for the beta group
+//
+// A talk that MOVES. Ted gathers the company on the beach berm, shows the
+// Compass and how word is left, then travels the villa by pressing the
+// Compass's own rows — the visitor watches the instrument being used, which
+// is the only tutorial the no-map ruling permits. Nothing here is new
+// machinery: the gathering, TED_REAR's walk-to-the-mark, tedSpeak, the
+// place registry and the Compass views all do what they already did; the
+// tour is a score written over them, the way the address's cues are a score
+// written over the camera.
+//
+// Register (SETTLED 2026-08-13, Sailor picked the voice): a guest is never
+// offered "the tour". Ted asks them along, in the first person — "I'm
+// headed down to the sand with everyone" — and the banner, the Compass row
+// (walk with Ted) and the caption byline are then all the same animal
+// talking, which is the whole reason that draft won. The word "tour" is a
+// brochure word; it names a product, and the villa does not sell one.
+// The CODE says tour* throughout: two-register naming, the villa's own
+// canon (annexWing / the Exedra). No guest ever hears a software word —
+// and now no guest hears a marketing one either.
+//
+// Three rules inherited whole:
+//   1. Never a toll. The tour is offered once in the banner and sits in the
+//      Compass root after that. It gates nothing.
+//   2. Never a teleport for Ted — he WALKS to each stop (TED_REAR's own
+//      arrival machinery), dropping to all fours between marks.
+//   3. Discovery is taught by arrival. The observatory is shown by TAKING
+//      the visitor there — goToPlace marks it visited because they now
+//      genuinely stand in it — never by a camera move alone (Compass §1).
+// ============================================================
+// Less than half the address's pace. An address is a man crossing a stage
+// to start; a tour is the crossing itself, and you are meant to keep up
+// without being marched.
+const TOUR_TED_SPEED = 0.020;
+const TOUR_TAKEN_KEY = 'dg_tour_taken';
+const TOUR_OFFERED_KEY = 'dg_tour_offered';
+const tourState = { on: false, i: -1, timer: null, stagers: [] };
+
+// Where Ted stands at each stop — read off the registry's own camera so he
+// is in the frame the place page composes, facing the lens.
+const TOUR_MARKS = {
+  beach:       { x: 11.5, z: 80.5 },
+  overlook:    { x: -7.5, z: 46.5 },
+  galleria:    { x: 2,    z: 4    },
+  plaza:       { x: 8.5,  z: 8    },
+  library:     { x: -22,  z: 6    },
+  exedra:      { x: 22,   z: 6    },
+  observatory: { x: 19.5, z: -70  },
+};
+
+function tourLater(ms, fn) {
+  const id = setTimeout(function () { if (tourState.on) fn(); }, ms);
+  tourState.stagers.push(id);
+  return id;
+}
+
+// ── the little toasts — labels that burn off objects after a few cycles ──
+const tourToasts = [];
+function tourToast(anchor, text, ms) {
+  const wrap = document.getElementById('tour-toasts');
+  if (!wrap) return null;
+  const el = document.createElement('div');
+  el.className = 'tour-toast';
+  el.textContent = text;
+  wrap.appendChild(el);
+  const t = { el: el, until: performance.now() + (ms || 6500), gone: 0,
+              burned: false, anchor: null, fixed: null };
+  if (anchor && anchor.isVector3) t.anchor = anchor.clone();
+  else if (anchor && anchor.isObject3D) t.anchor = anchor;   // follows the object
+  else if (anchor && typeof anchor.getBoundingClientRect === 'function') {
+    // The ELEMENT is kept, not a rectangle read once: the compass dial grows
+    // when the soft ring unfolds, and a label pinned to where it used to be
+    // would drift off the thing it names. Read every tick, like the world
+    // anchors — same rule, different space.
+    t.el2d = anchor;
+    el.classList.add('side');
+  }
+  // The fade-in is deferred a frame so the transition has something to
+  // transition FROM — and it has to ask whether the toast is still wanted
+  // when it lands. A toast burned inside that one frame (the walk ended, or
+  // its life was short) would otherwise be lit back up on top of its own
+  // burn and sit there until the removal timer caught it. Found by the
+  // suite, not by eye; the same class as the stale-utterance guard.
+  requestAnimationFrame(function () { if (!t.burned) el.classList.add('lit'); });
+  tourToasts.push(t);
+  return t;
+}
+const tourToastV = typeof THREE !== 'undefined' ? new THREE.Vector3() : null;
+function tourToastTick() {
+  if (!tourToasts.length) return;
+  const now = performance.now();
+  for (let i = tourToasts.length - 1; i >= 0; i--) {
+    const t = tourToasts[i];
+    if (!t.burned && now > t.until) {
+      t.burned = true; t.gone = now + 1300;
+      t.el.classList.remove('lit'); t.el.classList.add('burn');
+    }
+    if (t.burned && now > t.gone) { t.el.remove(); tourToasts.splice(i, 1); continue; }
+    let sx, sy, ok = true;
+    if (t.el2d) {
+      const r = t.el2d.getBoundingClientRect();
+      ok = r.width > 0 || r.height > 0;              // a hidden control is not labelled
+      // beside it, and it flips to the left rather than run off the edge
+      const right = r.right + 12;
+      sx = (right + 240 > window.innerWidth) ? Math.max(8, r.left - 12 - 230) : right;
+      sy = r.top + r.height / 2;
+    }
+    else if (t.anchor && tourToastV) {
+      if (t.anchor.isObject3D) t.anchor.getWorldPosition(tourToastV);
+      else tourToastV.copy(t.anchor);
+      tourToastV.project(camera);
+      ok = tourToastV.z < 1;                   // behind the lens = not shown
+      sx = (tourToastV.x * 0.5 + 0.5) * window.innerWidth;
+      sy = (-tourToastV.y * 0.5 + 0.5) * window.innerHeight;
+    } else ok = false;
+    if (ok) { t.el.style.left = sx + 'px'; t.el.style.top = sy + 'px'; t.el.style.display = ''; }
+    else t.el.style.display = 'none';
+  }
+}
+function tourToastsBurnAll() {
+  const now = performance.now();
+  tourToasts.forEach(function (t) {
+    if (!t.burned) { t.burned = true; t.gone = now + 1300; t.el.classList.remove('lit'); t.el.classList.add('burn'); }
+  });
+}
+
+// Trout's stone, found where it actually stands — never a hard-coded spot,
+// because the carve replaces the stele at the same place and the toast
+// should land on whichever stone is really there.
+function tourSteleAnchor() {
+  let found = null;
+  try {
+    scene.traverse(function (o) {
+      if (!found && o.userData && o.userData.isStele) found = o;
+    });
+  } catch (e) {}
+  if (!found) return null;
+  const v = new THREE.Vector3();
+  found.getWorldPosition(v);
+  v.y += 1.5;
+  return v;
+}
+
+// ── Ted between marks: drop to all fours, walk, rear on arrival ──
+// The walk and the rearing are updateTedAddress's own machinery; this only
+// sets the mark and puts his body back to neutral so he does not cross the
+// villa on his hind legs.
+function tourTedTo(key) {
+  const m = TOUR_MARKS[key];
+  const pl = PLACE_REGISTRY.find(function (p) { return p.key === key; });
+  if (!m || !pl) return;
+  TED_REAR.mark.set(m.x, 0, m.z);
+  TED_REAR.mark.y = getTedHeight(m.x, m.z);
+  TED_REAR.arrived = false;
+  TED_REAR.releasing = false;
+  TED_REAR.want = 0; TED_REAR.now = 0;
+  tedRearApply(0);
+  tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
+  (tedTurner.userData.legs || []).forEach(function (l, i) {
+    l.group.rotation.x = 0;
+    if (typeof TED_LEG_REST !== 'undefined' && TED_LEG_REST[i]) l.group.position.copy(TED_LEG_REST[i]);
+  });
+  if (typeof tedHeadGroup !== 'undefined' && tedHeadGroup) {
+    tedHeadGroup.rotation.set(-0.05, 0, 0);
+    tedHeadGroup.position.set(0, 0, 0);
+  }
+  // He faces the lens the place's own camera composes — the docent looks
+  // at his visitors, not at the scenery.
+  const camX = pl.look[0] + pl.off[0], camZ = pl.look[2] + pl.off[2];
+  TED_REAR.faceYaw = Math.atan2(camX - m.x, camZ - m.z);
+}
+
+// ── The gathering, on the berm the waterline fix opened (Compass §4) ──
+// Everyone comes out of their own place, by their own mover — the arc is
+// LANDWARD of Ted so the lens at the beach camera looks over the company
+// to the speaker and the sea. Two ranks, same as any crowd on one plane.
+// SHORT IN FRONT, TALL BEHIND — the anti-occlusion rule the lawn seating
+// settled, borrowed whole (ADDRESS_SEATING's ranks, not its slots). And the
+// radii are wide: the first photograph of this gathering put a ten-metre
+// great white two units off the docent's shoulder and Petra ate the frame.
+//
+// The one thing the arc does NOT borrow is the slot table. The lawn's grid
+// is fixed at two ranks of eight, which is why Big Colin, Doctor Colin and
+// Alrik's beaver sit the grand address out. An arc has no slot count — it
+// just gets longer — so the tour is the formation the whole company fits
+// in, and all three are on the sand.
+function tourAudienceSpots(keys, origin) {
+  const seat = typeof ADDRESS_SEATING !== 'undefined' ? ADDRESS_SEATING : {};
+  const ranks = [[], []];
+  keys.forEach(function (k) { ranks[(seat[k] && seat[k].rank === 0) ? 0 : 1].push(k); });
+  const at = {};
+  ranks.forEach(function (row, rank) {
+    const r = 6.4 + rank * 3.4;
+    // The arc opens as the rank fills, so twelve bodies do not stand where
+    // four would — a fixed spread is what packs a shark against a stoat.
+    const spread = Math.min(2.4, 0.62 + row.length * 0.18);
+    row.forEach(function (k, i) {
+      const a = row.length > 1 ? (-spread / 2 + spread * i / (row.length - 1)) : 0;
+      // THE ARC'S ENDS RUN OFF THE STRAND. The wings of an 11-body back rank
+      // reach x ≈ 20, and the sand gives out at about 19 — the suite caught
+      // three of them standing on the seabed at −14. So a LAND body walks
+      // its own ray back in until the ground it lands on is above the
+      // waterline; an aquatic one is left where it is, because the shallows
+      // are its floor (WALK_AQUATIC, the wheel's own rule).
+      const wet = typeof WALK_AQUATIC !== 'undefined' && WALK_AQUATIC[k];
+      let rr = r, x, z, y;
+      for (let n = 0; n < 24; n++) {
+        x = origin.x + Math.sin(a) * rr;
+        z = origin.z - Math.cos(a) * rr;      // landward: up the sand, not into the surf
+        y = getVisitorHeight(x, z);
+        if (wet || y > OCEAN_Y + 0.1 || rr <= 2.2) break;
+        rr -= 0.45;
+      }
+      at[k] = new THREE.Vector3(x, y, z);
+    });
+  });
+  return keys.map(function (k) { return at[k]; });
+}
+function tourGather() {
+  if (typeof gatherBegin !== 'function') return 0;
+  const m = TOUR_MARKS.beach;
+  const pt = new THREE.Vector3(m.x, getVisitorHeight(m.x, m.z), m.z);
+  gatherBegin('The Beach', pt);
+  const keys = (typeof ASSIGNABLE !== 'undefined' ? ASSIGNABLE : [])
+    .filter(function (k) { return typeof RESIDENTS !== 'undefined' && RESIDENTS[k]; });
+  const spots = tourAudienceSpots(keys, pt);
+  let n = 0;
+  keys.forEach(function (k, i) {
+    gatherAdd(k, spots[i]);                    // raven excuses himself in here, as ruled
+    const mem = gatherState.members[k];
+    if (!mem) return;
+    n++;
+    mem.leaves = clock.getElapsedTime() + 420 + (i % 5) * 45;   // patience for a five-minute walk
+    try { summonResident(k, true, mem.at); } catch (e) {}
+  });
+  gatherState.held = true;
+  return n;
+}
+
+// ── travel, two ways ──
+// THE OPENING FRAME, COMPOSED BY PHOTOGRAPH (2026-08-13).
+//
+// The registry's beach camera is a SEA-LEVEL framing — it was composed to
+// look at the beach, and it is right for that. It is wrong for a gathering
+// standing on it, and the reason is the ground: the strand is nearly flat
+// and stands about 1.2 units proud of the water, so any low camera looks
+// along it at a grazing angle, the ocean plane rises to the horizon, and
+// nineteen residents appear to be standing on the sea. Four framings were
+// photographed before this one; it is the first that reads as sand.
+//
+// So: high, seaward, looking down and landward. Ted's back is to the lens
+// and the company faces it — which is the address's own "over his shoulder
+// and out at them", arrived at again from the other end of the map.
+const TOUR_OPENING = { look: [10.5, -10.2, 77.8], off: [2, 11.5, 12.5] };
+
+// tourTravel: the quiet way (the opening descent, and the observatory —
+// where there is no row to press yet, which is the lesson).
+function tourTravel(key, frame) {
+  const pl = PLACE_REGISTRY.find(function (p) { return p.key === key; });
+  if (!pl) return;
+  try { flyoverStop(); } catch (e) {}
+  cameraGlide((frame || pl).look, (frame || pl).off, 2.8);
+  try { bodyFollowsTheEye(key); } catch (e) {}
+  if (typeof compassMarkVisited === 'function') compassMarkVisited(key);
+  showNavLabel(pl.label);
+  tourTedTo(key);
+}
+// ── WHO IS WATCHED, AND IT IS NEVER NOBODY (RULED 2026-08-16) ──
+// "Let's not let the camera unlock from either Ted or the user's avatar."
+// The follow rig already does exactly this — camTarget lerps onto a body
+// while camTheta/camPhi/camRadius stay yours, so drag still orbits and the
+// wheel still zooms — and it yields to `approach.active`, which is why the
+// tour must never call a place's camera flight again. Two states, and each
+// has an obvious subject: HIM while he is talking to you, YOU while you are
+// crossing the villa to him.
+function tourLock(who) {
+  if (typeof followAnimal === 'undefined') return;
+  try { approach.active = false; approach.released = true; } catch (e) {}
+  if (who === 'ted') { followAnimal.key = 'ted'; return; }
+  const k = (typeof visitorNav !== 'undefined' && visitorNav.active && visitorNav.subjectKey)
+    ? visitorNav.subjectKey
+    : (typeof AVATARS !== 'undefined' && AVATARS.guest ? 'guest' : 'ted');
+  followAnimal.key = k;
+}
+// The body the walk is leading — your resident, or the borrowed figure.
+function tourBody() {
+  if (typeof visitorNav !== 'undefined' && visitorNav.subject) return visitorNav.subject;
+  return (typeof visitorAvatar !== 'undefined') ? visitorAvatar : null;
+}
+
+// ── WHO COMES WITH YOU (RULED 2026-08-16) ──
+// "For the walkthrough instruction I'd see on my end, have all the animals
+// walk with me, but for the users, have only themselves follow Ted."
+// The docent travels with the whole villa at his back; a guest gets the
+// gathering ON THE SAND, where it is a welcome, and then the walk is the
+// two of them. Nineteen residents trailing a first-time visitor through
+// every room is a parade, and a parade is not an introduction.
+function tourCompanyComes() {
+  try { return typeof isDocent === 'function' && isDocent(); } catch (e) { return false; }
+}
+
+// ── HE SETS OFF, AND STOPS ──
+// (2026-08-16, Sailor: "have him begin his walk to the next location, but
+// stop and instruct the user on how to use the nav tool compass to join
+// him.") He walks a third of the way, turns back to you, and waits. The
+// leaving is the instruction — you are being shown that he is going
+// somewhere and that the dial is how you follow.
+const TOUR_LEADOFF = 0.34;
+function tourLeadOff(key) {
+  const m = TOUR_MARKS[key];
+  if (!m) return;
+  const from = tedTurner.position;
+  const x = from.x + (m.x - from.x) * TOUR_LEADOFF;
+  const z = from.z + (m.z - from.z) * TOUR_LEADOFF;
+  TED_REAR.mark.set(x, getTedHeight(x, z), z);
+  TED_REAR.arrived = false; TED_REAR.releasing = false;
+  TED_REAR.want = 0; TED_REAR.now = 0;
+  tedRearApply(0);
+  tedTurner.rotation.x = 0; tedTurner.rotation.z = 0;
+  (tedTurner.userData.legs || []).forEach(function (l, i) {
+    l.group.rotation.x = 0;
+    if (typeof TED_LEG_REST !== 'undefined' && TED_LEG_REST[i]) l.group.position.copy(TED_LEG_REST[i]);
+  });
+  // He stops and turns BACK to whoever he is leading — not on to where he
+  // is going. A guide who waits facing away is not waiting.
+  //
+  // `from` is the fallback and it is the right one: it is the spot he just
+  // left, so facing it is facing back down his own path, which is where
+  // anyone following him necessarily is. That covers the docent — Sailor IS
+  // Ted, so there is no follower body at all, only the company behind him —
+  // and it covers a guest whose borrowed figure has not been raised yet.
+  const b = tourBody();
+  const at = (b && b.visible) ? b.position : from;
+  TED_REAR.faceYaw = Math.atan2(at.x - x, at.z - z);
+  tourLock('ted');
+}
+
+// The dial glows until you open it.
+function tourCalling(on) {
+  const hud = document.getElementById('compass-hud');
+  if (hud) hud.classList.toggle('calling', !!on);
+}
+
+// ── YOU JOIN HIM ──
+// Everything goToPlace does EXCEPT the camera flight, which is the whole
+// point: your body walks, Ted walks, and the lens stays on a body. The
+// guest's own wheel does the moving (visitorWalkTo), so the gait, the
+// turn, the ground and the waterline are all the walk's existing rules —
+// and you can take the wheel off it mid-stride without anything breaking.
+function tourJoin(key) {
+  const pl = PLACE_REGISTRY.find(function (p) { return p.key === key; });
+  if (!pl) return;
+  if (typeof compassMarkVisited === 'function') compassMarkVisited(key);
+  const pt = placePoint(key);
+  // you
+  if (pt && typeof visitorWalkTo === 'function' && visitorNav.active) visitorWalkTo(pt);
+  else if (typeof bodyFollowsTheEye === 'function') bodyFollowsTheEye(key);
+  // him
+  tourTedTo(key);
+  // and the company, if the docent is leading
+  if (pt && tourCompanyComes() && typeof gatherState !== 'undefined' && gatherState.active) {
+    try {
+      gatherState.point.copy(pt);
+      const keys = Object.keys(gatherState.members);
+      const spots = tourAudienceSpots(keys, pt);
+      keys.forEach(function (k, i) {
+        gatherState.members[k].at = spots[i];
+        gatherState.members[k].recalled = clock.getElapsedTime();
+        summonResident(k, true, spots[i]);
+      });
+    } catch (e) {}
+  }
+  showNavLabel(pl.label);
+  const m = document.getElementById('nav-menu');
+  if (m && m.classList.contains('open')) toggleNavMenu();
+  tourLock('me');                      // watch yourself go to him
+}
+
+// tourClickTo: the demonstration — the Compass unfolds, the row lights,
+// the page opens, 'go there' lights, and the villa goes. The presses are
+// real presses on the real rows.
+function tourPulse(el) {
+  if (!el) return;
+  el.classList.add('tour-pulse');
+  setTimeout(function () { el.classList.remove('tour-pulse'); }, 2100);
+}
+function tourMenuOpen() {
+  const m = document.getElementById('nav-menu');
+  if (m && !m.classList.contains('open')) toggleNavMenu();
+}
+function tourPlaceRow(key) {
+  const p = PLACE_REGISTRY.find(function (r) { return r.key === key; });
+  if (!p) return null;
+  const rows = document.querySelectorAll('#cmp-places .cmp-row');
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].textContent.indexOf(p.label) !== -1) return rows[i];
+  }
+  return null;
+}
+function tourGoRow() {
+  const btns = document.querySelectorAll('#cmp-place .ui-btn');
+  for (let i = 0; i < btns.length; i++) {
+    if (btns[i].textContent.trim() === 'go there') return btns[i];
+  }
+  return null;
+}
+function tourClickTo(key) {
+  tourCalling(false);                          // you answered it
+  tourMenuOpen();
+  compassShow('places');
+  tourLater(700,  function () { tourPulse(tourPlaceRow(key)); });
+  tourLater(1700, function () { compassOpenPlace(key); });
+  tourLater(2400, function () { tourPulse(tourGoRow()); });
+  tourLater(3500, function () { tourJoin(key); });
+}
+
+// ── the score ──
+// One beat = an act and a sentence for the ear. `do` runs first; the line
+// is spoken `wait` ms later (over the travel, mostly); `hold` is the breath
+// after it before the next beat.
+// A LEG IS THREE BEATS, and the shape is the ruling (2026-08-16): he sets
+// off → he stops and tells you how to follow, with the dial glowing → you
+// come. Two lines of dialogue per room instead of one, and the second one
+// is always an instruction, because the walk is a tutorial and a tutorial
+// that only narrates is a film.
+function tourLeg(key, label, arrival, opts) {
+  opts = opts || {};
+  return [
+    { do: function () { tourLeadOff(key); tourCalling(true); },
+      wait: 900,
+      say: opts.setOff || ('Come on — ' + label + ' next.'),
+      hold: 700 },
+    { do: function () { tourCalling(true); },
+      say: opts.how || ('Open the Compass — Places, then ' + label + ', then go there. I’ll wait.'),
+      hold: 500 },
+    { do: function () { tourClickTo(key); },
+      wait: 3600,
+      say: arrival,
+      hold: 1100 },
+  ];
+}
+
+function tourBeats() {
+  const hud = document.getElementById('compass-hud');
+  return [
+    // ── the sand ──
+    { do: function () { tourGather(); tourTravel('beach', TOUR_OPENING); tourLock('ted'); },
+      wait: 1600,
+      say: 'Welcome to the villa. Everyone is coming down to the sand — gather round.',
+      hold: 1400 },
+    { say: 'I’m Ted Turner. I live here and I walk the grounds, and I’ll show you three things: the Compass, the places, and how word is left.' },
+    { do: function () { if (hud) { tourPulse(hud); tourToast(hud, 'the Compass — your bearings, and everywhere you can go', 7000); } },
+      say: 'See the dial in the corner? That is the Compass. It tells you where you are and it takes you anywhere in the villa.' },
+    { do: function () { tourMenuOpen(); compassShow('root'); },
+      say: 'Click it and it unfolds. Places — everywhere you can go. Company — who lives here. Walk — your own body’s wheel: W, A, S, D, and click the ground.' },
+    { do: function () { compassShow('places'); },
+      say: 'Places is the whole villa, all of it, from the day you arrive. Nothing here is locked.' },
+    { do: function () { tourPulse(tourPlaceRow('beach')); tourLater(900, function () { compassOpenPlace('beach'); }); },
+      wait: 1400,
+      say: 'Open one and it answers three questions. Who is standing here — all of us, read live. What has been said here — the ledger. And go there, which is how we travel.' },
+    { do: function () {
+        const led = document.querySelector('#cmp-place .cmp-ledger');
+        if (led) tourToast(led, 'the ledger — what has been said here', 6500);
+        const st = tourSteleAnchor();
+        if (st) tourToast(st, 'Trout’s stele — word left on the sand stays on the sand', 8000);
+      },
+      say: 'Word in this villa is left, not sent. Stand in a place and you can leave word in its ledger. That stone is Trout’s — the oldest remark the villa has kept.' },
+
+    // ── and now you walk. He goes first, every time, and waits. ──
+  ].concat(
+    tourLeg('overlook', 'the Overlook',
+      'The Overlook. The whole villa from one cliff — the house behind you, the valley below, the sea out past the break.',
+      { setOff: 'Now come with me. I’m going up off the beach — follow me and I’ll show you how.',
+        how: 'Open the Compass — see it glowing? Places, then the Overlook, then go there. I’ll wait for you.' }),
+
+    tourLeg('galleria', 'the Galleria',
+      'The Galleria — the heart of the house, and the long room with the pedestal at its centre.',
+      { setOff: 'Down into the house now. I’ll start; you know the way.' }),
+
+    [{ do: function () { tourTedTo('plaza'); tourLock('ted'); showNavLabel('The Plaza'); },
+       wait: 1200,
+       say: 'And the Plaza, right beside it. Sun, stone, and nowhere in particular to be — if you lose track of somebody, start here.',
+       hold: 900 }],
+
+    tourLeg('library', 'the Library',
+      'The Library. The notebook lives here — read anything, and leave word if you are moved to. The ledger rule is the same in every room.',
+      { setOff: 'This way — west end of the house.' }),
+
+    tourLeg('exedra', 'the Exedra',
+      'The Exedra — the curved bench. The oldest kind of meeting room there is: stone, a view, and someone to disagree with.',
+      { setOff: 'Across to the other end now. Same three taps.' }),
+
+    tourLeg('observatory', 'the Observatory',
+      'The observatory-archive. Still under construction — but open for visitors. Lamp lit, it is the archive; lamp out, it is the observatory, and the dome carries the real sky over this hill.',
+      { setOff: 'One more, and it is a climb. Up the east peak — come on.',
+        how: 'Compass — Places — the Observatory — go there. Take your time; it is a long way up.' }),
+
+    tourLeg('galleria', 'the Galleria',
+      'The instrument on the pedestal is the graphmap: Prism’s dialectical tool. A claim stands in the field with its counters and its evidence around it, and you read the argument by walking it. When a trace is up, the easel shows its work.',
+      { setOff: 'Last one — back down to the Galleria. There is something on the pedestal I want you to see.' })
+  ).concat([
+    { do: function () {
+        if (typeof graphmapVisible !== 'undefined' && !graphmapVisible && typeof toggleGraphmap === 'function') toggleGraphmap();
+        try { tourToast(new THREE.Vector3(0, GRAPH_CENTER_Y + 1.5, 0), 'the graphmap — Prism’s dialectical instrument', 8000); } catch (e) {}
+      },
+      wait: 600,
+      say: 'That is the lot. The Compass takes you anywhere, your word stays where you leave it, and the company is who lives here. The villa is yours — go and get properly lost.',
+      hold: 600 },
+  ]);
+}
+
+// ── playing it — addressNext's own shape, one beat at a time ──
+function tourNext() {
+  const S = tourState;
+  if (!S.on) return;
+  S.i++;
+  if (!S.beats || S.i >= S.beats.length) { tourStop(false); return; }
+  const beat = S.beats[S.i];
+  const step = S.i;
+  if (beat.do) { try { beat.do(); } catch (e) {} }
+
+  tourLater(beat.wait || 700, function () {
+    if (S.i !== step) return;
+    const cur = document.getElementById('tc-text');
+    if (cur) {
+      cur.classList.remove('in');
+      cur.textContent = beat.say || '';
+      requestAnimationFrame(function () { if (S.on && S.i === step) cur.classList.add('in'); });
+    }
+    let advanced = false;
+    const advance = function () {
+      if (!S.on || S.i !== step || advanced) return;
+      advanced = true;
+      if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+      S.timer = setTimeout(tourNext, beat.hold || 900);
+    };
+    // The same honesty check the threshold learned: ask whether the browser
+    // can ACTUALLY speak, or the tour would flash past on a mute machine.
+    const canSpeak = typeof tedSpeak === 'function' &&
+                     typeof tedNarration !== 'undefined' && !!tedNarration.synth;
+    if (canSpeak && beat.say) {
+      tedSpeak(beat.say, advance);
+      S.timer = setTimeout(advance, 4000 + beat.say.length * 95);
+    } else {
+      S.timer = setTimeout(advance, Math.max(2400, Math.min(15000, 1100 + (beat.say || '').length * 58)));
+    }
+  });
+}
+
+function tourBegin() {
+  if (tourState.on) return;
+  if (typeof threshold !== 'undefined' && threshold.showing) return;   // a talk holds the floor
+  announceHide();
+  try { if (typeof tedPhoto !== 'undefined' && tedPhoto.active) toggleTedPhoto(); } catch (e) {}
+  try { if (typeof tedDocent !== 'undefined' && tedDocent.active) deactivateTedDocent(); } catch (e) {}
+  try { flyoverStop(); } catch (e) {}
+  // ── YOU ARE COMING ALONG, SO YOU NEED A BODY TO COME ALONG IN ──
+  // The first build turned Walk OFF at the start, which was right when the
+  // camera flew and you watched. It is wrong now: Ted stops and waits for
+  // YOU, and a disembodied eye cannot be waited for. So the walk takes the
+  // wheel on your behalf — your resident if the gate named you, the capped
+  // sailor figure if not — and hands it to you at the end still held, which
+  // is the only decent way to say "go and get properly lost".
+  // NOT for the docent: Ted cannot both lead the walk and be the body
+  // following it, and toggleVisitor would hand him to visitorNav mid-rear.
+  try {
+    const asTed = (typeof isDocent === 'function') && isDocent();
+    if (!asTed && typeof visitorNav !== 'undefined' && !visitorNav.active) toggleVisitor();
+    else if (asTed && typeof visitorNav !== 'undefined' && visitorNav.active) toggleVisitor();
+  } catch (e) {}
+  const m = document.getElementById('nav-menu');
+  if (m && m.classList.contains('open')) toggleNavMenu();   // the unfold is a beat; start folded
+  try { localStorage.setItem(TOUR_TAKEN_KEY, '1'); } catch (e) {}
+
+  tourState.on = true;
+  tourState.i = -1;
+  tourState.beats = tourBeats();
+
+  // Ted takes the sand the way he takes the floor for a talk — walking.
+  tedPatrol.state = 'address';
+  TED_REAR.active = true; TED_REAR.releasing = false; TED_REAR.arrived = false;
+  TED_REAR.want = 0; TED_REAR.now = 0;
+  TED_REAR.speed = TOUR_TED_SPEED;         // a docent's pace, not an entrance
+  tourTedTo('beach');
+  tourLock('ted');
+
+  const cap = document.getElementById('tour-caption');
+  if (cap) cap.classList.add('open');
+  tourNext();
+}
+
+function tourStop(byHand) {
+  const S = tourState;
+  if (!S.on) return;
+  S.on = false;
+  S.stagers.forEach(clearTimeout);
+  S.stagers = [];
+  if (S.timer) { clearTimeout(S.timer); S.timer = null; }
+  const cap = document.getElementById('tour-caption');
+  if (cap) cap.classList.remove('open');
+  const cur = document.getElementById('tc-text');
+  if (cur) { cur.textContent = ''; cur.classList.remove('in'); }
+  tourToastsBurnAll();
+  tourCalling(false);
+  TED_REAR.speed = 0.045;                  // the address gets its own pace back
+  try { if (typeof tedStopSpeaking === 'function') tedStopSpeaking(); } catch (e) {}
+  if (TED_REAR.active) tedRearRelease();
+  // The wheel is NOT taken back. You end the walk standing in your own body
+  // with the camera behind you, which is the state "go and get properly
+  // lost" is describing. Escape releases it, the way it always has.
+  // The gathering keeps its own patience from here — ruling 3, same as a talk.
+  if (typeof gatherState !== 'undefined') gatherState.held = false;
+  if (typeof tedPatrol !== 'undefined' && tedPatrol.state === 'address' && !TED_REAR.active) {
+    tedPatrol.state = 'pausing'; tedPatrol.pauseTimer = 1.5;
+  }
+  showNavLabel(byHand ? 'Ted leaves you to it — the villa is yours' : 'that is the lot — the villa is yours');
+}
+
+// Escape leaves the tour, the same key that leaves everything.
+window.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && tourState.on && !(typeof threshold !== 'undefined' && threshold.showing)) tourStop(true);
+});
+
+// Offered once, in the banner, after the introduction has been heard —
+// never a toll, never a second ask. The row in the Compass root is the
+// standing way back to it.
+// It WAITS for the introduction rather than racing it. The first version
+// marked the offer spent and then found the threshold up — which on a first
+// arrival is always, because considerThreshold opens the door in the same
+// tick the feed lands. The mark is now written when the banner is actually
+// SHOWN, which is the considerTroutPrompt pattern: poll patiently, spend
+// the one offer once, never twice.
+function considerTourOffer(tries) {
+  tries = (tries == null) ? 150 : tries;
+  let taken = null, offered = null;
+  try { taken = localStorage.getItem(TOUR_TAKEN_KEY); offered = localStorage.getItem(TOUR_OFFERED_KEY); } catch (e) {}
+  if (taken || offered) return;
+  const busy = tourState.on ||
+               (typeof threshold !== 'undefined' && threshold.showing) ||
+               (typeof announceState !== 'undefined' && (announceState.entry || announceState.custom));
+  if (busy) {
+    if (tries > 0) setTimeout(function () { considerTourOffer(tries - 1); }, 2000);
+    return;
+  }
+  const shown = announceCustom(
+    'I’m headed down to the sand with everyone. Come along and I’ll show you how the place works.',
+    'come along', tourBegin);
+  if (!shown) {
+    if (tries > 0) setTimeout(function () { considerTourOffer(tries - 1); }, 2000);
+    return;
+  }
+  try { localStorage.setItem(TOUR_OFFERED_KEY, '1'); } catch (e) {}
 }
 
 // ── Write: through the gate. No credential, no api.github.com. ──
@@ -16359,6 +17350,12 @@ function bodyFollowsTheEye(key) {
     if (typeof visitorNav !== 'undefined' && visitorNav.active) return;
     const mine = (typeof profileMine === 'function') ? profileMine() : null;
     if (!mine) return;
+    // Ted's body is not free to follow the eye while he is ON THE FLOOR —
+    // rearing for a talk, or walking the tour. tedTravelTo would fight
+    // updateTedAddress for the same position and he would slide between two
+    // destinations. (It never arose before the tour, because an address
+    // never calls goToPlace; the tour does, at every stop.)
+    if (mine === 'ted' && typeof TED_REAR !== 'undefined' && TED_REAR.active) return;
     const pt = placePoint(key);
     if (!pt) return;
     if (mine === 'ted') { tedTravelTo(pt); return; }
@@ -16987,7 +17984,22 @@ function compassMarkVisited(key) {
   compassVisited.add(key);
   try { localStorage.setItem('dg_compass_visited', JSON.stringify(Array.from(compassVisited))); } catch (e) {}
 }
-function compassPlaceKnown(p) { return !p.hidden || compassVisited.has(p.key); }
+// ── HIDDEN-UNTIL-VISITED IS SHELVED FOR THE BETA (RULED 2026-08-16) ──
+//
+// Sailor: the no-map argument and the discovery rule that follows from it
+// are "essentially true to the project at large" — but they get reintroduced
+// AFTER the beta, to a general audience, once the map is ontologically
+// complete, which it is not quite yet and should be by the end of the beta.
+// A guest this month should find every place on the Compass from the start.
+//
+// So the machinery is not removed, it is switched off: the `hidden: true`
+// row on the observatory stays, `compassMarkVisited` keeps recording every
+// place a device has stood in (so nothing is lost in the meantime), and the
+// interval below keeps learning. One constant brings the whole rule back.
+const COMPASS_HIDES_UNVISITED = false;
+function compassPlaceKnown(p) {
+  return !COMPASS_HIDES_UNVISITED || !p.hidden || compassVisited.has(p.key);
+}
 // Standing somewhere hidden teaches the Compass. summonerPoint is already
 // the villa's definition of where YOU are, so discovery inherits it —
 // walking there, flying there, being led there by a friend all count.
@@ -19159,6 +20171,7 @@ function toggleTedPhoto() {
   }
 }
 window.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && obsInspectSat) { obsInspectSat = null; showNavLabel('the sky returns to the plate'); return; }
   if (e.key === 'Escape' && obsState.veil) { obsVeilToggle(); return; }   // the earth first
   if (e.key === 'Escape' && obsState.seated) { obsStand(); return; }   // then standing
   if (e.key === 'Escape' && typeof visitorNav !== 'undefined' && visitorNav.active && !tedPhoto.active) { toggleVisitor(); return; }
@@ -19913,6 +20926,17 @@ container.addEventListener('pointerup', e => {
         openNotebook(room);
         return;
       }
+    }
+  }
+
+  // ── A satellite — its path, its ground mark, its crossing — selects it ──
+  {
+    const satHit = obsSatClickHit(raycaster);
+    if (satHit) {
+      obsInspectSat = satHit;
+      if (obsState.seated && !obsState.panelFloating) obsPanelToggle();
+      showNavLabel('the panel pierces ' + satHit.name + (obsState.seated ? '' : ' — take the chair to read it'));
+      return;
     }
   }
 
@@ -23181,6 +24205,10 @@ function animate() {
   residentBudget.run('alrik-new',   animateAlrikBeaver, t, beaverAlrik);
   residentBudget.end();
   addressFaceTheHouse();   // last, after every mover has set its own yaw
+  // The tour's toasts are pinned to world points, so they are projected
+  // once a frame — after the movers, because one of them rides Trout's
+  // stele and another rides the dome.
+  if (typeof tourToastTick === 'function') tourToastTick();
   animateBoats(t);
 
   // The river flows (shader-side; one uniform is the whole per-frame cost)
