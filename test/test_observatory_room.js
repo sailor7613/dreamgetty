@@ -270,6 +270,53 @@ function check(name, ok, detail) {
     onto.cardShows && onto.cardFacts);
   check('swept away, the card yields', onto.cardHides);
 
+  // ── the portraits: actual machines on the plate, selected by a click ──
+  const port = await p.evaluate(() => {
+    let t = 12000;
+    const crank = (sec) => { for (let i = 0; i < sec * 20; i++) { t += 0.05; obsTick(t); } };
+    const r = {};
+    r.models = obsSats.every(s2 => s2.model && s2.model.children.length >= 6);
+    r.layer7 = obsSats.every(s2 => {
+      let ok = true;
+      s2.model.traverse(o => { if (o.isMesh && o.layers.mask !== (1 << 7)) ok = false; });
+      return ok;
+    });
+    r.parked = !!scene.getObjectByName('obsSatPark');
+    // click selection: forge a ray at Hubble's path (make it visible first)
+    const s1 = obsSats[1];
+    s1.path.visible = true;
+    const pt = new THREE.Vector3().fromBufferAttribute(s1.path.geometry.attributes.position, 45);
+    const world = s1.path.localToWorld(pt.clone());
+    const origin = obsRoomCentre(); origin.y += 2;
+    const ray = new THREE.Raycaster();
+    ray.set(origin, world.clone().sub(origin).normalize());
+    const hit = obsSatClickHit(ray);
+    r.clickFinds = hit === s1;
+    // selection turns the plate to the portrait and fills the card deep
+    obsSit(); obsPanelToggle(); crank(3);
+    obsInspectSat = s1;
+    obsSatTick(Date.now());
+    obsPanelInspectTick(Date.now());
+    const card = document.getElementById('obs-sat-card');
+    r.deepCard = card.classList.contains('open')
+      && card.innerHTML.indexOf('Hubble') >= 0
+      && card.innerHTML.indexOf('min around') > 0
+      && card.innerHTML.indexOf('inclined') > 0
+      && card.innerHTML.indexOf('aloft since 1990') > 0
+      && card.innerHTML.indexOf('mirror') > 0;
+    const spin0 = obsModelSpin;
+    crank(2);
+    r.portraitTurns = obsModelSpin > spin0 && Math.abs(s1.model.rotation.y - obsModelSpin) < 1e-9;
+    obsInspectSat = null;
+    obsStand(); crank(2);
+    return r;
+  });
+  check('three machines modelled, parked under the world',
+    port.models && port.layer7 && port.parked);
+  check('a click on a path finds its satellite', port.clickFinds);
+  check('selection fills the card to full depth — orbit, history, lore', port.deepCard);
+  check('the portrait turns on the plate', port.portraitTurns);
+
   // ── the eye moves freely in a small room ──
   const comfort = await p.evaluate(() => {
     let t = 8000;
