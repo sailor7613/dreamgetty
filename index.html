@@ -10776,6 +10776,16 @@ function obsZoomFloor(base) {
   return (typeof obsState !== 'undefined' && obsEyeInRoom()) ? 0.7 : base;
 }
 
+// The wheel's near limit, context-aware (2026-08-18). The villa-wide floor
+// is 2.5 — close enough for furniture, far too coy for marble. Locked on
+// Venus (the statue or any of her anchors) the floor drops to 0.45, close
+// enough to watch the thin-film crest slide over a single fold of drapery.
+// Everywhere else the old numbers hold.
+function zoomFloorNow() {
+  if (activeFocus && activeFocus.name.indexOf('Venus') === 0) return 0.45;
+  return obsZoomFloor(2.5);
+}
+
 // ── the room breathes — called from animate() ──
 function obsTick(t) {
   if (!obsState.built) return;
@@ -20256,6 +20266,67 @@ scene.add(lights.treeLight);
 // ============================================================
 // VENUS DE MILO — GLTF model loaded asynchronously
 // ============================================================
+
+// --- Iridescent sheen — thin-film interference (nacre physics) ---
+// A soap-bubble-thin film over the marble: hue comes from the optical
+// path difference through the film, so the color is a pure function of
+// viewing angle — it sweeps across her curves and flashes as the camera
+// moves, like a reflection, with no animation clock involved.
+// Tune live from the console: venusIridescence.uIriStrength.value etc.
+const venusIridescence = {
+  uIriStrength: { value: 0.825 }, // overall sheen gain (0 = off)
+  uIriFilmNm:   { value: 420 },   // film thickness in nm — sets the hue family
+  uIriPower:    { value: 1.4 }    // Fresnel falloff — lower = broader crest
+};
+window.venusIridescence = venusIridescence;
+
+function applyVenusIridescence(mat) {
+  mat.onBeforeCompile = (shader) => {
+    shader.uniforms.uIriStrength = venusIridescence.uIriStrength;
+    shader.uniforms.uIriFilmNm   = venusIridescence.uIriFilmNm;
+    shader.uniforms.uIriPower    = venusIridescence.uIriPower;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 vIriWorld;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvIriWorld = (modelMatrix * vec4(position, 1.0)).xyz;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', [
+        '#include <common>',
+        'varying vec3 vIriWorld;',
+        'uniform float uIriStrength;',
+        'uniform float uIriFilmNm;',
+        'uniform float uIriPower;'
+      ].join('\n'))
+      .replace('#include <lights_fragment_end>', [
+        '#include <lights_fragment_end>',
+        '{',
+        '  vec3 iriV = normalize(vViewPosition);',
+        '  float iriNdV = clamp(dot(normal, iriV), 0.0, 1.0);',
+        // Fresnel-style rim: the sheen lives on the curves, not the flats
+        '  float iriRim = pow(1.0 - iriNdV, uIriPower);',
+        // Gentle thickness drift across the figure so the crest breathes
+        '  float iriTh = uIriFilmNm * (1.0 + 0.16 * sin(vIriWorld.y * 2.7 + vIriWorld.x * 1.9)',
+        '                                  + 0.09 * sin(vIriWorld.y * 6.1 + vIriWorld.z * 3.3));',
+        // Thin-film interference: refract into the film (Snell, n = 1.38 like
+        // nacre), then compare the optical path against each RGB wavelength.
+        '  float iriCosT = sqrt(max(0.0, 1.0 - (1.0 - iriNdV * iriNdV) / 1.9044));',
+        '  float iriOpd = 2.0 * 1.38 * iriTh * iriCosT;',
+        '  vec3 iriFilm = 0.5 + 0.5 * cos(6.2831853 * vec3(iriOpd) / vec3(650.0, 532.0, 473.0));',
+        '  iriFilm = mix(vec3(1.0), iriFilm, 0.9);',
+        // Energy-conserving: the film borrows light from the body at grazing
+        // angles and returns it as spectral reflection — scaled by the light
+        // actually falling on her, so it dims with the villa's day/night.
+        '  vec3 iriLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;',
+        '  float iriF = clamp(iriRim * uIriStrength, 0.0, 1.0);',
+        '  reflectedLight.directDiffuse *= 1.0 - iriF * 0.85;',
+        '  reflectedLight.indirectDiffuse *= 1.0 - iriF * 0.85;',
+        '  reflectedLight.indirectSpecular += iriFilm * iriF * 1.5 * iriLight;',
+        '}'
+      ].join('\n'));
+  };
+  mat.needsUpdate = true;
+}
+// -----------------------------------------------------------------
+
 const venusLoader = new THREE.GLTFLoader();
 let venusModel = null;
 venusLoader.load(
@@ -20278,16 +20349,118 @@ venusLoader.load(
     venusModel.position.set(-6, BUILDING_Y - bottomY, -3);
     venusModel.rotation.y = Math.PI * 0.3; // angled toward center
 
-    // Match gallery material style — stone-like
+    // Match gallery material style — stone-like, with a nacre sheen
     venusModel.traverse(child => {
       if (child.isMesh) {
         child.castShadow = true;
         child.receiveShadow = true;
         child.userData.isStatue = true;
+        applyVenusIridescence(child.material);
       }
     });
 
     scene.add(venusModel);
+
+    // ── SHE PIERCES THE COLUMNS (stamp + ghost passes) ────────
+    // Two extra passes over her geometry, both after all opaque work:
+    //   STAMP (renderOrder 998): invisible, writes stencil=1 only where
+    //     her surface equals the FINAL depth buffer — i.e. where she is
+    //     actually visible. It must run after the opaque phase because
+    //     r128 sorts opaque draws by shader program before depth, so her
+    //     stamp during the opaque pass would land even where a column
+    //     later covers her.
+    //   GHOST (renderOrder 999): drawn only where the depth test says
+    //     something is IN FRONT of her (GreaterDepth) and the stencil
+    //     says her visible surface is NOT here (NotEqual 1). Net effect:
+    //     a faint iridescent silhouette through columns — never through
+    //     her own marble. Additive, fresnel-weighted, very quiet.
+    const venusStampMat = new THREE.MeshBasicMaterial({
+      colorWrite: false,                   // invisible — exists only to stamp
+      depthWrite: false,
+      transparent: true,                   // forces it into the post-opaque queue
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilFunc: THREE.AlwaysStencilFunc,
+      stencilZPass: THREE.ReplaceStencilOp // depthFunc LessEqual: passes only where she IS the visible surface
+    });
+    const venusStamp = venusModel.clone();
+    venusStamp.traverse(child => {
+      if (child.isMesh) {
+        child.material = venusStampMat;
+        child.castShadow = false;
+        child.receiveShadow = false;
+        child.renderOrder = 998;
+        child.raycast = function () {};
+      }
+    });
+    scene.add(venusStamp);
+    const venusGhostMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      depthFunc: THREE.GreaterDepth,   // only paint where she is OCCLUDED
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      stencilWrite: true,                  // enables the stencil TEST; all ops
+      stencilRef: 1,                       // default to Keep, so nothing writes
+      stencilFunc: THREE.NotEqualStencilFunc, // only where her surface didn't land
+      // (write mask stays 0xff — r128 masks the frame's stencil CLEAR with it,
+      //  so a 0 mask here would let stale stamps accumulate and eat the ghost)
+      uniforms: { uGhost: { value: 0.30 } },
+      vertexShader: [
+        'varying vec3 vN; varying vec3 vV;',
+        'void main() {',
+        '  vN = normalize(normalMatrix * normal);',
+        '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+        '  vV = -mv.xyz;',
+        '  gl_Position = projectionMatrix * mv;',
+        '}'
+      ].join('\n'),
+      fragmentShader: [
+        'uniform float uGhost;',
+        'varying vec3 vN; varying vec3 vV;',
+        'void main() {',
+        '  float ndv = clamp(dot(normalize(vN), normalize(vV)), 0.0, 1.0);',
+        '  float rim = pow(1.0 - ndv, 1.6);',
+        // the same thin-film palette as her sheen, so the ghost matches
+        '  vec3 film = 0.5 + 0.5 * cos(6.2831853 * vec3(1159.2 * ndv) / vec3(650.0, 532.0, 473.0));',
+        '  vec3 col = mix(vec3(0.75, 0.82, 1.0), film, 0.5);',
+        '  gl_FragColor = vec4(col, 1.0) * (0.35 + 0.65 * rim) * uGhost;',
+        '}'
+      ].join('\n')
+    });
+    const venusGhost = venusModel.clone();
+    venusGhost.traverse(child => {
+      if (child.isMesh) {
+        child.material = venusGhostMat;
+        child.castShadow = false;
+        child.receiveShadow = false;
+        child.renderOrder = 999;              // after everything opaque
+        child.raycast = function () {};       // never steals a click
+      }
+    });
+    scene.add(venusGhost);
+    window.venusGhost = venusGhostMat.uniforms.uGhost; // console handle
+
+    // ── CLICK ANCHORS ON HER BODY ─────────────────────────────
+    // Three close-up focus targets: her gaze, her navel, the drape at
+    // her calves. Registered with priority so a click lands on the
+    // anchor rather than the whole-statue hitbox that encloses them.
+    (function registerVenusAnchors() {
+      const P = venusModel.position;                       // her axis in x/z; feet rest at BUILDING_Y
+      const F = new THREE.Vector3(Math.sin(venusModel.rotation.y), 0, Math.cos(venusModel.rotation.y)); // facing
+      function anchor(name, height, out, camDist, camLift, size) {
+        const pos = new THREE.Vector3(P.x + F.x * out, BUILDING_Y + height, P.z + F.z * out);
+        const cam = new THREE.Vector3(pos.x + F.x * camDist, pos.y + camLift, pos.z + F.z * camDist);
+        const t = addFocusTarget(name, scene, cam, pos, { x: size, y: size, z: size }, pos);
+        t.priority = 1;
+        focusHitboxes.push(t.hitbox);        // list was snapshotted before load
+        return t;
+      }
+      anchor('Venus — her gaze', 2.26, 0.05, 1.50, 0.00, 0.55);
+      anchor('Venus — navel',    1.42, 0.12, 1.25, 0.08, 0.50);
+      anchor('Venus — calves',   0.55, 0.05, 2.00, 0.45, 0.95);
+    })();
+
     console.log('[Getty v6] Venus de Milo loaded. Height:', targetHeight.toFixed(1) + 'm, scale:', s.toFixed(4));
   },
   (progress) => {
@@ -20305,6 +20478,19 @@ venusSpot.position.set(-6, BUILDING_Y + 6, -3);
 venusSpot.target.position.set(-6, BUILDING_Y + 1.2, -3);
 venusSpot.castShadow = true;
 scene.add(venusSpot); scene.add(venusSpot.target);
+
+// Museum pairing for the nocturne (2026-08-18):
+// a cool rim light behind-above her shoulder line — barely-there by day,
+// it rises in the dark and cuts her silhouette free of the background —
+// and a warm plinth uplight that exists only in the dark, the classic
+// gallery uplight that deepens the drapery from below.
+const venusRim = new THREE.SpotLight(0xbfd4ff, 0.12, 16, Math.PI * 0.3, 0.6, 1.8);
+venusRim.position.set(-6 - Math.sin(Math.PI * 0.3) * 4.5, BUILDING_Y + 5.5, -3 - Math.cos(Math.PI * 0.3) * 4.5);
+venusRim.target.position.set(-6, BUILDING_Y + 1.9, -3);
+scene.add(venusRim); scene.add(venusRim.target);
+const venusUplight = new THREE.PointLight(0xffe0b8, 0, 4.5, 2);
+venusUplight.position.set(-6 + Math.sin(Math.PI * 0.3) * 0.55, BUILDING_Y + 0.12, -3 + Math.cos(Math.PI * 0.3) * 0.55);
+scene.add(venusUplight);
 
 // ============================================================
 // iMAC G4 "SUNFLOWER" — Edit station for trace notes
@@ -20708,7 +20894,7 @@ function updateCamera() {
   camPhi += (targetPhi - camPhi) * 0.04;
   camRadius += (targetRadius - camRadius) * 0.04;
   camPhi = Math.max(0.1, Math.min(Math.PI - 0.1, camPhi));
-  camRadius = Math.max(obsZoomFloor(2.5), Math.min(100, camRadius));
+  camRadius = Math.max(zoomFloorNow(), Math.min(100, camRadius));
   camera.position.x = camTarget.x + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
   camera.position.y = camTarget.y + camRadius * Math.cos(camPhi);
   camera.position.z = camTarget.z + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
@@ -21629,7 +21815,7 @@ container.addEventListener('wheel', e => {
   // [2.5, 100] and zoom felt dead in both directions until it clawed back.
   // Latent forever; exposed by photo mode, which never runs the approach
   // resets that used to quietly re-sync it.
-  targetRadius = Math.max(obsZoomFloor(2.5), Math.min(100, targetRadius));
+  targetRadius = Math.max(zoomFloorNow(), Math.min(100, targetRadius));
   lastInteraction = Date.now(); autoOrbit = false;
 }, { passive: false });
 
@@ -21647,7 +21833,7 @@ container.addEventListener('touchmove', e => {
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     targetRadius += (pinchDist - dist) * 0.015;
-    targetRadius = Math.max(obsZoomFloor(2.5), Math.min(100, targetRadius));   // same clamp as the wheel (2026-07-27)
+    targetRadius = Math.max(zoomFloorNow(), Math.min(100, targetRadius));   // same clamp as the wheel (2026-07-27)
     pinchDist = dist;
     lastInteraction = Date.now(); autoOrbit = false;
   }
@@ -21889,7 +22075,17 @@ container.addEventListener('pointerup', e => {
   // Check focus targets — if already focused on this target, release instead of re-locking
   const focusHits = raycaster.intersectObjects(focusHitboxes);
   if (focusHits.length > 0) {
-    const ft = focusHits[0].object.userData.focusTarget;
+    // Priority anchors (Venus body anchors sit inside her whole-statue
+    // hitbox, whose front face the ray always meets first) — among hits
+    // within a few units of the nearest, the higher priority wins.
+    let picked = focusHits[0];
+    for (let i = 1; i < focusHits.length; i++) {
+      if (focusHits[i].distance - focusHits[0].distance > 3.5) break;
+      const a = focusHits[i].object.userData.focusTarget;
+      const b = picked.object.userData.focusTarget;
+      if (a && ((a.priority || 0) > ((b && b.priority) || 0))) picked = focusHits[i];
+    }
+    const ft = picked.object.userData.focusTarget;
     if (ft) {
       if (activeFocus === ft) {
         releaseFocus();
@@ -22222,11 +22418,74 @@ function getTraceHitTargets() {
 }
 
 // ============================================================
+// VENUS NOCTURNE — the villa dims for her (2026-08-18)
+// ============================================================
+// Hold focus on Venus (or any of her anchors) for 15 seconds and the
+// villa lowers its lights like a museum after hours: ambient, sun and
+// the main spot ease down, her own spot holds and warms, the cool rim
+// rises behind her shoulders, the plinth uplight breathes on. Release
+// focus (or toggle day/night) and the room comes back exactly as found.
+const venusNocturne = { dim: 0, since: 0, saved: null, DELAY: 15000 };
+
+function cancelVenusNocturne() {
+  if (venusNocturne.saved) {
+    const s = venusNocturne.saved;
+    lights.ambient.intensity = s.amb;
+    lights.hemi.intensity = s.hemi;
+    lights.sun.intensity = s.sun;
+    lights.spotMain.intensity = s.spotMain;
+    lights.spotWarm.intensity = s.spotWarm;
+    venusSpot.intensity = s.vSpot;
+    renderer.toneMappingExposure = s.exp;
+    venusNocturne.saved = null;
+  }
+  venusNocturne.dim = 0;
+  venusNocturne.since = 0;
+  venusRim.intensity = 0.12;
+  venusUplight.intensity = 0;
+}
+
+function updateVenusNocturne() {
+  const focused = !!(activeFocus && activeFocus.name.indexOf('Venus') === 0);
+  if (focused && !venusNocturne.since) venusNocturne.since = Date.now();
+  if (!focused) venusNocturne.since = 0;
+  const want = (focused && Date.now() - venusNocturne.since > venusNocturne.DELAY) ? 1 : 0;
+
+  if (want > 0 && !venusNocturne.saved) {
+    venusNocturne.saved = {
+      amb: lights.ambient.intensity, hemi: lights.hemi.intensity,
+      sun: lights.sun.intensity, spotMain: lights.spotMain.intensity,
+      spotWarm: lights.spotWarm.intensity,
+      vSpot: venusSpot.intensity, exp: renderer.toneMappingExposure,
+    };
+  }
+  if (!venusNocturne.saved) return;               // nothing to steer
+
+  venusNocturne.dim += (want - venusNocturne.dim) * 0.025;
+  if (want === 0 && venusNocturne.dim < 0.005) {  // fully faded back — hand the room over
+    cancelVenusNocturne();
+    return;
+  }
+  const s = venusNocturne.saved, d = venusNocturne.dim;
+  const L = function (a, b) { return a + (b - a) * d; };
+  lights.ambient.intensity = L(s.amb, s.amb * 0.15);
+  lights.hemi.intensity = L(s.hemi, s.hemi * 0.15);
+  lights.sun.intensity = L(s.sun, s.sun * 0.05);
+  lights.spotMain.intensity = L(s.spotMain, s.spotMain * 0.2);
+  lights.spotWarm.intensity = L(s.spotWarm, s.spotWarm * 0.25);
+  venusSpot.intensity = L(s.vSpot, Math.max(s.vSpot, 2.2));
+  renderer.toneMappingExposure = L(s.exp, s.exp * 0.55);
+  venusRim.intensity = L(0.12, 1.1);
+  venusUplight.intensity = L(0, 0.9);
+}
+
+// ============================================================
 // MODE TOGGLE — DAY / NIGHT
 // ============================================================
 let modeTransition = null;
 
 function toggleMode() {
+  cancelVenusNocturne();  // the room must be honest before the big lerp measures it
   isDarkMode = !isDarkMode;
   document.body.classList.toggle('light', !isDarkMode);
   document.getElementById('skylight-btn').textContent = isDarkMode ? 'Skylight' : 'Gallery';
@@ -24824,6 +25083,9 @@ function animate() {
     targetPhi = Math.PI * 0.38 + Math.sin(t * 0.08) * 0.04;
   }
   updateCamera();
+
+  // Venus nocturne — dims the villa after 15s of held focus on her
+  updateVenusNocturne();
 
   // Ocean waves
   animateOcean(t);
