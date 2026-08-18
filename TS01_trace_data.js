@@ -13,6 +13,18 @@
 // Date: April 5, 2026 (military layer) · August 10, 2026 (real-object layer)
 //
 // ------------------------------------------------------------
+// CLOSED AS A TRACE — 2026-08-18 (Sailor + Claude)
+// ------------------------------------------------------------
+// See the `frame` and `lifecycle` blocks below (Trace_Data_Schema_v2 §2 —
+// this file is the first application of the required frame block, declared
+// retroactively per the 08-17 retirement handoff §5.3). TS01 closes as
+// TS01: this file is the record of what it was. The TF series continues
+// from its extract — TF01 → PG01, Parameters/09_Parallelograms/
+// Contemporaneous/PG01_Petrogas_Dollar.md. Closing is by recording, not
+// waiting; reopening remains possible; nothing is destroyed.
+// Three-copy md5 sync: all copies updated together 2026-08-18.
+//
+// ------------------------------------------------------------
 // REBUILD NOTE — 2026-08-10 (Sailor + Claude)
 // ------------------------------------------------------------
 // Total reconsideration requested: "the trace as it stands now was a rough
@@ -77,6 +89,35 @@ const TS01_TRACE = {
   eventType: 'Z-inversion',
   eventTypeExtended: 'Z-inversion (military layer) + projection gap (real-object layer, provisional)',
   prevalentAxis: 'Y',
+
+  // ── THE FRAME — declared retroactively 2026-08-18 (Sailor) ──
+  // First application of Trace_Data_Schema_v2 §2's required frame block.
+  // The window is declared honestly as the long exposure it was — February
+  // to August 2026, operation to detection. The blur that exposure produced
+  // (latency and oscillation material — motion legible inside the frame) is
+  // exactly what routes upward to the arc in the TF01 extract, per the
+  // exposure discipline; it does not invalidate the trace, it types it.
+  frame: {
+    declared: 'Operation — never officially named a war or an engagement; ill-defined by design, with consequences beyond what is claimed (Refraction_Optics_v0 §2: contested illumination is an encodable fact of the trace)',
+    contested: ['war', 'engagement'],
+    asOfDate: '2026-08-18',
+    window: {
+      start: '2026-02-01',   // operation
+      end:   '2026-08-08',   // detection — C2, the Hormuz demotion remark
+    },
+  },
+
+  // ── Lifecycle — CLOSED 2026-08-18 (retirement handoff §5.4) ──
+  lifecycle: {
+    status: 'closed',
+    closedDate: '2026-08-18',
+    closingFindings: [
+      'SCOPE: NARROW. The trace closes on the dated object — the operation, February to August 2026, operation to detection. The broad object (the petrogas-dollar) is a standing condition, ineligible for a trace edge by the typing ruling (Occlusion_Edge_v0 §5a); it routes to the arc: PG01.',
+      'EDGE: NOT ADMITTED ON THIS RECORD — A2 unevidenced at close. Recorded as a finding, not a debt. Nothing waits on the Memorandum documents; if they surface, reopening is possible like anything else.',
+      'OSCILLATION: resolution carried as-is — closed 2026-08-10 without rescoring object.z; the outcome dissolved the question rather than resolving it (see findings).',
+      'EXTRACTION: TF01 extracts to PG01 through the one-way membrane — declared frame, real-object score, position readings with permeability modes, dated detections (M3 2026-06-24, C2 c. 2026-08-08), subject roles under the Enrollment Ruling. The predicate table and local evidentiary machinery stay here.',
+    ],
+  },
 
   // ── Refraction output — military layer (UNCHANGED from prior build) ──
   object:  { x: 0.65, y: 0.85, z: 0.80 },   // Y-prevalent, Z-delivering
