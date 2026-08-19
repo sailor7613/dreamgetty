@@ -6,10 +6,22 @@
 <title>Prism — Dream Getty v6</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  /* `touch-action: none` LIVED HERE, AND IT TURNED OFF EVERY SCROLLBAR IN
+     THE VILLA (fixed 2026-08-18). The declaration is meant for the CANVAS --
+     a finger dragging the villa must orbit it, not pan the page -- but
+     touch-action is inherited by the whole layout tree, so a descendant's
+     `overflow-y: auto` cannot be dragged either. Ten containers were affected
+     and every one of them is a place a phone visitor is meant to read: the
+     feed list, the Compass unfold, the place ledgers, the notebooks, the
+     avatar picker, the trace inspector and the docent's own textarea. With
+     `scrollbar-width: none` on top of it, there was not even a hint that the
+     content continued. It moves to #scene-container, which is the only
+     element that ever wanted it; `overscroll-behavior` keeps the rubber-band
+     off without taking the panels with it. */
   html, body { 
     height: 100%; overflow: hidden; 
     font-family: 'Georgia', serif;
-    touch-action: none;
+    overscroll-behavior: none;
     transition: background-color 1.2s ease;
   }
   body { background: #0c0b09; }
@@ -18,7 +30,9 @@
   #scene-container {
     position: absolute; top: 0; left: 0; right: 0; bottom: 0;
     cursor: grab;
+    touch-action: none;              /* the villa orbits; the page does not */
   }
+  #scene-container canvas { touch-action: none; }
   #scene-container:active { cursor: grabbing; }
 
   #vignette {
@@ -1150,6 +1164,107 @@
     #tc-who, #tc-skip { align-self: flex-start; }
   }
 
+  /* ════════════════════════════════════════════════════════════════════
+     THE PHONE, PART TWO (2026-08-18) — the housekeeping pass
+     ════════════════════════════════════════════════════════════════════
+     Part one (08-13) fixed what a photograph of a phone showed: the banner,
+     the hint, the waves. This is what a FINGER on a phone finds, which is a
+     different list. Everything here is arithmetic rather than taste, so it
+     is gone rather than tuned. */
+
+  /* ── THE HINT LINE, AND WHERE IT SITS ──
+     `#touch-hint` is absolutely positioned at left:50% with right:auto, so on
+     a phone it shrink-to-fits against (viewport − 187.5) = 188px and wraps
+     into three stacked lines at bottom 20–80px — straight through the dial's
+     own 18–102px band, behind an opaque PNG at a higher z-index. Both hints
+     get the full width and stand clear of the instrument they describe. */
+  #touch-hint-coarse { display: none;
+    position: absolute; bottom: 112px; left: 12px; right: 12px;
+    text-align: center; font-size: 9px; letter-spacing: .12em;
+    text-transform: uppercase; z-index: 5; transition: opacity 3s ease;
+    color: rgba(245,240,232,0.16); }
+  body.light #touch-hint-coarse { color: rgba(20,18,14,0.22); }
+  body.ted-photo #touch-hint-coarse { display: none !important; }
+  body.ted-chrome-hidden #touch-hint-coarse { display: none !important; }
+
+  /* THE HOVER-GRACE DISC, STOOD DOWN IN THE TWO CASES IT HURTS.
+     It exists so a cursor that clips out across the rim for 200ms is treated
+     as passing rather than leaving. It is a 400px invisible circle over the
+     bottom of the screen, so: not while the unfold is open (it would eat
+     every row — see toggleNavMenu), and never on a coarse pointer, where
+     there is no hover to be graceful about and the gesture is a hold. */
+  body.nav-unfolded #compass-hud.soft::before,
+  body.nav-unfolded #wave-hud.soft::before { display: none; }
+
+  @media (pointer: coarse) {
+    #touch-hint { display: none; }
+    #touch-hint-coarse { display: block; }
+    #compass-hud.soft::before, #wave-hud.soft::before { display: none; }
+    /* the ring pills are the reason the hold exists — give them a thumb */
+    .cmp-bearing { font-size: 12px; padding: 6px 11px; }
+  }
+
+  /* Scroll containers, told explicitly. The inherited `none` is off html and
+     body now, but a stated intent is cheaper to hold than a cascade. */
+  #nav-menu, #fp-list, #fc-feed-list, .cmp-ledger, #nb-list, #ip-avatars,
+  #notebook-panel, #trace-inspect, #meet-panel, #feed-panel,
+  textarea, input { touch-action: auto; -webkit-overflow-scrolling: touch; }
+
+  /* THE PANELS THAT NEVER GOT A HEIGHT. #feed-panel took 86vh and
+     #notebook-panel 84vh; these four were written centred with no cap and no
+     overflow, so on a short viewport — or in portrait the moment the soft
+     keyboard halves it — they clip at BOTH ends and the save button is below
+     the fold with nothing to scroll. */
+  #docent-panel, #profile-panel, #trout-panel, #identity-panel {
+    max-height: 86vh; overflow-y: auto; overscroll-behavior: contain; }
+
+  /* SIXTEEN PIXELS OR iOS ZOOMS THE VILLA. Safari magnifies the page on focus
+     for any field under 16px and does it regardless of `user-scalable=no` —
+     and with body `overflow: hidden` there is then no scroll and no pinch to
+     get back out. Every compose box in the file was between 9px and 14px.
+     Keyed on the POINTER and not the width: an iPhone in landscape is 844
+     CSS px across, so a `max-width: 470px` rule would have left the zoom trap
+     in place on exactly the orientation a 3D scene invites. */
+  @media (pointer: coarse) {
+    #cmp-post, #fc-post, #ip-token, #dc-text, .pf-input, .tp-input,
+    #nb-file, #g4-api-key, .g4-chat-input, #trout-panel textarea,
+    input, textarea { font-size: 16px; }
+    /* and the two skips are thumb-sized wherever the thumb is */
+    #th-skip, #tc-skip { font-size: 13px; padding: 9px 16px; opacity: .75; }
+    #nav-menu .ui-btn { font-size: 11px; padding: 8px 14px; }
+  }
+
+  @media (max-width: 470px) {
+    /* A 21px row is a target for a mouse, not a thumb. Raised where it is
+       load-bearing — the Compass's own rows, the two skips, and the answers
+       in every panel — and left alone everywhere it would re-flow a layout
+       that was measured at 9px. */
+    #ip-row .ui-btn, #dc-row .ui-btn, #fc-post-row .ui-btn,
+    #tp-row .ui-btn, #pf-row .ui-btn { font-size: 12px; padding: 8px 14px; }
+
+    /* THE INTRODUCTION WAS BEING CUT OFF MID-SENTENCE. `max-height: 18vh`
+       with `overflow: hidden` is 120px on a 667px phone, and the column is
+       78% of 375px — so a long line lost its tail with no scrollbar, no
+       ellipsis and no sign anything had gone. The band grows upward
+       (`align-items: flex-end`), so giving it the room costs nothing below. */
+    #th-text { max-height: 34vh; }
+
+    /* The identity panel is `position: absolute` inside a body that does not
+       scroll, and it is the one panel a friend meets before anything else. */
+    #identity-panel { width: min(92vw, 300px); max-height: 84vh; }
+  }
+
+  @media (max-height: 500px) and (orientation: landscape) {
+    /* THE COMPASS UNFOLD WAS OFF THE TOP OF THE SCREEN. `bottom: 122px` plus
+       `max-height: 76vh` needs 122 + 0.76H <= H, i.e. a viewport at least
+       508px tall. At 375px the drawer's own top edge sits at −32px and no
+       amount of scrolling brings it back, because scrolling moves the content
+       inside the box and not the box. The `◂ compass` row and, on a place
+       page, the title and `go there` were simply unreachable in landscape —
+       on the orientation a phone is most likely to be held for a 3D scene. */
+    #nav-menu { bottom: 104px; max-height: calc(100vh - 124px); }
+    #th-text { max-height: 30vh; }
+  }
 </style>
 </head>
 <body>
@@ -1202,7 +1317,7 @@
      HARD — click, and the speech menu unfolds as the same floating sprite
      pills: the Talks series, your profile, the docent's address.
      A small dot on the waves when a talk is waiting unheard. -->
-<div id="wave-hud" aria-label="the Waves — hover for the voices, click for the talks">
+<div id="wave-hud" aria-label="the Waves — hover or hold for the voices, tap for the talks">
   <div id="wave-ring"></div>
   <img id="wave-img" src="art/icons/waves.png" alt=""
        onerror="this.style.display='none';document.getElementById('wave-fallback').style.display='block'">
@@ -1231,7 +1346,7 @@
 <div id="wave-hint">the villa's voices — click the waves</div>
 
 <!-- no title attribute: the browser tooltip photobombed the ring -->
-<div id="compass-hud" aria-label="the Compass — hover to get your bearings, click to unfold">
+<div id="compass-hud" aria-label="the Compass — hover or hold for your bearings, tap to unfold">
   <div id="compass-dial">
     <div id="compass-ring"></div>
     <img id="compass-img" src="art/icons/compass.png" alt=""
@@ -1447,6 +1562,10 @@
      applied to the last three buttons it was written about. -->
 
 <div id="touch-hint">drag to orbit · scroll to zoom · click to focus</div>
+<!-- The same sentence for a finger. `scroll to zoom` and `hover` are not
+     things a phone has, and the hold gesture is not discoverable without
+     being told once. Swapped by the pointer, not by the width. -->
+<div id="touch-hint-coarse">drag to look · pinch to zoom · tap to focus · hold the compass for your bearings</div>
 <div id="ted-photo-hint">ted photo · click the ground to place him — he faces you, then holds his gaze<br>click ted to sit ⇄ stand · drag orbits · ⇧drag pans · scroll zooms · H hides the chrome · esc exits</div>
 <div id="story-hud">
   <div class="hud-label">Prism Trace</div>
@@ -4071,6 +4190,8 @@ const PrismTraces = (function () {
 <script src="TS01_trace_data.js"></script>
 <script src="TS02_trace_data.js"></script>
 <script src="CS07_trace_data.js"></script>
+<script src="TF01_trace_data.js"></script>  <!-- TF series — first native snapshot frame (2026-08-18) -->
+<script src="dg_codex_data.js"></script>  <!-- the Codex: plain glossary + trace anatomy for the G4 (2026-08-18) -->
 <script>
 /* ============================================================
    THE SKY'S DATA (2026-08-11) — the Observatory spec §4–5.
@@ -10717,6 +10838,12 @@ function obsStand() {
   obsState.seated = false;
   obsState.lamp = true;
   obsState.panelFloating = false;
+  // AND THE VEIL COMES DOWN WITH YOU (fixed 2026-08-18). It was the one bit
+  // of chair state obsStand did not reset -- and #obs-console, which holds
+  // the only button for it, is hidden the instant you stand. The
+  // constellation figures stayed drawn over the whole villa's sky with no
+  // on-screen control at all.
+  if (obsState.veil) { try { obsVeilToggle(); } catch (e) {} }
   const c = obsState.savedCam;
   if (c) {
     camTarget.copy(c.target);
@@ -10916,7 +11043,14 @@ const PLACE_REGISTRY = [
   { key: 'lawn',     label: 'The North Lawn', x: -14, z: -10,  look: [-14, 1.8, -10],  off: [10, 6, 16] },
   { key: 'overlook', label: 'The Overlook',   x: -9,  z: 44,   look: [-9, 0.6, 44],    off: [5, 7, -13] },
   { key: 'valley',   label: 'The Valley',     x: 0,   z: 60,   look: [0, -3, 60],      off: [8, 10, -18] },
-  { key: 'beach',    label: 'The Beach',      x: 15,  z: 78,   look: [7, -10.5, 84],   off: [3, 9, -16] },
+  // The look point WAS [7, -10.5, 84], and nearestPlace measures against x/z:
+  // from there the River Mouth is nearer (d² 65) than the Beach itself (d²
+  // 100). So travelling to the Beach left the dial reading "the river mouth",
+  // and the place page answered "come here to leave word" for the place you
+  // had just arrived at — on the one beach the walk opens in and the exact
+  // room where leaving word is taught. Nudged onto its own ground rather than
+  // special-cased. (2026-08-18)
+  { key: 'beach',    label: 'The Beach',      x: 15,  z: 78,   look: [13, -10.5, 80],  off: [3, 9, -16] },
   { key: 'rivermouth', label: 'The River Mouth', x: 0, z: 88,  look: [0, -11, 88],     off: [-4, 8, -16] },
   { key: 'break',    label: 'The Break',      x: 0,   z: 97,   look: [0, -11.4, 97],   off: [1, 7, -14] },
   { key: 'kelp',     label: 'The Kelp Bed',   x: 8,   z: 102,  look: [8, -11.6, 102],  off: [2, 6, -12] },
@@ -11230,13 +11364,20 @@ function loadFeed() {
       if (typeof applyProfileOverrides === 'function') applyProfileOverrides();
       if (followAnimal.key) renderFeedInto(followAnimal.key);
       if (typeof renderStatementField === 'function') renderStatementField();
+      // BEFORE the door is considered: what this PERSON has heard, which may
+      // have been heard on a different machine entirely (see 'dg:seen').
+      if (typeof seenAbsorb === 'function') { try { seenAbsorb(); } catch (e) {} }
       if (typeof considerThreshold === 'function') considerThreshold();
-      // The tour is offered ONCE, in the banner, and only to a device that
-      // is not being stopped at the door by the introduction — two notices
-      // at once is the toll the threshold rulings exist to prevent.
-      if (typeof considerTourStart === 'function') setTimeout(function () { considerTourStart(); }, 2600);
     })
-    .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; });
+    .catch(() => { feedState.loaded = true; feedState.entries = feedState.entries || []; })
+    // THE WALK DOES NOT NEED THE FEED, AND USED TO DIE WITH IT (fixed 08-18).
+    // Both of these sat inside the `.then`, so a 404 manifest or one dropped
+    // request on hotel wifi took out the tutorial as well as the talk. The
+    // threshold's "no feed, no address, no pause" is a deliberate contract;
+    // the walk has no such excuse — it reads no feed data at all.
+    .then(function () {
+      if (typeof considerTourStart === 'function') setTimeout(function () { considerTourStart(); }, 2600);
+    });
 }
 loadFeed();
 setInterval(loadFeed, 5 * 60 * 1000);   // the villa settles — refresh on its own clock
@@ -11367,7 +11508,12 @@ function rehearseDraft() {
   if (!text) { if (note) note.textContent = 'there is nothing to rehearse'; return; }
   try { localStorage.setItem(DRAFT_KEY, box.value || ''); } catch (e) {}
   closeDocentConsole();
-  toggleNavMenu();
+  // `toggleNavMenu()` stood here, stale from when the address button lived in
+  // the Compass. Both call sites close the WAVE menu and never open the nav
+  // one, so the toggle always OPENED the unfold — on top of the rehearsal it
+  // was about to play. (2026-08-18)
+  const nm = document.getElementById('nav-menu');
+  if (nm && nm.classList.contains('open')) toggleNavMenu();
   // A rehearsal has no id, so nothing can be marked heard by it.
   openThreshold({ id: null, text: text, t: new Date().toISOString(), kind: 'address' },
                 { rehearsal: true });
@@ -11437,6 +11583,140 @@ function markHeard(id) {
   heardTalks.add(id);
   try { localStorage.setItem(HEARD_TALKS_KEY, JSON.stringify(Array.from(heardTalks))); } catch (e) {}
   try { localStorage.setItem(HEARD_KEY, id); } catch (e) {}
+  seenPushSoon();
+}
+
+// ============================================================
+// THE VILLA REMEMBERS YOU, NOT YOUR BROWSER (2026-08-18)
+// Sailor: "I've been having them force through every time I log on a new
+// device."
+//
+// It was never a missing skip — both skips have been on screen since the
+// day each thing was written. It was WHERE the memory lived. `dg_heard_talks`
+// and `dg_tour_seen_v2` are localStorage, and localStorage is a fact about a
+// browser profile, not about a person: a phone, a laptop, a second browser
+// and a private tab are four different visitors as far as those keys are
+// concerned, and every one of them gets the introduction and the five-minute
+// walk again. The beta is sent as a LINK, so a new device is the common case,
+// not the edge one.
+//
+// So the memory moves to where the villa's other memory already is: the feed,
+// under the visitor's own name. `replyTo: 'dg:seen'` is the same
+// field-that-already-crosses-the-door trick as 'dg:profile' and 'dg:note:' —
+// the deployed gate coerces the kind to 'statement' and passes the marker
+// through untouched, so this needs no Worker deploy. One entry per person,
+// rewritten (newest wins, exactly like a profile), holding every talk they
+// have heard and whether they have taken the walk.
+//
+// THE LOCAL KEYS STAY, and they are not a fallback bolted on afterwards —
+// they are the answer for the case the feed cannot serve. Someone who has
+// not entered a key is not a person the villa can recognise on a second
+// device, and it must not stop the door to ask. So: localStorage decides for
+// a stranger, the feed decides for a guest, and the two are unioned rather
+// than one overwriting the other — a marker is only ever ADDED, so a merge
+// can never un-hear something.
+//
+// Three rules, inherited from the threshold's own:
+//   1. NEVER A WALL. Every read and every write is best-effort and silent. A
+//      gate that is down, a key that is stale, a 500 — none of it may reach
+//      the visitor, and none of it may delay the door. The worst failure this
+//      can have is the behaviour that shipped before it: the talk plays again.
+//   2. NEVER A PROMPT. seenPost writes DIRECTLY rather than through
+//      postStatement, because postStatement opens the identity panel when
+//      there is no key. Skipping a speech must never be answered with a
+//      passcode box.
+//   3. NEVER ON THE LAWN. A marker is bookkeeping, not something anybody
+//      said. It is filtered out of the stone field, the word clouds, the
+//      place ledgers and the feed list wherever those already filter profiles.
+// ============================================================
+const SEEN_MARK = 'dg:seen';
+const WALK_TOKEN = 'walk:v2';      // bump with TOUR_SEEN_KEY to re-run the walk
+function isSeenMark(e) { return !!(e && e.replyTo === SEEN_MARK); }
+
+const seenState = { pushed: '', timer: null, walkedThisSession: false };
+
+// What this visitor has heard, as the flat token list the marker carries.
+function seenTokens() {
+  const out = Array.from(heardTalks);
+  if (tourSeen()) out.push(WALK_TOKEN);
+  return out.filter(function (s) { return s && /^[A-Za-z0-9:._-]+$/.test(s); });
+}
+
+// ── read ── the newest marker this person wrote, on any device
+function seenAbsorb() {
+  const id = (typeof feedIdentity === 'function') && feedIdentity();
+  if (!id || !id.avatar) return false;
+  let newest = null;
+  (feedState.entries || []).forEach(function (e) {
+    if (!isSeenMark(e) || e.author !== id.avatar) return;
+    if (!newest || (e.t || '') > (newest.t || '')) newest = e;
+  });
+  if (!newest) return false;
+  let grew = false;
+  String(newest.text || '').split(/\s+/).forEach(function (tok) {
+    if (!tok) return;
+    if (tok === WALK_TOKEN) { if (!tourSeen()) { markTourSeen(true); grew = true; } return; }
+    if (!heardTalks.has(tok)) {
+      heardTalks.add(tok);
+      grew = true;
+    }
+  });
+  if (grew) {
+    try { localStorage.setItem(HEARD_TALKS_KEY, JSON.stringify(Array.from(heardTalks))); } catch (e) {}
+  }
+  seenState.pushed = seenTokens().sort().join(' ');
+  return grew;
+}
+
+// ── write ── debounced, silent, and only when the set actually grew
+function seenPushSoon() {
+  if (seenState.timer) clearTimeout(seenState.timer);
+  seenState.timer = setTimeout(seenPost, 2500);
+}
+
+function seenPost() {
+  seenState.timer = null;
+  const id = (typeof feedIdentity === 'function') && feedIdentity();
+  if (!id || !id.avatar || !id.pass) return;          // a stranger keeps a local memory
+  if (typeof gateReady === 'function' && !gateReady()) return;
+  const toks = seenTokens().sort();
+  const line = toks.join(' ');
+  if (!line || line === seenState.pushed) return;     // nothing new to remember
+  seenState.pushed = line;
+  try {
+    fetch(GATE + '/say', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        pass: id.pass, avatar: id.avatar, kind: 'note',
+        text: line.slice(0, 380), to: null,
+        replyTo: SEEN_MARK, place: '', pos: [0, 0, 0],
+      }),
+    }).then(function (r) {
+      // A refused write is not a failure worth a word — but it must not be
+      // remembered as sent, or the next skip on this device is never written.
+      if (!r.ok) seenState.pushed = '';
+    }).catch(function () { seenState.pushed = ''; });
+  } catch (e) { seenState.pushed = ''; }
+}
+
+// ── and the case Sailor actually hit ──
+// He opens the link on a new laptop, the introduction starts because the villa
+// does not know him yet, and THEN he types his key. Without this, the talk he
+// has already heard on three devices plays to the end anyway. The moment the
+// door names him, the villa reads what he has heard and quietly stands down.
+function seenReconcileAfterKey() {
+  if (!seenAbsorb()) { seenPost(); return; }
+  try {
+    if (typeof threshold !== 'undefined' && threshold.showing && threshold.entry &&
+        typeof talkHeardAnyVersion === 'function') {
+      const series = talkSeries();
+      const cur = series.filter(function (s) { return s.entry.id === threshold.entry.id; })[0];
+      if (cur && talkHeardAnyVersion(cur)) endThreshold();
+    }
+  } catch (e) {}
+  try { if (typeof tourState !== 'undefined' && tourState.on && tourSeen()) tourStop(true); } catch (e) {}
+  seenPost();
 }
 
 // ============================================================
@@ -11476,7 +11756,18 @@ function talkSeries() {
     while (r.replyTo && byId[r.replyTo] && guard++ < 24) { r = byId[r.replyTo]; chain.push(r.id); }
     out.push({ entry: e, root: r.id, first: r.t, chain: chain });
   });
-  out.sort(function (a, b) { return a.first < b.first ? -1 : (a.first > b.first ? 1 : 0); });
+  // A TIMESTAMP THAT IS NOT A TIMESTAMP MUST NOT BECOME THE INTRODUCTION
+  // (fixed 2026-08-18). sanitizeFeedEntry sets `t: ''` for anything it cannot
+  // parse, and '' sorts before every ISO string — so one malformed `t` in a
+  // hand-edited manifest promoted that entry to series[0], which is unheard
+  // on every device in the beta, gates all of them behind the full fly-over
+  // threshold, and demotes the real introduction to a banner. An entry with
+  // no time has no place in the order; it goes to the end, where the worst it
+  // can do is wait in the corner.
+  out.sort(function (a, b) {
+    const at = a.first || '\uffff', bt = b.first || '\uffff';
+    return at < bt ? -1 : (at > bt ? 1 : 0);
+  });
   return out;   // oldest root first — the introduction leads
 }
 // Kept for the callers that only ever wanted "the latest thing said".
@@ -11554,6 +11845,14 @@ function compassRenderTalks() {
 // THE ANNOUNCEMENT BANNER — the not-a-toll half of the series
 // ============================================================
 const announceState = { entry: null, custom: null };
+// `later` MEANT `never`, AND THE BUTTON DID NOT SAY SO (fixed 2026-08-18).
+// announceDismiss called markHeard, so tapping `later` on a talk retired it
+// permanently: it never appeared again, the unheard dot cleared, and the
+// Compass listed it as heard. The reason it did that is real -- announceHide
+// clears announceState.entry, so without SOME memory the same banner returns
+// on loadFeed's five-minute refresh -- but the memory it needs is "not this
+// session", not "not ever". This set is deliberately not persisted.
+const announceSetAside = new Set();
 function announceShow(entry, why) {
   if (!entry || announceState.entry === entry) return;
   if (threshold.showing) return;
@@ -11605,7 +11904,7 @@ function announceOpen() {
   if (e) openThreshold(e, { rewatch: true });
 }
 function announceDismiss() {
-  if (announceState.entry) markHeard(announceState.entry.id);
+  if (announceState.entry && announceState.entry.id) announceSetAside.add(announceState.entry.id);
   announceState.custom = null;
   announceHide();
 }
@@ -11810,7 +12109,29 @@ function flyoverBegin() {
   approach.active = false;   // one hand on the wheel
   autoOrbit = false;
 }
-function flyoverStop() { flyover.active = false; }
+function flyoverStop() {
+  if (!flyover.active) return;
+  flyover.active = false;
+  // THE HANDOFF HAPPENS ON EVERY EXIT NOW, NOT ONLY AT u >= 1 (fixed
+  // 2026-08-18). flyoverTick re-seeds the orbit spherical from the final
+  // pose when the flight completes -- but stopping it early left camTheta,
+  // camPhi and camRadius at their page-load values while camTarget sat
+  // wherever the spline had reached, ninety units offshore. The next orbit
+  // frame then rebuilt the camera around THAT point and the visitor was
+  // looking at open sea with no way back but the Compass. Reachable by
+  // pressing `enter the villa` two seconds in -- and, with no input at all,
+  // by any introduction whose speech runs shorter than the 30s flight.
+  const dx = camera.position.x - camTarget.x,
+        dy = camera.position.y - camTarget.y,
+        dz = camera.position.z - camTarget.z;
+  const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (r > 0.001) {
+    camRadius = r;
+    camPhi = Math.acos(Math.max(-1, Math.min(1, dy / r)));
+    camTheta = Math.atan2(dx, dz);
+    targetTheta = camTheta; targetPhi = camPhi; targetRadius = camRadius;
+  }
+}
 
 // Trapezoidal progress: accelerate over the first 12%, cruise, brake over
 // the last 18%. Normalised so s(1) = 1.
@@ -12069,6 +12390,25 @@ function tedRearApply(theta) {
 function tedRearRelease() {
   TED_REAR.want = 0;
   TED_REAR.releasing = true;
+  // RELEASED WHILE HE WAS STILL WALKING TO THE MARK (fixed 2026-08-18).
+  // There is no rear to come down from yet, and updateTedAddress returns for
+  // every travelling frame — then re-sets `want = MAX` the instant he
+  // arrives. So `releasing` was never read again: TED_REAR.active stayed
+  // true forever, updateTedTurner kept returning early on state 'address',
+  // and tedRearApply re-pinned him to the mark every frame. He stood on his
+  // hind legs by the hedge for the rest of the session and no travel order
+  // could move him. Reachable by pressing `enter the villa` in the first
+  // seconds of the introduction, or `end the walk` during any of the walk's
+  // travel legs -- which at TOUR_TED_SPEED is most of its runtime.
+  // Marking the arrival lets the release branch below run on the very next
+  // frame and put his legs, tail and neck back exactly as it does after a
+  // talk that ran to the end.
+  if (!TED_REAR.arrived) {
+    TED_REAR.arrived = true;
+    TED_REAR.now = 0;
+    TED_REAR.base.copy(tedTurner.position);
+    TED_REAR.base.y = getTedHeight(tedTurner.position.x, tedTurner.position.z);
+  }
 }
 
 function updateTedAddress(t) {
@@ -12504,6 +12844,29 @@ function addressShowDraft() {
   } catch (e) {}
 }
 
+// ── WILL IT ACTUALLY SPEAK? (2026-08-18) ──
+// Both scores asked `!!tedNarration.synth`, which only says the API EXISTS.
+// It exists on a muted phone, on a tab that has had no user gesture yet, and
+// on a machine with no installed voices — and in all three the utterance is
+// silently dropped. The timings then diverge badly, because the two branches
+// are tuned for different things: the speaking branch is a FAILSAFE
+// (4000 + len*95, deliberately generous so a real voice is never cut off)
+// and the silent branch is a READING SPEED (capped at 15s). A 150-character
+// sentence sits for 18.3 seconds in silence instead of 9.8. Over a seven-
+// sentence introduction that is a minute of a beta tester staring at a
+// motionless caption wondering whether it has hung.
+//
+// getVoices() is the honest question. It is also famously empty until the
+// voiceschanged event on Chrome, so a miss is re-checked rather than cached.
+function tedCanActuallySpeak() {
+  try {
+    if (typeof tedSpeak !== 'function') return false;
+    if (typeof tedNarration === 'undefined' || !tedNarration.synth) return false;
+    const v = tedNarration.synth.getVoices();
+    return !!(v && v.length);
+  } catch (e) { return false; }
+}
+
 function addressStop() {
   const A = addressPlay;
   A.ended = true;
@@ -12555,8 +12918,7 @@ function addressNext() {
   // exists. With no synthesiser tedSpeak invokes its callback immediately and
   // politely — which, used naively, made the address flash for a single frame
   // and vanish on any browser without a voice.
-  const canSpeak = typeof tedSpeak === 'function' &&
-                   typeof tedNarration !== 'undefined' && !!tedNarration.synth;
+  const canSpeak = tedCanActuallySpeak();
   if (canSpeak) {
     tedSpeak(seg.text, advance);
     // Per segment, the failsafe the single-utterance threshold carried once:
@@ -12573,11 +12935,27 @@ function addressNext() {
 function endThreshold() {
   if (!threshold.showing) return;
   threshold.showing = false;
+  // Was the villa still flying when they pressed it? addressStop cuts the
+  // fly-over dead, and flyoverStop now leaves the orbit coherent -- but
+  // coherent at whatever headland the spline had reached. `enter the villa`
+  // is a request to be IN the villa, so it ends by coming home rather than by
+  // parking the camera wherever the sentence happened to fall. (2026-08-18)
+  const midFlight = (typeof flyover !== 'undefined') && flyover.active;
+  // Did they sit through it, or cut it off? A talk that ran to its last
+  // sentence sets addressPlay.ended itself; anything still mid-address when
+  // this is called was skipped. The walk reads this. (2026-08-18)
+  threshold.wasSkipped = !addressPlay.ended;
   addressStop();
   const el = document.getElementById('threshold');
   if (el) el.classList.remove('open');
   if (threshold.entry && threshold.entry.id) markHeard(threshold.entry.id);
   threshold.entry = null;
+  // cameraGlide(look, off, dur) — the same resting frame releaseFocus uses.
+  if (midFlight) { try { cameraGlide([0, 2, 0], [5, 10, 38], 2.4); } catch (e) {} }
+  if (threshold.tookWalk) {
+    threshold.tookWalk = false;
+    try { if (typeof visitorNav !== 'undefined' && !visitorNav.active) toggleVisitor(); } catch (e) {}
+  }
 }
 
 function openThreshold(entry, opts) {
@@ -12585,6 +12963,15 @@ function openThreshold(entry, opts) {
   const el = document.getElementById('threshold');
   if (!el || !entry) return;
   announceHide();
+  // ONE VOICE AT A TIME, IN BOTH DIRECTIONS (fixed 2026-08-18). tourBegin
+  // has always stood down for a talk, and announceShow has always stood down
+  // for the walk -- but openThreshold checked neither, and the walk is
+  // reachable from inside itself: Ted opens the Compass during it, and the
+  // talks list and the feed's address lines are both live under the caption.
+  // One click and the walk's beat clock kept firing tedSpeak straight through
+  // the address, tourTedTo fought TED_REAR for the same dog, and both
+  // captions stood open at opposite ends of the screen.
+  try { if (typeof tourState !== 'undefined' && tourState.on) tourStop(true); } catch (e) {}
   addressStop();
 
   threshold.showing = true;
@@ -12607,9 +12994,19 @@ function openThreshold(entry, opts) {
 
   // ── Ted takes the floor ──
   const origin = (typeof placePoint === 'function' && placePoint('galleria')) || new THREE.Vector3(0, 0, 0);
+  // Borrowed, not confiscated -- endThreshold hands it back (2026-08-18).
+  // Turning Walk off for the duration is right (a body wandering off during
+  // an address is what the camera lock exists to prevent); leaving it off
+  // afterwards was not. Someone who pressed `listen` on a banner mid-stroll
+  // had their body quietly dissolve and was returned to orbit mode with no
+  // notice and no explanation.
+  let wasWalking = false;
   try { if (typeof tedPhoto !== 'undefined' && tedPhoto.active) toggleTedPhoto(); } catch (e) {}
   try { if (typeof tedDocent !== 'undefined' && tedDocent.active) deactivateTedDocent(); } catch (e) {}
-  try { if (typeof visitorNav !== 'undefined' && visitorNav.active) toggleVisitor(); } catch (e) {}
+  try {
+    if (typeof visitorNav !== 'undefined' && visitorNav.active) { wasWalking = true; toggleVisitor(); }
+  } catch (e) {}
+  threshold.tookWalk = wasWalking;
   tedPatrol.state = 'address';
   TED_REAR.active = true; TED_REAR.releasing = false; TED_REAR.arrived = false;
   TED_REAR.want = 0; TED_REAR.now = 0;
@@ -12648,10 +13045,85 @@ function openThreshold(entry, opts) {
   addressNext();
 }
 
-// Escape leaves a talk. The threshold shields the pointer, never the keys.
+// ════════════════════════════════════════════════════════════════════
+// ONE ESCAPE, ONE THING (2026-08-18)
+// ════════════════════════════════════════════════════════════════════
+// Escape was five separate window listeners written months apart -- the
+// threshold's, the walk's, the clouds', the observatory/photo/follow/walk
+// stack, and the WASD block -- and window listeners do not take turns. Only
+// one of the five checked whether another had already answered, so a single
+// press ran several of them at once:
+//
+//   * during a talk with Walk on: endThreshold() AND toggleVisitor(), so
+//     skipping a speech also dropped you out of your own body;
+//   * during the walkthrough (which turns Walk on itself): tourStop() AND
+//     toggleVisitor() -- the exact opposite of the walk's own written
+//     contract, "the wheel is NOT taken back";
+//   * none of the five looked at e.target, so Escape pressed to dismiss an
+//     autocomplete while typing in the G4 fields stood you out of the
+//     observatory chair.
+//
+// And what it did NOT do was close a panel. Every DOM panel in the villa has
+// a mouse close and no key at all, so a visitor who had learned that Escape
+// leaves everything pressed it over an open feed and had some unrelated mode
+// torn down behind it.
+//
+// This runs in the CAPTURE phase, so it is ahead of all five regardless of
+// what order the file declared them in. It claims the press for exactly one
+// thing -- innermost first -- and stops it there. If nothing is open it
+// claims nothing and the old listeners run untouched, so the paths this
+// does not name are unchanged.
+const ESCAPE_PANELS = [
+  ['trace-inspect', function (el) { el.classList.remove('visible'); }],
+  ['trout-panel',   null],
+  ['notebook-panel', function () { if (typeof closeNotebook === 'function') closeNotebook(); }],
+  ['profile-panel', null],
+  ['docent-panel',  null],
+  ['identity-panel', null],
+  ['meet-panel',    null],
+  ['feed-panel',    function () { if (typeof closeWaveMenu === 'function') closeWaveMenu(); }],
+  ['nav-menu',      function () { if (typeof toggleNavMenu === 'function') toggleNavMenu(); }],
+];
 window.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && threshold.showing) { endThreshold(); }
-});
+  if (e.key !== 'Escape') return;
+  const el = e.target;
+  const tag = (el && el.tagName) || '';
+  // A field gets its own Escape. Most compose boxes already stopPropagation,
+  // but that is a BUBBLE guard and this listener is ahead of it.
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' ||
+      (el && el.isContentEditable)) return;
+
+  const claim = function (fn) {
+    try { fn(); } catch (err) {}
+    e.stopPropagation(); e.preventDefault();
+  };
+  // 1. the two things that hold the floor
+  if (typeof threshold !== 'undefined' && threshold.showing) return claim(endThreshold);
+  if (typeof tourState !== 'undefined' && tourState.on) return claim(function () { tourStop(true); });
+  // 2. the observatory, innermost first (the sky, then the earth, then the chair)
+  if (typeof obsInspectSat !== 'undefined' && obsInspectSat) {
+    return claim(function () { obsInspectSat = null; showNavLabel('the sky returns to the plate'); });
+  }
+  if (typeof obsState !== 'undefined' && obsState.veil) return claim(obsVeilToggle);
+  if (typeof obsState !== 'undefined' && obsState.seated) return claim(obsStand);
+  // 3. a lens on the world
+  if (typeof tedPhoto !== 'undefined' && tedPhoto.active) return claim(toggleTedPhoto);
+  if (typeof cloudState !== 'undefined' && cloudState.open) {
+    return claim(function () { cloudClose(cloudState.open); });
+  }
+  if (typeof activeFocus !== 'undefined' && activeFocus) return claim(releaseFocus);
+  // 4. a panel standing open -- topmost first
+  for (let i = 0; i < ESCAPE_PANELS.length; i++) {
+    const node = document.getElementById(ESCAPE_PANELS[i][0]);
+    if (!node) continue;
+    if (!node.classList.contains('open') && !node.classList.contains('visible')) continue;
+    const how = ESCAPE_PANELS[i][1];
+    return claim(how ? function () { how(node); } : function () { node.classList.remove('open'); });
+  }
+  // 5. and only then the standing modes
+  if (typeof visitorNav !== 'undefined' && visitorNav.active) return claim(toggleVisitor);
+  if (typeof followAnimal !== 'undefined' && followAnimal.key) return claim(stopFollow);
+}, true);
 
 // Called once the feed has loaded, which is also why the threshold cannot
 // block a cold start: no feed, no address, no pause.
@@ -12667,11 +13139,13 @@ function considerThreshold() {
   // rewritten it. The 08-03 ruling that "the introduction is allowed to
   // change its mind" and reach everyone again is honoured, but it reaches
   // them here rather than at the door: a comma is not worth a second toll.
-  if (!heardTalks.has(intro.entry.id)) {
+  if (!heardTalks.has(intro.entry.id) && !announceSetAside.has(intro.entry.id)) {
     announceShow(intro.entry, 'the introduction has been rewritten');
     return;
   }
-  const unheard = series.slice(1).filter(function (s) { return !talkHeardAnyVersion(s); });
+  const unheard = series.slice(1).filter(function (s) {
+    return !talkHeardAnyVersion(s) && !announceSetAside.has(s.entry.id);
+  });
   if (unheard.length) announceShow(unheard[unheard.length - 1].entry);
 }
 
@@ -12730,6 +13204,34 @@ const TOUR_OFFERED_KEY = 'dg_tour_offered';
 // Bump it again to re-run the walk for everyone after a rewrite.
 const TOUR_AUTOPLAY = true;
 const TOUR_SEEN_KEY = 'dg_tour_seen_v2';
+
+// ── AND IT IS ONCE PER PERSON NOW, NOT ONCE PER DEVICE (2026-08-18) ──
+// The walk's marker joins the talks' in the 'dg:seen' entry (see there for
+// why). Two things are read here rather than one: the local key, which is
+// what a stranger has, and `walkSeen`, which is what the feed said this
+// person has already taken on some other machine.
+//
+// `walkSeen` is also the in-memory guard the local key could never be. It was
+// written BEFORE tourBegin and only to localStorage — so a device that
+// refuses to store (a private tab, storage blocked, quota) swallowed the
+// write in a `catch {}` and then re-launched the entire five-minute walk on
+// every one of loadFeed's five-minute refreshes, for the whole session.
+const tourSeenFlag = { local: null, session: false };
+function tourSeen() {
+  if (tourSeenFlag.session) return true;
+  if (tourSeenFlag.local === null) {
+    try { tourSeenFlag.local = localStorage.getItem(TOUR_SEEN_KEY) ? true : false; }
+    catch (e) { tourSeenFlag.local = false; }
+  }
+  return tourSeenFlag.local;
+}
+function markTourSeen(quiet) {
+  if (tourSeen()) return;
+  tourSeenFlag.session = true;
+  tourSeenFlag.local = true;
+  try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) {}
+  if (!quiet && typeof seenPushSoon === 'function') seenPushSoon();
+}
 const TOUR_INVITE =
   'I’m headed down to the sand with everyone. Come along and I’ll show you how the place works.';
 const tourState = { on: false, i: -1, timer: null, stagers: [] };
@@ -13048,7 +13550,11 @@ function tourCalling(on) {
 function tourJoin(key) {
   const pl = PLACE_REGISTRY.find(function (p) { return p.key === key; });
   if (!pl) return;
-  if (typeof compassMarkVisited === 'function') compassMarkVisited(key);
+  // compassMarkVisited USED TO FIRE HERE, ON THE PRESS (fixed 2026-08-18) —
+  // which marked the Observatory discovered at the instant you set off for
+  // it, some thirty seconds before you got there. Rule 3 of this walk's own
+  // header: "discovery is taught by arrival... never by a camera move
+  // alone." It is claimed in tourNext now, when the body actually stops.
   const pt = placePoint(key);
   // you
   if (pt && typeof visitorWalkTo === 'function' && visitorNav.active) visitorWalkTo(pt);
@@ -13071,7 +13577,26 @@ function tourJoin(key) {
   showNavLabel(pl.label);
   const m = document.getElementById('nav-menu');
   if (m && m.classList.contains('open')) toggleNavMenu();
-  tourLock('me');                      // watch yourself go to him
+  // Watch yourself go to him — unless there is no you to watch. A guest who
+  // pressed the Walk button off mid-walk (or a tokenless one whose figure
+  // was never made visible) had the lens locked to a body that does not
+  // travel, so every remaining leg narrated a journey over a still frame.
+  // Fall back to Ted: he always walks. (2026-08-18)
+  tourLock(visitorNav.active ? 'me' : 'ted');
+}
+
+// ── HAS EVERYONE ACTUALLY GOT THERE? ──
+// The beat clock ran on speech length alone, so the arrival line played
+// about four seconds after you set off — and Galleria to the Observatory is
+// eighty units, better than half a minute at the guest's 2.4 units/second.
+// You heard "still under construction, but open for visitors" while you were
+// still on the lawn, and the next beat's tourLock('ted') then pulled the
+// camera off you halfway up the hill.
+function tourEveryoneArrived() {
+  try {
+    if (typeof visitorNav === 'undefined' || !visitorNav.active) return true;  // nothing to wait for
+    return !visitorNav.walking;
+  } catch (e) { return true; }
 }
 
 // tourClickTo: the demonstration — the Compass unfolds, the row lights,
@@ -13133,6 +13658,8 @@ function tourLeg(key, label, arrival, opts) {
       hold: 500 },
     { do: function () { tourClickTo(key); },
       wait: 3600,
+      until: tourEveryoneArrived,
+      arrive: key,
       say: arrival,
       hold: 1100 },
   ];
@@ -13219,6 +13746,33 @@ function tourNext() {
 
   tourLater(beat.wait || 700, function () {
     if (S.i !== step) return;
+    // A beat may hold the score until something in the world is true. The
+    // cap is a safety rail, not a schedule: a body that gets wedged on
+    // terrain must not strand the walk, but a body that is simply far away
+    // gets as long as it needs.
+    if (typeof beat.until === 'function') {
+      const capAt = clock.getElapsedTime() + (beat.untilCap || 50);
+      const poll = function () {
+        if (!S.on || S.i !== step) return;
+        let done = false;
+        try { done = beat.until(); } catch (e) { done = true; }
+        if (!done && clock.getElapsedTime() < capAt) { tourLater(250, poll); return; }
+        beat.until = null;                 // spent — say it now
+        tourSpeakBeat(beat, step);
+      };
+      poll();
+      return;
+    }
+    tourSpeakBeat(beat, step);
+  });
+}
+
+function tourSpeakBeat(beat, step) {
+  const S = tourState;
+  if (!S.on || S.i !== step) return;
+  // Standing here IS the discovery — never before (see tourJoin).
+  if (beat.arrive && typeof compassMarkVisited === 'function') compassMarkVisited(beat.arrive);
+  {
     const cur = document.getElementById('tc-text');
     if (cur) {
       cur.classList.remove('in');
@@ -13234,20 +13788,31 @@ function tourNext() {
     };
     // The same honesty check the threshold learned: ask whether the browser
     // can ACTUALLY speak, or the tour would flash past on a mute machine.
-    const canSpeak = typeof tedSpeak === 'function' &&
-                     typeof tedNarration !== 'undefined' && !!tedNarration.synth;
+    const canSpeak = tedCanActuallySpeak();
     if (canSpeak && beat.say) {
       tedSpeak(beat.say, advance);
       S.timer = setTimeout(advance, 4000 + beat.say.length * 95);
     } else {
       S.timer = setTimeout(advance, Math.max(2400, Math.min(15000, 1100 + (beat.say || '').length * 58)));
     }
-  });
+  }
 }
 
 function tourBegin() {
   if (tourState.on) return;
-  if (typeof threshold !== 'undefined' && threshold.showing) return;   // a talk holds the floor
+  // A REFUSAL THAT SAYS SO (2026-08-18). Both of these returned in silence,
+  // and the row stays in the open unfold looking perfectly pressable — so
+  // `walk with Ted` during a talk read as a dead button rather than as a
+  // queue. Same for the chair, which is new here: obsCameraTick takes the
+  // frame above the follow rig and every goToPlace, so a walk begun while
+  // seated narrated the whole villa to a camera nailed to the peak.
+  if (typeof threshold !== 'undefined' && threshold.showing) {
+    showNavLabel('Ted is speaking — the walk waits until he is done');
+    return;
+  }
+  if (typeof obsState !== 'undefined' && obsState.seated) {
+    try { obsStand(); } catch (e) {}
+  }
   announceHide();
   try { if (typeof tedPhoto !== 'undefined' && tedPhoto.active) toggleTedPhoto(); } catch (e) {}
   try { if (typeof tedDocent !== 'undefined' && tedDocent.active) deactivateTedDocent(); } catch (e) {}
@@ -13269,6 +13834,7 @@ function tourBegin() {
   const m = document.getElementById('nav-menu');
   if (m && m.classList.contains('open')) toggleNavMenu();   // the unfold is a beat; start folded
   try { localStorage.setItem(TOUR_TAKEN_KEY, '1'); } catch (e) {}
+  markTourSeen();          // taking it by hand spends the once, same as autoplay
 
   tourState.on = true;
   tourState.i = -1;
@@ -13330,9 +13896,7 @@ window.addEventListener('keydown', function (e) {
 // the one offer once, never twice.
 function considerTourStart(tries) {
   tries = (tries == null) ? 200 : tries;
-  let seen = null;
-  try { seen = localStorage.getItem(TOUR_SEEN_KEY); } catch (e) {}
-  if (seen) return;                         // once per device, ever
+  if (tourSeen()) return;                   // once per PERSON, ever — see tourSeen
   if (tourState.on) return;
 
   // WAIT FOR THE INTRODUCTION, AND ONLY FOR THAT. The offer version also
@@ -13351,11 +13915,23 @@ function considerTourStart(tries) {
     // The kept alternative: offer it in the banner instead of playing it.
     const shown = announceCustom(TOUR_INVITE, 'come along', tourBegin);
     if (!shown) { if (tries > 0) setTimeout(function () { considerTourStart(tries - 1); }, 2000); return; }
-    try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) {}
+    markTourSeen();
     return;
   }
+  // THE SKIP IS A SENTENCE, AND THE WALK SHOULD LISTEN TO IT (2026-08-18).
+  // considerTourStart only ever waited for the threshold to stop SHOWING —
+  // so pressing `enter the villa` at second two started a five-minute
+  // narrated walk 1.5 seconds later, off the one gesture the visitor had
+  // made, which was "not now". The walk is still what the beta is for, so it
+  // is not withheld: it moves to the banner, where `come along` takes it and
+  // ignoring it costs nothing. Sitting through the introduction still gets
+  // the walk the way it was ruled on 08-16 — played, not offered.
   announceHide();
-  try { localStorage.setItem(TOUR_SEEN_KEY, '1'); } catch (e) {}
+  markTourSeen();
+  if (typeof threshold !== 'undefined' && threshold.wasSkipped) {
+    announceCustom(TOUR_INVITE, 'come along', tourBegin);
+    return;
+  }
   tourBegin();
 }
 // The old name, kept because two call sites and a suite know it.
@@ -13369,11 +13945,19 @@ function considerTourOffer(tries) { return considerTourStart(tries); }
 // else this session was defence around the hole they left open.
 function postStatement(text, toKey, replyTo, kind) {
   const id = feedIdentity();
-  if (!id || !id.pass) { openIdentityPanel(); return Promise.reject(new Error('no key')); }
+  // The message is the villa's, not the code's (2026-08-18). Both of these
+  // reject with a string that callers print verbatim -- postGeneral and
+  // postNote render `err.message` straight into the note under the box --
+  // so a keyless visitor pressing `speak in the villa` was answered with the
+  // word "no key" while the passcode panel opened over the top of it.
+  if (!id || !id.pass) {
+    openIdentityPanel();
+    return Promise.reject(new Error('reading is free — speaking needs your key (⚿)'));
+  }
   if (!gateReady()) {
     const fb = document.getElementById('fc-feed-body');
     if (fb) fb.textContent = 'the villa has no door yet — Sailor has not opened it';
-    return Promise.reject(new Error('no gate'));
+    return Promise.reject(new Error('the villa has no door yet — Sailor has not opened it'));
   }
   const authorMesh = AVATARS[id.avatar] && AVATARS[id.avatar]();
   // The stamp: where the exchange is happening — the followed resident's
@@ -13873,7 +14457,8 @@ function renderFeedInto(key) {
   if (!list || !key) return;
   const id = feedIdentity();
   const mine = id && id.avatar === key;
-  const entries = feedState.entries.filter(e => e.author === key || e.to === key).slice(0, 30);
+  const entries = feedState.entries
+    .filter(e => (e.author === key || e.to === key) && !isSeenMark(e)).slice(0, 30);
   list.innerHTML = '';
   entries.forEach(e => {
     const ep = PROFILES[e.author] || { emoji: '·', name: e.author };
@@ -14105,6 +14690,13 @@ function saveIdentityFromPanel() {
     if (b) b.textContent = '\u269a ' + ((PROFILES[avatar] || {}).name || avatar);
     if (typeof refreshDocentBtn === 'function') refreshDocentBtn();
     if (followAnimal.key) renderFeedInto(followAnimal.key);
+    // The villa now knows who this is — so it can know what they have already
+    // heard, including on the machine they left at home. If the introduction
+    // or the walk is running right now because it did NOT know a moment ago,
+    // this is what stands it down. (2026-08-18)
+    if (typeof seenReconcileAfterKey === 'function') {
+      try { seenReconcileAfterKey(); } catch (e) {}
+    }
   };
   // Used when the gate has not named anyone. The invite link answers first
   // (2026-08-04) — the URL Sailor sent already says who this is, so a house
@@ -14387,6 +14979,7 @@ function cloudSaidAt(placeKey) {
   (feedState.entries || []).forEach(function (e) {
     if (!e || !e.id || e.kind === 'address' || isTroutStone(e)) return;
     if (typeof isProfileEntry === 'function' && isProfileEntry(e)) return;
+    if (typeof isSeenMark === 'function' && isSeenMark(e)) return;   // bookkeeping, not speech
     const inBook = (typeof notebookRoom === 'function') && notebookRoom(e) === placeKey;
     const saidHere = !(typeof isNotebookEntry === 'function' && isNotebookEntry(e)) &&
                      (e.place || '').toLowerCase() === lab;
@@ -14432,6 +15025,7 @@ function cloudCorpus() {
   return (feedState.entries || []).filter(function (e) {
     return e && e.id && e.kind !== 'address' &&
       !(typeof isProfileEntry === 'function' && isProfileEntry(e)) &&
+      !(typeof isSeenMark === 'function' && isSeenMark(e)) &&
       !(typeof isNotebookEntry === 'function' && isNotebookEntry(e));
   });
 }
@@ -14984,7 +15578,7 @@ function renderStatementField() {
   // no spot in it. Erecting a stele for the introduction would put a monument
   // to the welcome mat in the middle of the lawn.
   const entries = (feedState.entries || [])
-    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e) && !isNotebookEntry(e) && !isGeneralPost(e));
+    .filter(e => e && e.id && e.pos && e.kind !== 'address' && !isProfileEntry(e) && !isNotebookEntry(e) && !isGeneralPost(e) && !isSeenMark(e));
   // A PROFILE IS NOT A STONE EITHER, and this filter is load-bearing rather
   // than tidy. The deployed gate coerces an unknown kind to 'statement', so
   // until villa-gate learns 'profile' every saved profile comes back from the
@@ -18657,6 +19251,15 @@ function summonResident(key, silent, at) {
 function toggleNavMenu() {
   const m = document.getElementById('nav-menu');
   m.classList.toggle('open');
+  // THE HOVER-GRACE DISC MUST STAND DOWN WHILE THE UNFOLD IS OPEN
+  // (2026-08-18). `#compass-hud.soft::before` is a 400px invisible circle
+  // centred 200px above the bottom edge -- which is exactly where the unfold
+  // stands -- and it lives in the hud's own z-12 context, above the menu at
+  // z-11. With the ring showing and the unfold open, every row (Places,
+  // Company, Walk, Instruments) went click-dead and a press meant for a row
+  // folded the whole menu instead. A body class is the cheapest way to let
+  // one element know about the other.
+  document.body.classList.toggle('nav-unfolded', m.classList.contains('open'));
   // The button this used to light up ('navmenu-btn') is gone — the drawn
   // compass replaced it (2026-08-09) — and its absence threw from HERE,
   // which broke both activations at once. The hud carries the state now.
@@ -18858,6 +19461,7 @@ function compassRefreshSoft() {
     b.onclick = function (e) { e.stopPropagation(); compassSoftEnd(); goToPlaceFromRing(r.p.key); };
     ring.appendChild(b);
   });
+  hudKeepPillsOnScreen(ring);
 }
 
 // goToPlace closes the unfold via toggleNavMenu; from the ring the unfold
@@ -18867,6 +19471,90 @@ function goToPlaceFromRing(key) {
   const wasOpen = m && m.classList.contains('open');
   goToPlace(key);
   if (!wasOpen && m && m.classList.contains('open')) toggleNavMenu();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// THE HUDS ANSWER A FINGER (2026-08-18)
+// ════════════════════════════════════════════════════════════════════
+// Both huds put their soft ring behind `mouseenter` alone, and on every
+// phone viewport `hover: false, pointer: coarse`. So the ten bearing pills,
+// the one-tap `go there` on each of them, the "where am I" reading under the
+// dial, the sixteen resident pills and the "N of the company near you" count
+// were not degraded on a phone — they did not exist. The Compass is the
+// villa's primary instrument and the beta ships as a link that opens on a
+// phone first, so this is the single largest hole a finger could find.
+//
+// THE GESTURE, as ruled when the dial was drawn: hold = soft, tap = unfold.
+// A hold is 320ms — long enough not to fire on a scroll or a stray brush,
+// short enough that nobody thinks the dial is dead. The ring then STAYS
+// (there is no mouseleave to close it) until a pill is taken or a tap lands
+// somewhere else, which is the phone's version of "the cursor left".
+//
+// And mouse hover is IGNORED on a coarse pointer, deliberately. iOS
+// synthesises mouseenter on the first tap and never fires the matching
+// mouseleave, so the class stuck — and `#compass-hud.soft::before` is a
+// 400px invisible disc, which then ate taps across most of the screen.
+function hudIsCoarse() {
+  try { return window.matchMedia('(hover: none), (pointer: coarse)').matches; }
+  catch (e) { return false; }
+}
+
+// A pill is laid out by arithmetic from the dial's centre, and the arithmetic
+// predates the phone: the compass's outer ring reaches 170px and the waves'
+// reaches 175px from a centre that, at 470px and under, is anchored 59px off
+// the RIGHT edge. Rather than re-derive both layouts per breakpoint, the
+// pills are measured after they land and walked back inside the glass. A
+// measured nudge cannot be wrong at a width nobody tested.
+function hudKeepPillsOnScreen(ring) {
+  if (!ring) return;
+  const pad = 6;
+  const W = window.innerWidth, H = window.innerHeight;
+  Array.prototype.forEach.call(ring.children, function (b) {
+    const r = b.getBoundingClientRect();
+    if (!r.width) return;
+    let dx = 0, dy = 0;
+    if (r.left < pad) dx = pad - r.left;
+    else if (r.right > W - pad) dx = (W - pad) - r.right;
+    if (r.top < pad) dy = pad - r.top;
+    else if (r.bottom > H - pad) dy = (H - pad) - r.bottom;
+    if (dx) b.style.left = (parseFloat(b.style.left || 0) + dx) + 'px';
+    if (dy) b.style.top = (parseFloat(b.style.top || 0) + dy) + 'px';
+  });
+}
+
+// hold = soft, tap = unfold — wired once, for both huds.
+function hudWireHold(hud, begin, end) {
+  if (!hud) return;
+  let holdTimer = null;
+  const clearHold = function () { if (holdTimer) { clearTimeout(holdTimer); holdTimer = null; } };
+
+  hud.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'mouse') return;            // the mouse has hover
+    clearHold();
+    holdTimer = setTimeout(function () {
+      holdTimer = null;
+      hud.__heldSoft = true;
+      begin();
+      try { if (navigator.vibrate) navigator.vibrate(8); } catch (err) {}
+    }, 320);
+  }, { passive: true });
+
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+    hud.addEventListener(ev, function () {
+      clearHold();
+      // The hold already did the work; the click that follows it must not
+      // then toggle the unfold on top of the ring it just opened.
+      if (hud.__heldSoft) hud.__suppressClick = true;
+    }, { passive: true });
+  });
+
+  // A tap anywhere else is this gesture's mouseleave.
+  document.addEventListener('pointerdown', function (e) {
+    if (!hud.__heldSoft) return;
+    if (hud.contains(e.target)) return;
+    hud.__heldSoft = false;
+    end();
+  }, true);
 }
 
 function compassSoftBegin() {
@@ -18995,7 +19683,7 @@ function renderFeedPanel() {
   if (!list) return;
   list.innerHTML = '';
   const entries = (feedState.entries || [])
-    .filter(function (e) { return e && e.id && e.author; })
+    .filter(function (e) { return e && e.id && e.author && !isSeenMark(e); })
     .sort(function (a, b) { return a.t < b.t ? 1 : -1; })
     .slice(0, 60);
   if (!entries.length) {
@@ -19071,6 +19759,7 @@ function waveRefreshSoft() {
     };
     ring.appendChild(b);
   });
+  hudKeepPillsOnScreen(ring);
 }
 function waveSoftBegin() {
   waveSoft.on = true; waveSoft.lastAt = null;
@@ -19099,15 +19788,19 @@ function waveUnheardTick() {
   if (!hud) return;
   let leaveTimer = null;
   hud.addEventListener('mouseenter', function () {
+    if (hudIsCoarse()) return;              // a synthesised hover is not a hover
     if (leaveTimer) { clearTimeout(leaveTimer); leaveTimer = null; }
     waveSoftBegin();
   });
   hud.addEventListener('mouseleave', function () {
+    if (hudIsCoarse()) return;
     if (leaveTimer) clearTimeout(leaveTimer);
     leaveTimer = setTimeout(function () { leaveTimer = null; waveSoftEnd(); }, 200);
   });
+  hudWireHold(hud, waveSoftBegin, waveSoftEnd);
   hud.addEventListener('click', function (e) {
     if (e.target && e.target.classList && e.target.classList.contains('cmp-bearing')) return;
+    if (hud.__suppressClick) { hud.__suppressClick = false; return; }   // that was a hold
     waveSoftEnd();
     toggleWaveMenu();
   });
@@ -19145,15 +19838,19 @@ function waveUnheardTick() {
   // disc's rim for 200ms is passing, not leaving.
   let softLeaveTimer = null;
   hud.addEventListener('mouseenter', function () {
+    if (hudIsCoarse()) return;              // see hudWireHold — iOS fakes this one
     if (softLeaveTimer) { clearTimeout(softLeaveTimer); softLeaveTimer = null; }
     compassSoftBegin();
   });
   hud.addEventListener('mouseleave', function () {
+    if (hudIsCoarse()) return;
     if (softLeaveTimer) clearTimeout(softLeaveTimer);
     softLeaveTimer = setTimeout(function () { softLeaveTimer = null; compassSoftEnd(); }, 200);
   });
+  hudWireHold(hud, compassSoftBegin, compassSoftEnd);
   hud.addEventListener('click', function (e) {
     if (e.target && e.target.classList && e.target.classList.contains('cmp-bearing')) return;
+    if (hud.__suppressClick) { hud.__suppressClick = false; return; }   // that was a hold
     compassSoftEnd();
     if (typeof closeWaveMenu === 'function') closeWaveMenu();   // one unfold at a time
     toggleNavMenu();
@@ -19289,10 +19986,25 @@ function compassOpenPlace(key) {
       if (e.key !== 'Enter') return;
       const text = input.value.trim();
       if (!text) return;
-      input.value = '';
+      // THE FIELD IS CLEARED ON SUCCESS, NOT ON PRESS (fixed 2026-08-18).
+      // It used to empty first and swallow every failure in an empty catch,
+      // so a stale key, a gate having a day, or no key at all took the
+      // visitor's sentence with it and said nothing at all -- no note, no
+      // repaint, nothing. This is the only compose box in the file that did
+      // both; wireCompose checks for the key before clearing and postGeneral
+      // surfaces the message.
+      input.disabled = true;
       postStatement(text, null, null).then(function () {
+        input.value = '';
         compassOpenPlace(key);   // repaint the ledger with the new stone
-      }).catch(function () {});
+      }).catch(function (err) {
+        input.disabled = false;
+        const note = document.createElement('div');
+        note.className = 'cmp-here';
+        note.style.opacity = '0.7';
+        note.textContent = (err && err.message) || 'the villa could not remember that';
+        if (input.parentNode) input.parentNode.appendChild(note);
+      });
     });
     w.appendChild(input);
   } else {
@@ -21875,10 +22587,46 @@ container.addEventListener('pointerup', e => {
     return;
   }
 
+  // ── NOTHING IS CLICKED THROUGH A HILL ANY MORE (2026-08-18) ──
+  // These blocks each ran `intersectObject` against one thing and took the
+  // first hit, in the order they happen to be written — with
+  // `raycaster.layers.enableAll()` and no test for whether anything was in
+  // FRONT of it. So a click on a resident standing before the library
+  // pedestal opened the notebook instead (the notebooks are tested first),
+  // and a click anywhere toward the east peak took the observatory chair
+  // from across the whole villa, through the hillside, with no proximity
+  // check at all. One distance, measured once, and each block has to beat it.
+  const _blockDist = (function () {
+    let d = Infinity;
+    const consider = function (o) {
+      if (!o || !o.visible) return;
+      try {
+        const h = raycaster.intersectObject(o, true);
+        if (h.length && h[0].distance < d) d = h[0].distance;
+      } catch (e) {}
+    };
+    try { consider(terrain); } catch (e) {}
+    try {
+      [troutFish, sealPup, y2kHusky, otterPrincess, sharkPetra, dolphinKyle, diddyKong,
+       wizardAlrik, ravenHornedSphere, heronJulia, stoatEmilia, catAdlib, pelicanAustin,
+       greyhoundHouston, seaTurtle, catEdburg, albatrossLuke, raccoonBigColin,
+       sparrowDoctorColin, tedTurner].forEach(consider);
+    } catch (e) {}
+    return d;
+  })();
+  const _nearestHit = function (obj) {
+    if (!obj) return null;
+    try {
+      const h = raycaster.intersectObject(obj, true);
+      if (!h.length) return null;
+      return h[0].distance <= _blockDist ? h[0] : null;
+    } catch (e) { return null; }
+  };
+
   // ── The notebooks — click a pedestal and the book opens ──
   {
     for (const room in NOTEBOOKS) {
-      if (raycaster.intersectObject(NOTEBOOKS[room], true).length > 0) {
+      if (_nearestHit(NOTEBOOKS[room])) {
         openNotebook(room);
         return;
       }
@@ -21897,8 +22645,13 @@ container.addEventListener('pointerup', e => {
   }
 
   // ── The observatory chair — take the seat and the sky takes your eyes ──
+  // Unoccluded AND within reach. Sitting is an act, not a telescope: the
+  // chair is on the east peak and from the villa floor it is a few pixels
+  // wide, so a stray click on that bearing used to teleport the camera into
+  // it from anywhere in the world.
   if (obsChair && !obsState.seated) {
-    if (raycaster.intersectObject(obsChair, true).length > 0) { obsSit(); return; }
+    const hit = _nearestHit(obsChair);
+    if (hit && hit.distance < 46) { obsSit(); return; }
   }
 
   // ── Animal follow (2026-07-30) — click a resident to lock the camera ──
@@ -22164,11 +22917,20 @@ container.addEventListener('pointerup', e => {
   }
 });
 
+// The villa's main feedback channel — arrivals, "wasd or click", "esc to
+// stand". The 2s fade used to be a bare setTimeout with no handle, so two
+// labels inside two seconds meant the FIRST one's timer wiped the SECOND
+// message, sometimes a few hundred ms after it appeared. That is routine
+// during the walk and on any goToPlace that also summons a body. Same shape
+// as showInfoCard's _infoCardTimer, which got this right. (2026-08-18)
+let _navLabelTimer = null;
 function showNavLabel(text) {
   const el = document.getElementById('nav-label');
+  if (!el) return;
   el.textContent = text;
   el.style.opacity = '1';
-  setTimeout(() => { el.style.opacity = '0'; }, 2000);
+  if (_navLabelTimer) clearTimeout(_navLabelTimer);
+  _navLabelTimer = setTimeout(() => { el.style.opacity = '0'; _navLabelTimer = null; }, 2400);
 }
 
 let _infoCardTimer = null;
@@ -23602,6 +24364,12 @@ function storyPause() {
   if (g4State.story.autoTimer) { clearTimeout(g4State.story.autoTimer); g4State.story.autoTimer = null; }
   tedStopSpeaking();
   hideStoryHUD();
+  // AND TED IS LET GO (fixed 2026-08-18). Pause stopped the voice and took
+  // the HUD down but left tedDocent.active and tedPatrol.state === 'docent'
+  // standing, so updateTedDocent kept walking him to the graphmap element and
+  // turning him to face the camera, every frame, with no chrome left on
+  // screen to say why. Only Reset released him. Pause is a pause, not a hold.
+  if (typeof hideDocent === 'function') { try { hideDocent(); } catch (e) {} }
   redrawG4Screen();
 }
 function storyReset() {
@@ -23715,6 +24483,7 @@ function redrawG4Screen() {
   ctx.textBaseline = 'middle';
   ctx.fillText(g4State.app === 'prism' ? 'iMac G4 · Prism Workstation'
              : g4State.app === 'bloomburger' ? 'iMac G4 · BloomBurger'
+             : g4State.app === 'codex' ? 'iMac G4 · Codex'
              : 'iMac G4', Math.round(65 * S), Math.round(28 * S));
 
   // ⌂ back to the desktop, whenever an application is open
@@ -23804,6 +24573,7 @@ function redrawG4Screen() {
   //    Workstation's own furniture ──
   if (g4State.app !== 'prism') {
     if (g4State.app === 'bloomburger') drawG4Bloomburger(ctx, W, H, hdrH, cream, blue, S);
+    else if (g4State.app === 'codex') drawG4Codex(ctx, W, H, hdrH, cream, blue, S);
     else drawG4Desktop(ctx, W, H, hdrH, cream, blue, S);
     g4ScreenTex.needsUpdate = true;
     return;
@@ -23813,9 +24583,15 @@ function redrawG4Screen() {
   const tabTop = hdrH;
   const tabH = Math.round(40 * S);
   const tabBottom = tabTop + tabH;
-  const tabs = ['inspect', 'chat', 'notes', 'story'];
-  const tabLabels = ['INSPECT', 'CHAT', 'NOTES', 'STORY'];
-  const tabW = W / 4;
+  // KALEIDOSCOPE JOINS THE TAB BAR (2026-08-18). The HTML panel has had five
+  // tabs since it was written and the screen drew four, and the screen is the
+  // interface — so `switchG4Tab('kaleido')` was never called from anywhere,
+  // #g4-kaleido-pane never took `.active`, and the module's own paneActive()
+  // guard returned false on every frame it ever ran. The whole visualization
+  // was reachable only by typing into the console.
+  const tabs = ['inspect', 'chat', 'notes', 'story', 'kaleido'];
+  const tabLabels = ['INSPECT', 'CHAT', 'NOTES', 'STORY', 'KALEIDO'];
+  const tabW = W / tabs.length;
   tabs.forEach(function(tab, i) {
     const tx = i * tabW;
     const isActive = g4Screen.activeTab === tab;
@@ -23860,6 +24636,8 @@ function redrawG4Screen() {
     totalContentH = drawG4Notes(ctx, W, H, contentY - scroll, cream, blue, contentY, S);
   } else if (pane === 'story') {
     totalContentH = drawG4Story(ctx, W, H, contentY - scroll, cream, blue, contentY);
+  } else if (pane === 'kaleido') {
+    totalContentH = drawG4Kaleido(ctx, W, H, contentY - scroll, cream, blue, contentY, S);
   }
 
   ctx.restore();
@@ -23887,13 +24665,153 @@ function redrawG4Screen() {
 }
 
 // ── THE DESKTOP ──────────────────────────────────────────────────────────
+// ── THE CODEX ────────────────────────────────────────────────────────────
+// The reference surface (2026-08-18, Sailor): the plain glossary compiled
+// from Glossary_Plain_v0.md (via dg_codex_data.js), plus the anatomy of
+// whatever trace stands on the easel — every T1/B2/C1, every station's pi
+// and mode, glossed in plain words where it appears. Intended to take over
+// the inspect window's explaining duties once it proves out.
+function drawG4Codex(ctx, W, H, hdrH, cream, blue, S) {
+  if (typeof DG_CODEX === 'undefined') {
+    ctx.textAlign = 'center'; ctx.font = 'italic ' + Math.round(15 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.3) + ')';
+    ctx.fillText('dg_codex_data.js not loaded', W / 2, hdrH + Math.round(120 * S));
+    return;
+  }
+  if (!g4State.codexSection) g4State.codexSection = 'trace';
+  const sec = g4State.codexSection;
+
+  function wrap(text, x, y, maxW, lh, font, style, maxLines) {
+    ctx.font = font; ctx.fillStyle = style; ctx.textAlign = 'left';
+    const words = String(text).split(' ');
+    let line = '', lines = 0;
+    for (let i = 0; i < words.length; i++) {
+      const test = line ? line + ' ' + words[i] : words[i];
+      if (ctx.measureText(test).width > maxW && line) {
+        ctx.fillText(line, x, y); y += lh; lines++;
+        if (maxLines && lines >= maxLines) { return y; }
+        line = words[i];
+      } else line = test;
+    }
+    if (line) { ctx.fillText(line, x, y); y += lh; }
+    return y;
+  }
+
+  // ── left rail: sections ──
+  const railX = Math.round(24 * S), railW = Math.round(200 * S);
+  let ry = hdrH + Math.round(28 * S);
+  const items = [{ id: 'trace', title: 'This trace' }].concat(DG_CODEX.sections);
+  items.forEach(function (it) {
+    const active = (sec === it.id);
+    const rh = Math.round(40 * S);
+    g4Screen.hitRegions.push({ x: railX, y: ry, w: railW, h: rh, action: 'codexSection', data: it.id });
+    if (active) {
+      ctx.fillStyle = blue + '0.12)';
+      ctx.fillRect(railX, ry, railW, rh);
+      ctx.fillStyle = blue + '0.5)';
+      ctx.fillRect(railX, ry, 3, rh);
+    }
+    ctx.font = (active ? '600 ' : '') + Math.round(14 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(active ? 0.7 : 0.4) + ')';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(it.title, railX + Math.round(14 * S), ry + rh / 2);
+    ry += rh + Math.round(6 * S);
+  });
+  ctx.strokeStyle = blue + '0.1)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(railX + railW + Math.round(14 * S), hdrH + Math.round(20 * S));
+  ctx.lineTo(railX + railW + Math.round(14 * S), H - Math.round(20 * S));
+  ctx.stroke();
+
+  // ── content pane ──
+  const cx = railX + railW + Math.round(34 * S);
+  const cwid = W - cx - Math.round(30 * S);
+  let y = hdrH + Math.round(38 * S);
+  ctx.textBaseline = 'alphabetic';
+
+  if (sec !== 'trace') {
+    const section = DG_CODEX.sections.find(function (s) { return s.id === sec; });
+    if (!section) return;
+    y = wrap(section.title, cx, y, cwid, Math.round(24 * S),
+             'italic ' + Math.round(19 * S) + 'px Georgia', cream + op(0.55) + ')');
+    y += Math.round(10 * S);
+    section.entries.forEach(function (e) {
+      if (y > H - Math.round(40 * S)) return;
+      y = wrap(e.term, cx, y, cwid, Math.round(19 * S),
+               '600 ' + Math.round(14 * S) + 'px Georgia', cream + op(0.65) + ')');
+      y = wrap(e.plain, cx + Math.round(10 * S), y + Math.round(2 * S), cwid - Math.round(10 * S),
+               Math.round(17 * S), Math.round(12.5 * S) + 'px Georgia', cream + op(0.42) + ')');
+      y += Math.round(10 * S);
+    });
+    return;
+  }
+
+  // ── THIS TRACE — the anatomy of what stands on the easel ──
+  const td = (typeof parchState !== 'undefined') ? parchState.loadedTraceData : null;
+  if (!td) {
+    ctx.font = 'italic ' + Math.round(15 * S) + 'px Georgia';
+    ctx.fillStyle = cream + op(0.3) + ')'; ctx.textAlign = 'left';
+    ctx.fillText('No trace on the easel.', cx, y + Math.round(20 * S));
+    ctx.fillText('Open one from the parchment and the anatomy appears here.', cx, y + Math.round(46 * S));
+    return;
+  }
+  y = wrap(td.label || td.id, cx, y, cwid, Math.round(24 * S),
+           'italic ' + Math.round(19 * S) + 'px Georgia', cream + op(0.6) + ')');
+  const fw = td.frame && td.frame.window;
+  y = wrap(td.id + ' · ' + (td.eventType || '') +
+           (fw ? ' · window ' + fw.start + (fw.end && fw.end !== fw.start ? ' → ' + fw.end : '') : ''),
+           cx, y + Math.round(2 * S), cwid, Math.round(17 * S),
+           Math.round(12 * S) + 'px Georgia', cream + op(0.35) + ')');
+  if (td.object && td.object.x !== null && td.object.x !== undefined) {
+    y = wrap('O (' + td.object.x + ', ' + td.object.y + ', ' + td.object.z + ')' +
+             (td.shadow ? '   ·   O\u2032 (' + td.shadow.x + ', ' + td.shadow.y + ', ' + td.shadow.z + ')' : '') +
+             (td.transform && td.transform.primary ? '   ·   ' + td.transform.primary : ''),
+             cx, y + Math.round(4 * S), cwid, Math.round(17 * S),
+             Math.round(12.5 * S) + 'px Georgia', cream + op(0.5) + ')');
+  }
+  y += Math.round(10 * S);
+  // predicates, typed and glossed
+  const preds = td.predicates ?
+    (td.predicates.operative || []).concat(td.predicates.stated || []) : [];
+  if (preds.length) {
+    y = wrap('PREDICATES', cx, y, cwid, Math.round(18 * S),
+             '600 ' + Math.round(12 * S) + 'px Georgia', blue + '0.55)');
+    preds.forEach(function (p) {
+      if (y > H - Math.round(150 * S)) return;
+      const gloss = DG_CODEX.typeGloss[p.type] || p.type;
+      y = wrap(p.id + ' — ' + gloss + (p.tension ? ' (tension)' : ''),
+               cx, y + Math.round(2 * S), cwid, Math.round(17 * S),
+               '600 ' + Math.round(12.5 * S) + 'px Georgia', cream + op(0.6) + ')');
+      y = wrap(p.label, cx + Math.round(10 * S), y, cwid - Math.round(10 * S),
+               Math.round(15 * S), Math.round(11.5 * S) + 'px Georgia', cream + op(0.38) + ')', 2);
+      y += Math.round(6 * S);
+    });
+  }
+  y += Math.round(6 * S);
+  // stations, pi + mode glossed
+  if (td.positions && td.positions.length) {
+    y = wrap('STATIONS', cx, y, cwid, Math.round(18 * S),
+             '600 ' + Math.round(12 * S) + 'px Georgia', blue + '0.55)');
+    td.positions.forEach(function (p) {
+      if (y > H - Math.round(30 * S)) return;
+      const pi = p.permeability;
+      const line = p.id + (pi ? ' · \u03c0 ' + pi.magnitude + ' ' + pi.mode : '') +
+        (pi && DG_CODEX.modeGloss[pi.mode] ? ' — ' + DG_CODEX.modeGloss[pi.mode] : '') +
+        (p.status === 'setup-only' ? ' · (awaiting diffraction)' : '');
+      y = wrap(line, cx, y + Math.round(2 * S), cwid, Math.round(16 * S),
+               Math.round(12 * S) + 'px Georgia', cream + op(0.5) + ')');
+    });
+  }
+}
+
 function drawG4Desktop(ctx, W, H, hdrH, cream, blue, S) {
   const apps = [
     { id: 'prism', glyph: '✳', name: 'Prism Workstation', sub: 'the graphmap tools' },
     { id: 'bloomburger', glyph: '🍔', name: 'BloomBurger', sub: 'an economic notebook' },
+    { id: 'codex', glyph: '📖', name: 'Codex', sub: 'the plain glossary' },
   ];
-  const cw = Math.round(250 * S), ch = Math.round(190 * S), gap = Math.round(70 * S);
-  const x0 = W / 2 - cw - gap / 2, y0 = hdrH + Math.round(150 * S);
+  const cw = Math.round(250 * S), ch = Math.round(190 * S), gap = Math.round(40 * S);
+  const x0 = W / 2 - (apps.length * cw + (apps.length - 1) * gap) / 2, y0 = hdrH + Math.round(150 * S);
   apps.forEach(function (a, i) {
     const x = x0 + i * (cw + gap);
     g4Screen.hitRegions.push({ x: x, y: y0, w: cw, h: ch, action: 'openApp', data: a.id });
@@ -24360,6 +25278,79 @@ function drawG4Notes(ctx, W, H, startY, cream, blue, clipTop, S) {
   return y - startY + Math.round(20 * S);
 }
 
+// ── THE KALEIDOSCOPE, COMPOSITED ──
+// The module already draws a complete picture into its own 2D canvas; there
+// is no reason to re-implement it against the screen texture. It is copied
+// in whole, letterboxed to fit, and the three controls under it become hit
+// regions like every other button on this screen. The DOM canvas has to be
+// LAID OUT for this to work — a pane at `display: none` reports clientWidth
+// 0 and the module's fit() bails — which is why the tab handler's existing
+// switchG4Tab() call is load-bearing here, exactly as it is for the chat box.
+function drawG4Kaleido(ctx, W, H, startY, cream, blue, clipTop, S) {
+  S = S || 1;
+  const cv = document.getElementById('g4-kaleido-canvas');
+  let y = startY;
+  const pad = Math.round(28 * S);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = cream + op(0.4) + ')';
+  ctx.font = 'italic ' + Math.round(13 * S) + 'px Georgia';
+  ctx.fillText('One object, many instances — the clouds kaleid in place.', W / 2, y + Math.round(18 * S));
+  y += Math.round(38 * S);
+
+  const boxW = W - pad * 2;
+  const boxH = Math.round(340 * S);
+  if (cv && cv.width > 0 && cv.height > 0) {
+    const scale = Math.min(boxW / cv.width, boxH / cv.height);
+    const dw = cv.width * scale, dh = cv.height * scale;
+    ctx.fillStyle = 'rgba(7,11,22,1)';
+    ctx.beginPath(); ctx.roundRect(pad, y, boxW, boxH, Math.round(8 * S)); ctx.fill();
+    try { ctx.drawImage(cv, W / 2 - dw / 2, y + boxH / 2 - dh / 2, dw, dh); } catch (e) {}
+  } else {
+    ctx.fillStyle = cream + op(0.18) + ')';
+    ctx.font = 'italic ' + Math.round(15 * S) + 'px Georgia';
+    ctx.fillText('warming up…', W / 2, y + boxH / 2);
+  }
+  y += boxH + Math.round(18 * S);
+
+  const tt = document.getElementById('g4-kaleido-title');
+  const ll = document.getElementById('g4-kaleido-lost');
+  ctx.fillStyle = cream + op(0.7) + ')';
+  ctx.font = Math.round(19 * S) + 'px Georgia';
+  ctx.fillText((tt && tt.textContent) || '', W / 2, y);
+  y += Math.round(24 * S);
+  ctx.fillStyle = 'rgba(224,150,150,0.7)';
+  ctx.font = Math.round(12 * S) + 'px ui-monospace, monospace';
+  ctx.fillText(((ll && ll.textContent) || '').slice(0, 110), W / 2, y);
+  y += Math.round(30 * S);
+
+  // ◀ · AUTO · ▶
+  const bw = Math.round(74 * S), bh = Math.round(34 * S), gap = Math.round(10 * S);
+  const row = [
+    { label: '◀', action: 'kaleidoPrev', w: bw },
+    { label: (typeof g4Kaleido !== 'undefined' && g4Kaleido.isAuto && g4Kaleido.isAuto()) ? 'AUTO: ON' : 'AUTO: OFF',
+      action: 'kaleidoAuto', w: Math.round(126 * S) },
+    { label: '▶', action: 'kaleidoNext', w: bw },
+  ];
+  let total = row.reduce(function (a, r) { return a + r.w; }, 0) + gap * (row.length - 1);
+  let bx = W / 2 - total / 2;
+  row.forEach(function (r) {
+    g4Screen.hitRegions.push({ x: bx, y: y, w: r.w, h: bh, action: r.action });
+    ctx.fillStyle = blue + op(0.12) + ')';
+    ctx.strokeStyle = blue + op(0.22) + ')';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.roundRect(bx, y, r.w, bh, Math.round(5 * S)); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = cream + op(0.55) + ')';
+    ctx.font = Math.round(13 * S) + 'px Georgia';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(r.label, bx + r.w / 2, y + bh / 2);
+    ctx.textBaseline = 'alphabetic';
+    bx += r.w + gap;
+  });
+  y += bh + Math.round(20 * S);
+  return y - startY;
+}
+
 function drawG4Story(ctx, W, H, startY, cream, blue, clipTop) {
   const story = g4State.story;
   let y = startY;
@@ -24613,6 +25604,11 @@ function handleG4ScreenClick(region) {
     openNotebook('bloomburger');
     return;
   }
+  if (region.action === 'codexSection') {
+    g4State.codexSection = region.data;
+    redrawG4Screen();
+    return;
+  }
   if (region.action === 'tab') {
     g4State.app = 'prism';   // a tab click is Workstation business by definition
     g4Screen.activeTab = region.data;
@@ -24640,11 +25636,26 @@ function handleG4ScreenClick(region) {
       input.focus();
     }
   } else if (region.action === 'apiKeyInput') {
-    // Focus the API key input
+    // FOCUSED INSIDE THE GESTURE (fixed 2026-08-18). This was the one input
+    // path that deferred — `setTimeout(..., 100)` — and a deferred focus()
+    // is outside the user-gesture chain, which is the exact condition iOS
+    // and Android use to decide whether to raise the soft keyboard. Chat and
+    // Notes focus synchronously and have always worked on a phone; the API
+    // key could not be typed into at all. switchG4Tab first, because a field
+    // in a `display: none` pane is not focusable — see drawG4Kaleido.
     if (!g4State.floatMode) { showG4Panel(); }
     switchG4Tab('chat');
     const apiInput = document.getElementById('g4-api-key');
-    if (apiInput) setTimeout(function() { apiInput.focus(); apiInput.select(); }, 100);
+    if (apiInput) { apiInput.focus(); apiInput.select(); }
+  } else if (region.action === 'kaleidoPrev') {
+    try { g4Kaleido.prev(); } catch (e) {}
+    redrawG4Screen();
+  } else if (region.action === 'kaleidoNext') {
+    try { g4Kaleido.next(); } catch (e) {}
+    redrawG4Screen();
+  } else if (region.action === 'kaleidoAuto') {
+    try { g4Kaleido.toggleAuto(); } catch (e) {}
+    redrawG4Screen();
   } else if (region.action === 'chatSend') {
     g4SendChat().then(function() { redrawG4Screen(); });
   } else if (region.action === 'noteInput') {
@@ -25392,10 +26403,21 @@ console.log('[Dream Getty v6] Story sequencer ready. G4 STORY tab wired.');
   function next(d){ idx=(idx+(d||1)+INSTANCES.length)%INSTANCES.length; apply(idx,false); lastSwitch=t; }
   window.g4Kaleido = {
     next:function(){ next(1); }, prev:function(){ next(-1); },
+    isAuto:function(){ return auto; },
     toggleAuto:function(){ auto=!auto; var b=document.getElementById('g4-kaleido-auto'); if(b) b.textContent='Auto: '+(auto?'on':'off'); }
   };
 
-  function paneActive(){ var p=document.getElementById('g4-kaleido-pane'); return p&&p.classList.contains('active'); }
+  // ON WHEN THE G4'S SCREEN IS SHOWING IT (2026-08-18). The pane class was
+  // the only condition, and nothing ever set it — so this loop has been
+  // running and returning on its first line since the day it was written.
+  // The screen tab is the real question now; the pane class is kept because
+  // float mode still uses the HTML panel.
+  function paneActive(){
+    var p=document.getElementById('g4-kaleido-pane');
+    if (p && p.classList.contains('active')) return true;
+    try { return !!(window.g4Screen && g4Screen.activeTab === 'kaleido' && g4State.visible); }
+    catch(e){ return false; }
+  }
 
   function draw(dt){
     if(!paneActive() || !fit()) return;
@@ -25441,8 +26463,22 @@ console.log('[Dream Getty v6] Story sequencer ready. G4 STORY tab wired.');
     });
     if(auto && (t-lastSwitch)>DUR) next(1);
   }
-  var prev=performance.now();
-  (function loop(now){ var dt=Math.min(0.05,(now-prev)/1000); prev=now; try{ draw(dt); }catch(e){} requestAnimationFrame(loop); })(prev);
+  var prev=performance.now(), lastTex=0;
+  (function loop(now){
+    var dt=Math.min(0.05,(now-prev)/1000); prev=now;
+    try{ draw(dt); }catch(e){}
+    // The screen texture is not repainted by a render loop — it is repainted
+    // when something changes. This one changes every frame, so it asks, at a
+    // capped ~20fps: a 1024x820 texture upload is cheap, sixty of them a
+    // second next to the villa's own scene is not.
+    try{
+      if (window.g4Screen && g4Screen.activeTab==='kaleido' && g4State.visible &&
+          !g4State.floatMode && (now-lastTex) > 50) {
+        lastTex = now; redrawG4Screen();
+      }
+    }catch(e){}
+    requestAnimationFrame(loop);
+  })(prev);
 })();
 </script>
 </body>
