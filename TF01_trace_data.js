@@ -13,8 +13,8 @@
 // 2026-08-18. This file is the working state of the authoring
 // conversation; it updates as rulings land. Frame RULED · axes
 // RULED · predicates sourced · REFRACTION RUN · DIFFRACTION RUN
-// (all 2026-08-18). Owed: LI verification pass · Diatribe pass ·
-// admission to PG01. The villa renders what exists, no more.
+// · LI VERIFICATION · DIATRIBE PASS (all 2026-08-18).
+// Owed: admission to PG01. The villa renders what exists, no more.
 //
 // THE MOMENT (ruled as frame one, 2026-08-18): the presidential
 // directive to Treasury — maximum economic pressure on Iran.
@@ -36,6 +36,18 @@ const TF01_TRACE = {
   eventType: 'Z-assertion',    // rendered — keep short. Derived 2026-08-18, provisional until diffraction corroborates
   eventTypeExtended: 'Z-assertion (refraction, 2026-08-18): the shadow pre-credits undelivered pressure. Snapshot frame; candidate PG01 member; admission after authoring.',
   prevalentAxis: 'Y',           // Y +0.90 carries the structure; the drama plays on Z
+
+  // ── Diatribe — PASS RUN 2026-08-18 (Sailor ruled the five numbers) ──
+  dia: {
+    composite: 60,              // oscillation zone — right for a moment whose object is latent:
+                                // the high station scores are denomination about the FRAME
+                                // (rupture vs continuity), not about an object almost nobody
+                                // has detected. Latency caps denomination.
+    note: 'Arc-facing prediction hook: as detection arrives in later frames, watch whether the ' +
+      'scores climb — post-detection unreadability (PG01 P1) says they hold or worsen even ' +
+      'after M3. Trump unscored (constitutive, Enrollment). Bessent unscored: no day-of ' +
+      'reading of the order in evidence — itself mildly interesting, given who he becomes.',
+  },
 
   // ── THE FRAME — required, Trace_Data_Schema_v2 §2. Born sharp. ──
   frame: {
@@ -98,6 +110,12 @@ const TF01_TRACE = {
         x: 0, y: 1, z: -1,  // x 0: the slack ran under bipartisan stated pressure
       },
       {
+        type: 'B', id: 'B3',
+        label: 'The gap was on the congressional record, conceded in writing, a year before the order: bipartisan letter to Biden, 2024-02-01, demanding stronger enforcement — "Iran is now exporting on average more than 1.4 million barrels of crude oil per day, two-thirds of which ends up in the People\'s Republic of China"; ~$88bn in oil revenue Feb 2021–Oct 2023; Iranian economy +4%/yr, FX reserves +45%. FIVE DEMOCRATS SIGNED (Hassan, Rosen, Casey, Fetterman, Cortez-Masto), alongside Risch, Rubio, Hagerty.',
+        x: 0, y: 1, z: -1,
+        note: 'Corroborates B2 from a wholly independent instrument (a Senate letter, not the EIA report) — two instruments, same finding, which is what warrant looks like. Load-bearing for LI: the position did not merely fail to make the continuity argument in Feb 2025; members of the caucus had already signed the opposite. Also the origin of two worldlines (see findings). Dated 2024-02-01.',
+      },
+      {
         type: 'C', id: 'C1',
         label: 'The trigger hedges itself: at the signing Trump says he is "torn," hopes he will not have to enforce the memo, and writes that he would "much prefer a Verified Nuclear Peace Agreement." Maximum pressure declared and half-disavowed in one breath — F1 contradicted by its own author inside the window.',
         x: -1, y: 1, z: 0,
@@ -124,18 +142,30 @@ const TF01_TRACE = {
       fluid: 'Continuity-naming',
       denominated: 'Affordable silence',
       binary: 'naming the continuity vs. affording the silence',
+      dia: { composite: 68, spread: null,
+        note: 'Tier floor, deliberately: structural foreclosure, not an active vehicle. ' +
+          'Nobody at LI is spinning — B3 shows the counter-argument was signed away a year ' +
+          'early. The silence dominates completely (the tier) with no machinery running ' +
+          '(the floor).' },
       distinguishability: 'Denominated dominant',
       concordance: { obj: '(+1,+1, 0)', shd: '(+1,+1,+1)' }, concordanceType: 'shadow-concordant-by-absence',
       gap: { x: 0, y: 0, z: 0.25 }, gapDominant: 'Z',
       boundaryDescription:
         'Naming the continuity — "this was our stated policy too," which deflates the rupture ' +
         'frame overnight — versus the silence the position can actually afford. Criticizing the ' +
-        'order concedes B2: the tripled exports under an identical declared policy. The fluid ' +
-        'reading is precisely the reading the position cannot pay for. Anti-valence structural, ' +
-        'the TS01-LI shape, visible seventeen months earlier.',
-      note: 'THIN-SWEEP CAVEAT, recorded: a first-week sweep surfacing no prominent Democratic ' +
-        'pushback supports vacancy but does not prove silence; one targeted verification pass is ' +
-        'owed before this reading is consumed at the arc.',
+        'order concedes B2. And B3 shows the concession was ALREADY MADE, in writing: five ' +
+        'Democratic senators signed the 2024 letter citing 1.4 mbpd and $88bn, demanding harder ' +
+        'enforcement. The fluid reading is not merely unaffordable — it was surrendered a year ' +
+        'early. Vacancy here is not ignorance; it is a position that spent its own ammunition. ' +
+        'Anti-valence structural, the TS01-LI shape, visible seventeen months earlier.',
+      note: 'VERIFICATION PASS RUN 2026-08-18, caveat lifted with its bound stated: a targeted ' +
+        'sweep for institutional-left response to NSPM-2 in its own window returned nothing — ' +
+        'searches surfaced material from adjacent periods (2021 post-mortems, 2026 war powers) ' +
+        'but no day-of reading. Vacancy AT THE MOMENT stands. Cross-frame mode observation, ' +
+        'arc-facing not trace-level: when LI does engage this object economically it is ' +
+        'SURFACE-BOUND, and its critique runs in the more-enforcement direction — a shape that ' +
+        'structurally cannot ask what the instrument is for. (Evidence accrues to PG01, not ' +
+        'here: it postdates this window and moves no coordinate — closure rule.)',
       subjects: [
         { name: 'Democratic leadership, day-of', role: 'reader', mode: 'vacancy',
           note: 'No prominent pushback surfaced; the position\'s own record forecloses the critique.' },
@@ -146,6 +176,10 @@ const TF01_TRACE = {
       fluid: 'Instrument accounting',
       denominated: 'Rupture celebration',
       binary: 'the instrument has a record vs. the weakness has ended',
+      dia: { composite: 70, spread: { min: 25, max: 80 },
+        note: 'Celebrants ~80 — "history proves" is B1 recited without B2, active denomination ' +
+          'against the station\'s own published evidence. Compliance bar ~25 — professionally ' +
+          'fluid, method-occluded. The spread crosses two tiers.' },
       distinguishability: 'Denominated dominant',
       concordance: { obj: '(+1,+1, 0)', shd: '(+1,+1,+1)' }, concordanceType: 'shadow-concordant',
       gap: { x: 0.15, y: 0, z: 0.6 }, gapDominant: 'Z',
@@ -167,6 +201,9 @@ const TF01_TRACE = {
       fluid: 'Instrument-naming',
       denominated: 'Unprecedented-madness',
       binary: 'the sanction is the war vs. the madman is the story',
+      dia: { composite: 40, spread: { min: 20, max: 60 },
+        note: 'Siege-namers reach in good faith (~20); madness-readers co-sign the rupture ' +
+          'frame they think they are attacking (~60). The fork is genuinely live.' },
       distinguishability: 'Oscillation zone',
       concordance: { obj: '(+1,+1, 0)', shd: '(−1, 0, 0)' }, concordanceType: 'object-reaching',
       gap: { x: 0.2, y: 0.3, z: 0.25 }, gapDominant: 'Z',
@@ -187,6 +224,11 @@ const TF01_TRACE = {
       fluid: 'Deal-not-war',
       denominated: 'Pressure-as-peace',
       binary: 'sanctions instead of war vs. sanctions as the war, unseen',
+      dia: { composite: 68, spread: { min: 40, max: 80 },
+        note: 'C1 IS WHY THE SPREAD STAYS WIDE: the operator performed this station\'s ' +
+          'preferred reading from the podium while signing its opposite, so the sincere ' +
+          'deal-not-war variant (~40) survives beside the assembled pressure-as-peace ' +
+          'denomination (~80). Without C1 this station collapses toward the high end.' },
       distinguishability: 'Denominated dominant',
       concordance: { obj: '(+1,−1, 0)', shd: '(+1, 0,+1)' }, concordanceType: 'inverted-forming',
       gap: { x: 0, y: 1.8, z: 0.25 }, gapDominant: 'Y',
@@ -216,6 +258,9 @@ const TF01_TRACE = {
     'REFRACTION RUN 2026-08-18 (Sailor ruled object placement and shadow Z; shadow x/y completed in-session): O at (+0.70, +0.90, +0.25) — coercion-first, pure apparatus, delivery held open by the record. O\' at (+0.85, +0.75, +0.85). Primary shadow operation: Z-ASSERTION — the frame pre-credits delivery the record does not yet support. Structural inverse of TS01\'s Z-inversion; if the pairing holds across the series, the arc gains a two-pole vocabulary for how frames mishandle delivery: deny it when real, assert it when absent.',
     'DIFFRACTION RUN 2026-08-18 (Sailor ruled the station draft): LI vacancy π~0.10 (thin-sweep caveat, verification pass owed) · RI aligned π~0.35 · LP open π~0.65 · RP inverted-lens-forming π~0.30. Four stations, four distinct ways of not reaching (or reaching) the moment — π requires a mode here as everywhere.',
     'C1 ADDED: the trigger hedges itself — the operator half-disavows the rupture frame inside the window. The contradiction is not in the discourse about the order; it is in the order\'s own staging.',
+    'LI VERIFICATION PASS RUN 2026-08-18 (the diffraction\'s one honest debt, closed). Vacancy at the moment holds — no day-of institutional-left reading surfaced. But the REASON is now documented rather than inferred: B3, the 2024 bipartisan letter, shows five Democratic senators had already signed the enforcement-gap numbers. The position could not attack the order in Feb 2025 because it had conceded the premise in writing twelve months earlier. A sweep with a stated bound, not a shrug.',
+    'TWO WORLDLINES, dated and checkable, opened by B3. RUBIO: signs the 2024 letter demanding Iran\'s exports be driven down; NSPM-2 assigns the drive-exports-to-zero campaign to STATE; by 2026 he is the Secretary of State narrating the operational reality aloud (CS04 Event 10). The demand, the office, and the admission are one thread. FETTERMAN: signs the same letter; by CS04 Event 10 his endorsement is the measure of how far Y-axis suppression has traveled. The arc can animate both.',
+    'DIATRIBE PASS RUN 2026-08-18 (Sailor ruled all five numbers): LI 68 (structural floor of the denominated tier) · RI 70 (25–80) · LP 40 (20–60) · RP 68 (40–80, held open by C1) · event composite 60, oscillation zone. The composite is the finding: LATENCY CAPS DENOMINATION — nobody can be fully denominated about an object almost nobody has detected; the high station scores are about the frame, not the object. Prediction hook for the arc: if the scores climb or hold across frames as detection arrives, that is P1\'s shape in the Diatribe register.',
     'ARC-FACING OBSERVATION (for the admission, not assumed): the four modes at this frame are early drafts of the four modes the TS01 layer-2 work found in August 2026 — vacancy at LI, alignment at RI, inversion at RP, reach at LP. Per-station mode stability across seventeen months is recurrence material of exactly the kind PG01 establishes itself by; TF02+ will test it.',
   ],
 
@@ -230,11 +275,11 @@ const TF01_TRACE = {
   // ── Pipeline metadata ──
   pipeline: {
     refractionComplete: true,    // run 2026-08-18
-    diffractionComplete: true,   // run 2026-08-18; LI verification pass owed
+    diffractionComplete: true,   // run 2026-08-18; LI verification pass RUN same day
     positionsComplete: 4,
     boundaryDescriptions: 4,
     coordinateSubjects: 8,
-    version: 'Trace_Data_Schema_v2 — TF-native, snapshot scope. Frame RULED · axes RULED · refraction RUN · diffraction RUN. Owed: LI verification · Diatribe pass · admission to PG01.',
+    version: 'Trace_Data_Schema_v2 — TF-native, snapshot scope. Frame RULED · axes RULED · refraction RUN · diffraction RUN. Diatribe pass run. Owed: admission to PG01.',
   },
 };
 

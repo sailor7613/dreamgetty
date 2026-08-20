@@ -55,6 +55,7 @@ const DG_CODEX = {
       { term: 'Z', plain: 'Did it deliver or is there a gap? At the arc: realized vs. frustrated, always scored from the object\'s own position.' },
       { term: 'Prevalent axis', plain: 'Which axis carries the structural drama (X or Y).' },
       { term: 'Diffraction', plain: 'Splitting the moment into the four stations\' readings — fluid (reaches toward the object) vs. denominated (captured by the vehicle).' },
+      { term: 'Station vs. reading', plain: 'An axis places STATIONS — where a reading is made from — never the reading\'s content. A twist between the two (a coercion-side station holding a diplomacy-preferring reading) does not bend the axis; it lives in the mode and the Dia spread. Parallelogram_v0 §3a.' },
       { term: 'Distinguishability', plain: 'How separable fluid and denominated are: Fluid (0–33) · Oscillation zone (34–66) · Denominated dominant (67–100).' },
       { term: 'Boundary description', plain: 'The prose account of a station\'s fork — what fluid would say, what denominated says instead, and why.' },
     ]},
