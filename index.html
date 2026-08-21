@@ -4191,7 +4191,8 @@ const PrismTraces = (function () {
 <script src="TS02_trace_data.js"></script>
 <script src="CS07_trace_data.js"></script>
 <script src="TF01_trace_data.js"></script>  <!-- TF series — first native snapshot frame (2026-08-18) -->
-<script src="dg_codex_data.js"></script>  <!-- the Codex: plain glossary + trace anatomy for the G4 (2026-08-18) -->
+<script src="dg_codex_data.js"></script>
+<script src="PG01_data.js"></script>  <!-- DG_ARCS: Parallelogram data for the G4 Arcs pane (derived from Parameters/09_Parallelograms/) -->  <!-- the Codex: plain glossary + trace anatomy for the G4 (2026-08-18) -->
 <script>
 /* ============================================================
    THE SKY'S DATA (2026-08-11) — the Observatory spec §4–5.
@@ -24700,7 +24701,9 @@ function drawG4Codex(ctx, W, H, hdrH, cream, blue, S) {
   // ── left rail: sections ──
   const railX = Math.round(24 * S), railW = Math.round(200 * S);
   let ry = hdrH + Math.round(28 * S);
-  const items = [{ id: 'trace', title: 'This trace' }].concat(DG_CODEX.sections);
+  const items = [{ id: 'trace', title: 'This trace' },
+                 { id: 'traces', title: 'Traces ▸ easel' },
+                 { id: 'arcs', title: 'Arcs' }].concat(DG_CODEX.sections);
   items.forEach(function (it) {
     const active = (sec === it.id);
     const rh = Math.round(40 * S);
@@ -24728,6 +24731,77 @@ function drawG4Codex(ctx, W, H, hdrH, cream, blue, S) {
   const cwid = W - cx - Math.round(30 * S);
   let y = hdrH + Math.round(38 * S);
   ctx.textBaseline = 'alphabetic';
+
+  // ── TRACES — the registry as the picker: one click hangs it on the graphmap
+  //    and opens its anatomy here. No display cap; the parchment keeps its five. ──
+  if (sec === 'traces') {
+    y = wrap('Traces — click to hang on the graphmap', cx, y, cwid, Math.round(24 * S),
+             'italic ' + Math.round(19 * S) + 'px Georgia', cream + op(0.55) + ')');
+    y += Math.round(8 * S);
+    const loadedId = (typeof parchState !== 'undefined' && parchState.loadedTraceData)
+      ? parchState.loadedTraceData.id : null;
+    PrismTraces.list().forEach(function (t) {
+      if (y > H - Math.round(60 * S)) return;
+      const rh = Math.round(58 * S);
+      g4Screen.hitRegions.push({ x: cx - Math.round(8 * S), y: y - Math.round(6 * S),
+        w: cwid, h: rh, action: 'codexLoadTrace', data: t.id });
+      const isUp = (t.id === loadedId);
+      if (isUp) { ctx.fillStyle = blue + '0.10)'; ctx.fillRect(cx - Math.round(8 * S), y - Math.round(6 * S), cwid, rh); }
+      const status = (t.lifecycle && t.lifecycle.status === 'closed') ? 'closed'
+                   : (t.lifecycle && t.lifecycle.status === 'live') ? 'LIVE DRAFT'
+                   : /^CS/.test(t.id) ? 'case study' : 'exhibit';
+      y = wrap(t.id + ' — ' + (t.label || '') + (isUp ? '   · on the easel' : ''),
+               cx, y, cwid, Math.round(18 * S),
+               '600 ' + Math.round(13 * S) + 'px Georgia', cream + op(isUp ? 0.75 : 0.55) + ')');
+      y = wrap(status + (t.eventType ? ' · ' + t.eventType : '') +
+               (t.frame && t.frame.window ? ' · ' + t.frame.window.start : ''),
+               cx + Math.round(10 * S), y, cwid - Math.round(10 * S), Math.round(15 * S),
+               'italic ' + Math.round(11 * S) + 'px Georgia', cream + op(0.32) + ')');
+      y += Math.round(12 * S);
+    });
+    return;
+  }
+
+  // ── ARCS — the Parallelograms, rendered as themselves ──
+  if (sec === 'arcs') {
+    if (typeof DG_ARCS === 'undefined' || !DG_ARCS.length) {
+      ctx.font = 'italic ' + Math.round(14 * S) + 'px Georgia';
+      ctx.fillStyle = cream + op(0.3) + ')'; ctx.textAlign = 'left';
+      ctx.fillText('No arcs registered (PG01_data.js not loaded).', cx, y + Math.round(20 * S));
+      return;
+    }
+    const arc = DG_ARCS[0];
+    y = wrap(arc.id + ' · ' + arc.title, cx, y, cwid, Math.round(24 * S),
+             'italic ' + Math.round(19 * S) + 'px Georgia', cream + op(0.6) + ')');
+    y = wrap(arc.type + ' · founded ' + arc.founded + ' · real-object Z ' + arc.realObjectZ,
+             cx, y + Math.round(2 * S), cwid, Math.round(16 * S),
+             Math.round(11.5 * S) + 'px Georgia', cream + op(0.35) + ')');
+    y = wrap(arc.object, cx, y + Math.round(4 * S), cwid, Math.round(16 * S),
+             'italic ' + Math.round(12 * S) + 'px Georgia', cream + op(0.45) + ')');
+    y += Math.round(10 * S);
+    y = wrap('THE FILM — six frames, Feb 2025 → Aug 2026', cx, y, cwid, Math.round(18 * S),
+             '600 ' + Math.round(12 * S) + 'px Georgia', blue + '0.55)');
+    arc.series.forEach(function (f) {
+      if (y > H - Math.round(90 * S)) return;
+      const hot = /ADMITTED|NEXT/.test(f.status);
+      y = wrap(f.tf + ' · ' + f.label + ' · ' + f.date + '   — ' + f.status,
+               cx, y + Math.round(2 * S), cwid, Math.round(16 * S),
+               (hot ? '600 ' : '') + Math.round(12 * S) + 'px Georgia',
+               cream + op(hot ? 0.65 : 0.42) + ')');
+    });
+    y += Math.round(8 * S);
+    y = wrap('RECURRENCE LEDGER (append-only)', cx, y, cwid, Math.round(18 * S),
+             '600 ' + Math.round(12 * S) + 'px Georgia', blue + '0.55)');
+    arc.recurrence.forEach(function (p) {
+      y = wrap(p.id + ' [' + p.outcome + ', stated ' + p.statedDate + '] — ' + p.stated,
+               cx, y + Math.round(2 * S), cwid, Math.round(15 * S),
+               Math.round(11 * S) + 'px Georgia', cream + op(0.4) + ')', 3);
+    });
+    y += Math.round(6 * S);
+    y = wrap('AT THE DOOR: ' + arc.door.join('  ·  '), cx, y, cwid, Math.round(15 * S),
+             'italic ' + Math.round(11 * S) + 'px Georgia', cream + op(0.32) + ')');
+    return;
+  }
 
   if (sec !== 'trace') {
     const section = DG_CODEX.sections.find(function (s) { return s.id === sec; });
@@ -25581,7 +25655,14 @@ setTimeout(function () {
   try {
     if (typeof PrismTraces === 'undefined' || typeof loadTraceOnEasel !== 'function') return;
     if (parchState.loadedTraceData) return;        // a hand got there first
-    const td = PrismTraces.get('TS01');
+    // THE EXHIBITION HANGS THE CURRENT DRAFT (2026-08-18, Sailor): on entry the
+    // graphmap shows the most recent LIVE draft — the highest-numbered TF whose
+    // lifecycle is open — so the villa greets you with the work in progress.
+    // Fallback: TS01, the standing exhibit, when no draft is live.
+    const drafts = PrismTraces.list()
+      .filter(function (t) { return /^TF\d+$/.test(t.id) && t.lifecycle && t.lifecycle.status === 'live'; })
+      .sort(function (a, b) { return b.id.localeCompare(a.id, undefined, { numeric: true }); });
+    const td = drafts[0] || PrismTraces.get('TS01');
     if (!td) return;
     if (typeof graphmapVisible !== 'undefined' && !graphmapVisible &&
         typeof toggleGraphmap === 'function') toggleGraphmap();
@@ -25606,6 +25687,19 @@ function handleG4ScreenClick(region) {
   }
   if (region.action === 'codexSection') {
     g4State.codexSection = region.data;
+    redrawG4Screen();
+    return;
+  }
+  if (region.action === 'codexLoadTrace') {
+    try {
+      const td = PrismTraces.get(region.data);
+      if (td) {
+        if (typeof graphmapVisible !== 'undefined' && !graphmapVisible &&
+            typeof toggleGraphmap === 'function') toggleGraphmap();
+        loadTraceOnEasel(td);
+        g4State.codexSection = 'trace';   // picking and inspecting are one gesture
+      }
+    } catch (e) {}
     redrawG4Screen();
     return;
   }
