@@ -1416,6 +1416,7 @@
   <button class="ui-btn" id="bigcolin-btn" onclick="tapResident('bigcolin')" title="Big Colin \u2014 tap to lock the camera on him. A raccoon; lives at the foot of the acacia and works its ground">🦝 Big Colin</button>
   <button class="ui-btn" id="doctorcolin-btn" onclick="tapResident('doctorcolin')" title="Doctor Colin \u2014 tap to lock the camera on him. A blue sparrow; lives in the acacia’s canopy">🐦 Doctor Colin</button>
   <button class="ui-btn" id="alrik-new-btn" onclick="tapResident('alrik-new')" title="Alrik \u2014 tap to lock the camera on him. A beaver, working a calm reach of the river">🦫 Alrik</button>
+  <button class="ui-btn" id="haley-btn" onclick="tapResident('haley')" title="Haley \u2014 tap to lock the camera on her. A red fox, the Otter Princess\u2019s cousin; lives on the beach above the kelp bed and watches her from the tideline">🦊 Haley</button>
   </div>
 </div>
 
@@ -8398,6 +8399,7 @@ const AVATARS = {
   bigcolin: () => raccoonBigColin,
   doctorcolin: () => sparrowDoctorColin,
   'alrik-new': () => beaverAlrik,
+  haley: () => foxHaley,
   guest: () => visitorAvatar,
 };
 
@@ -12773,7 +12775,7 @@ const ADDRESS_RIDGE = [
 // body that does not exist yet.
 const ADDRESS_FROM = {
   trout: 'sea', seal: 'sea', otter: 'sea', petra: 'sea', kyle: 'sea',
-  turtle: 'sea', austin: 'sea', luke: 'sea', julia: 'sea', y2k: 'sea',
+  turtle: 'sea', austin: 'sea', luke: 'sea', julia: 'sea', y2k: 'sea', haley: 'sea',
   diddy: 'ridge', richard: 'ridge', edburg: 'ridge',
 };
 
@@ -14298,6 +14300,20 @@ const PROFILES = {
       return 'perched at ' + ((DOCTORCOLIN_SPOTS[S.spot] || {}).name || 'the court');
     },
   },
+  haley: {
+    emoji: '🦊', name: 'Haley',
+    bio: "A red fox, and the Sea Otter Princess's cousin — the gilt hoop in her ear is the tiara's metal. Lives on the beach above the kelp bed, the shore her cousin rafts off: trots the dry sand and both banks of the river mouth, sits at the tideline to watch the Princess drift, and does the mouse-pounce into the sand whether or not there is a mouse. Will wade and no further.",
+    status: function () {
+      const S = haleyState;
+      const at = (HALEY_SPOTS[S.spot] || {}).name || 'the sand';
+      if (S.mode === 'run') return S.summonTarget ? 'running to you' : 'flat out across the beach';
+      if (S.mode === 'trot') return S.summonTarget ? 'trotting over to you' : 'trotting to ' + at;
+      if (S.mode === 'pounce') return 'pouncing on something in the sand';
+      if (S.mode === 'curl') return 'curled up, nose under her brush, at ' + at;
+      if (S.summonTarget) return 'sitting with you';
+      return (typeof otterPrincess !== 'undefined' && otterPrincess.visible) ? 'sitting at ' + at + ', watching her cousin' : 'sitting at ' + at;
+    },
+  },
   'alrik-new': {
     emoji: '🦫', name: 'Alrik',
     bio: "A beaver — confirmed 2026-08-10, after the wizard's own key went to Richard. Works a calm reach of the river between the pool and the estuary, and has started something on the near bank: a lean of gnawed sticks and a daub of pressed clay. Swims his sticks home in his teeth, works them against those front teeth, pats the clay into shape — and once in a great while, the alarm slap.",
@@ -14609,7 +14625,7 @@ function renderFeedInto(key) {
 const ASSIGNABLE = ['trout', 'seal', 'y2k', 'otter', 'petra', 'kyle', 'diddy',
                     'richard', 'julia', 'emilia', 'adlib', 'austin',
                     'houston', 'turtle', 'edburg', 'luke',
-                    'bigcolin', 'doctorcolin', 'alrik-new'];
+                    'bigcolin', 'doctorcolin', 'alrik-new', 'haley'];
 // NOTE (2026-08-07): the gate's SPEAKABLE list is the mirror of this one and
 // it refuses anything outside itself. Four new keys here means four new keys
 // THERE, in villa-gate, or Houston, the turtle, Edburg and Luke can each be
@@ -18658,6 +18674,309 @@ function alrikBeaverDepart(t) {
   S.mode = 'travel';
 }
 
+// ============================================================
+// 18. HALEY — a red fox (2026-09-18, Sailor: "a fox for the Otter
+// Princess' cousin, Haley"). Built off the raccoon's skeleton — headGroup
+// pivot, four legs on their own joints, a tail on its own pivot — because
+// a fox in this stylisation is the same stocky-cat body wearing a longer
+// face and a much bigger tail. The three things that make her read as a
+// fox from across the sand: the ears (tall, triangular, dark-backed), the
+// black stockings, and the brush with its white tip. Everything else is
+// proportion and colour, and the colour goes DARK for the villa's wash —
+// a photographed red fox is 0xc8622a; on this lawn that bleaches to
+// peach, so the coat sits at 0x7c3210 and reads as russet.
+//
+// Family: one small gilt hoop in the left ear, cast in the tiara's own
+// gilt (same material recipe, same faint emissive). The Princess stays
+// the only resident who wears a crown — the roster says so — but the
+// cousin carries the same metal, and it catches the light the same way.
+// ============================================================
+function buildFox(p) {
+  p = p || {};
+  const g = new THREE.Group();
+  const coat = new THREE.MeshStandardMaterial({ color: p.coat !== undefined ? p.coat : 0x7c3210, roughness: 0.86 });
+  const dark = new THREE.MeshStandardMaterial({ color: p.dark !== undefined ? p.dark : 0x17110d, roughness: 0.8 });
+  const white = new THREE.MeshStandardMaterial({ color: p.white !== undefined ? p.white : 0xd9cfbb, roughness: 0.84 });
+  const eyeMat = new THREE.MeshStandardMaterial({ color: 0x1a1208, roughness: 0.3 });
+  const gilt = new THREE.MeshStandardMaterial({ color: 0xd8b45c, metalness: 0.75, roughness: 0.28, emissive: 0x4a3810, emissiveIntensity: 0.55 });
+
+  // Body — leaner and longer than the raccoon, carried a touch higher
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 8), coat);
+  body.scale.set(0.82, 0.8, 1.5);
+  body.position.set(0, 0.29, -0.02);
+  body.castShadow = true;
+  g.add(body);
+  const chest = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), white);
+  chest.scale.set(0.7, 0.62, 1.2);
+  chest.position.set(0, 0.20, 0.06);
+  g.add(chest);
+
+  const headGroup = new THREE.Group();
+  headGroup.position.set(0, 0.42, 0.24);
+  g.add(headGroup);
+  g.userData.headGroup = headGroup;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.115, 10, 8), coat);
+  head.scale.set(1, 0.9, 1.0);
+  headGroup.add(head);
+  // The muzzle is the face: long, narrow, and it tapers. Two spheres
+  // rather than one so the taper reads in silhouette.
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), coat);
+  muzzle.scale.set(0.8, 0.65, 1.5);
+  muzzle.position.set(0, -0.035, 0.12);
+  headGroup.add(muzzle);
+  const chin = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 5), white);
+  chin.scale.set(0.9, 0.55, 1.3);
+  chin.position.set(0, -0.06, 0.11);
+  headGroup.add(chin);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.018, 5, 4), dark);
+  nose.position.set(0, -0.02, 0.205);
+  headGroup.add(nose);
+  [-1, 1].forEach(s => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.015, 6, 5), eyeMat);
+    eye.position.set(s * 0.05, 0.02, 0.10);
+    headGroup.add(eye);
+    // Cheek ruff — the white flares that frame a fox's face
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.045, 7, 5), white);
+    cheek.scale.set(0.7, 0.8, 0.5);
+    cheek.position.set(s * 0.085, -0.03, 0.06);
+    headGroup.add(cheek);
+    // THE EARS — tall cones, dark at the back, and they are half the fox
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(0.042, 0.13, 5), coat);
+    ear.position.set(s * 0.075, 0.13, -0.01);
+    ear.rotation.z = -s * 0.28;
+    ear.rotation.x = -0.15;
+    headGroup.add(ear);
+    const earBack = new THREE.Mesh(new THREE.ConeGeometry(0.03, 0.09, 5), dark);
+    earBack.position.set(s * 0.078, 0.15, -0.03);
+    earBack.rotation.z = -s * 0.28;
+    earBack.rotation.x = -0.35;
+    headGroup.add(earBack);
+  });
+  // The hoop — left ear, low on the rim, in the Princess's gilt
+  const hoop = new THREE.Mesh(new THREE.TorusGeometry(0.02, 0.005, 5, 10), gilt);
+  hoop.position.set(-0.10, 0.085, -0.005);
+  hoop.rotation.y = Math.PI / 2 + 0.3;
+  headGroup.add(hoop);
+  g.userData.hoop = hoop;
+
+  // Legs — the black stockings. Longer than the raccoon's; a fox stands
+  // on stilts by comparison.
+  const legs = [];
+  [[-1, 0.15], [1, 0.15], [-1, -0.16], [1, -0.16]].forEach(([s, z]) => {
+    const leg = new THREE.Group();
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.024, 0.11, 5), coat);
+    upper.position.y = -0.05;
+    leg.add(upper);
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.02, 0.12, 5), dark);
+    lower.position.y = -0.155;
+    leg.add(lower);
+    const paw = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 5), dark);
+    paw.scale.set(0.9, 0.5, 1.2);
+    paw.position.y = -0.215;
+    leg.add(paw);
+    leg.position.set(s * 0.085, 0.24, z);
+    g.add(leg); legs.push(leg);
+  });
+  g.userData.legs = legs;
+
+  // THE BRUSH — the other half of the fox. Six segments swelling then
+  // tapering, coat-coloured with a white tip, on a pivot at the rump so
+  // the whole thing swings as one and can curl round her feet when she
+  // sits, or over her nose when she sleeps.
+  const tail = new THREE.Group();
+  const segCount = 6;
+  for (let i = 0; i < segCount; i++) {
+    const u = i / (segCount - 1);
+    const swell = 0.055 + Math.sin(u * Math.PI) * 0.035;
+    const seg = new THREE.Mesh(new THREE.SphereGeometry(swell, 7, 6), u > 0.8 ? white : coat);
+    seg.scale.set(1, 0.95, 1.35);
+    seg.position.set(0, -u * 0.06 + Math.sin(u * Math.PI) * 0.05, -0.16 - u * 0.36);
+    tail.add(seg);
+  }
+  tail.position.set(0, 0.31, -0.20);
+  g.add(tail);
+  g.userData.tail = tail;
+
+  g.scale.set(0.85, 0.85, 0.85);
+  return g;
+}
+
+const foxHaley = buildFox();
+foxHaley.visible = false;
+scene.add(foxHaley);
+
+// RULED (Sailor, 2026-09-18): Haley is the Otter Princess's cousin, so her
+// address is the shore her cousin rafts off — THE BEACH ABOVE THE KELP
+// BED. Probed 2026-09-18: the dry sand runs at |x| ≥ 8 down to z ≈ 84, the
+// river channel cuts the beach down the middle from z ≈ 80 seaward, and
+// the swash line sits at z ≈ 86–88 on both flanks. Every spot here is
+// measured ground, ≥ 0.3 above the sea. The tideline spot is where she
+// sits to watch the kelp. She does NOT swim — a fox will wade and no
+// more — so she is not in WALK_AQUATIC and a summons into the water
+// brings her to the nearest sand instead.
+const HALEY_SPOTS = [
+  { name: 'the dry sand', x: 12, z: 80 },
+  { name: 'the east bank of the river mouth', x: 7, z: 78 },
+  { name: 'the top of the beach', x: -10, z: 74 },
+  { name: 'the west bank of the river mouth', x: -7, z: 77 },
+  { name: 'the tideline', x: 14, z: 85 },
+];
+const haleyState = { mode: 'off', t0: -1, from: null, to: null, dur: 0, spot: 0, until: 0, summonUntil: 0, summonTarget: null, pounceT: -1 };
+function haleyGround(x, z) { return new THREE.Vector3(x, getVisitorHeight(x, z) + 0.02, z); }
+// The nearest dry sand to a point — for a summons from the water, and for
+// anything else that would otherwise send her swimming.
+function haleyNearestSand(x, z) {
+  if (getVisitorHeight(x, z) > OCEAN_Y + 0.25) return haleyGround(x, z);
+  let best = null, bd = Infinity;
+  HALEY_SPOTS.forEach(s => { const d = (s.x - x) * (s.x - x) + (s.z - z) * (s.z - z); if (d < bd) { bd = d; best = s; } });
+  return haleyGround(best.x, best.z);
+}
+
+function toggleHaley() {
+  const b = document.getElementById('haley-btn');
+  if (haleyState.mode === 'off') {
+    foxHaley.position.copy(haleyGround(HALEY_SPOTS[0].x, HALEY_SPOTS[0].z));
+    foxHaley.visible = true;
+    haleyState.mode = 'sit';
+    haleyState.t0 = -1; haleyState.spot = 0;
+    if (b) { b.classList.add('active'); b.textContent = '🦊 at ' + HALEY_SPOTS[0].name; }
+  } else {
+    haleyState.mode = 'off';
+    foxHaley.visible = false;
+    if (b) { b.classList.remove('active'); b.textContent = '🦊 Haley'; }
+  }
+}
+
+// Turn the head toward a world point, within what a neck allows. Used to
+// watch her cousin: if the Princess is in the water, Haley looks at her.
+function haleyLookAt(target, rate) {
+  const W = foxHaley.userData;
+  const dx = target.x - foxHaley.position.x, dz = target.z - foxHaley.position.z;
+  let rel = Math.atan2(dx, dz) - foxHaley.rotation.y;
+  while (rel > Math.PI) rel -= Math.PI * 2;
+  while (rel < -Math.PI) rel += Math.PI * 2;
+  rel = Math.max(-1.1, Math.min(1.1, rel));
+  W.headGroup.rotation.y += (rel - W.headGroup.rotation.y) * rate;
+}
+
+function animateHaley(t) {
+  const S = haleyState;
+  if (S.mode === 'off') return;
+  if (S.t0 < 0) { S.t0 = t; S.until = t + 12; }
+  const W = foxHaley.userData;
+  const cousinOut = (typeof otterPrincess !== 'undefined') && otterPrincess.visible;
+
+  if (S.mode === 'trot' || S.mode === 'run') {
+    const fast = S.mode === 'run';
+    const u = travelU(t, S);
+    const e = fast ? u : u * u * (3 - 2 * u);
+    const p = S.from.clone().lerp(S.to, e);
+    // A trot is a springy gait — the whole animal lifts a little on every
+    // stride, more when she is running.
+    p.y = getVisitorHeight(p.x, p.z) + 0.02 + Math.abs(Math.sin(u * S.dur * (fast ? 9 : 6))) * (fast ? 0.07 : 0.025);
+    foxHaley.position.copy(p);
+    foxHaley.rotation.x += (0 - foxHaley.rotation.x) * 0.15;
+    foxHaley.rotation.z += (0 - foxHaley.rotation.z) * 0.15;
+    const rate = fast ? 14 : 8;
+    // Diagonal pairs — a trot is the gait where the legs move in diagonal
+    // pairs, and it is the gait a fox uses for everything but hunting.
+    W.legs.forEach((l, i) => { const pair = (i === 0 || i === 3) ? 0 : Math.PI; l.rotation.x = Math.sin(t * rate + pair) * (fast ? 0.75 : 0.5); });
+    // The brush is carried level and straight out behind on the move
+    W.tail.rotation.x += ((fast ? 0.15 : 0.05) - W.tail.rotation.x) * 0.1;
+    W.tail.rotation.y = Math.sin(t * 2.2) * 0.08;
+    W.headGroup.rotation.x += (0.05 - W.headGroup.rotation.x) * 0.1;
+    W.headGroup.rotation.y *= 0.9;
+    const v = new THREE.Vector3().subVectors(S.to, S.from);
+    if (v.lengthSq() > 1e-4) {
+      const yaw = Math.atan2(v.x, v.z);
+      let dy = yaw - foxHaley.rotation.y;
+      while (dy > Math.PI) dy -= Math.PI * 2;
+      while (dy < -Math.PI) dy += Math.PI * 2;
+      foxHaley.rotation.y += dy * (fast ? 0.25 : 0.12);
+    }
+    if (u >= 1) {
+      const r = Math.abs(Math.sin(t * 53.1));
+      S.mode = S.summonTarget ? 'sit' : (r < 0.3 ? 'pounce' : (r < 0.55 ? 'curl' : 'sit'));
+      if (S.mode === 'pounce') S.pounceT = t;
+      S.t0 = t;
+      S.until = Math.max(t + 14 + Math.abs(Math.sin(t * 11.3)) * 26, S.summonUntil || 0);
+      const spot = HALEY_SPOTS[S.spot];
+      const b = document.getElementById('haley-btn');
+      if (b && b.classList.contains('active')) b.textContent = '🦊 ' + (S.summonTarget ? 'with you' : (spot ? 'at ' + spot.name : 'on the sand'));
+    }
+    return;
+  }
+
+  foxHaley.position.y = getVisitorHeight(foxHaley.position.x, foxHaley.position.z) + 0.02;
+
+  if (S.mode === 'pounce') {
+    // THE MOUSE-POUNCE — the one thing everyone has seen a fox do. She
+    // freezes, ears forward; rears up on her hind legs; and comes down
+    // nose-first into the sand, brush straight up. Then she stands there
+    // looking faintly embarrassed, which is also accurate.
+    const k = t - S.pounceT;
+    const rear = k < 1.2 ? 0 : (k < 1.9 ? (k - 1.2) / 0.7 : (k < 2.25 ? 1 - (k - 1.9) / 0.35 * 1.6 : -0.6 + Math.min(1, (k - 2.25) / 1.2) * 0.6));
+    foxHaley.rotation.x += (-rear * 0.9 - foxHaley.rotation.x) * 0.35;
+    foxHaley.position.y += Math.max(0, rear) * 0.18;
+    W.headGroup.rotation.x += ((rear > 0 ? -0.2 : (k > 1.9 && k < 3.4 ? 0.7 : 0.15)) - W.headGroup.rotation.x) * 0.3;
+    W.headGroup.rotation.y *= 0.8;
+    W.tail.rotation.x += ((k > 1.9 && k < 3.4 ? -1.2 : 0.1) - W.tail.rotation.x) * 0.25;
+    W.legs.forEach((l, i) => { l.rotation.x += ((i < 2 ? -rear * 1.1 : rear * 0.4) - l.rotation.x) * 0.3; });
+    if (k > 4.5) { S.mode = 'sit'; S.t0 = t; }
+    return;
+  }
+
+  if (S.mode === 'curl') {
+    // Asleep, or near it: down on her side-ish, brush drawn over her nose.
+    // The rest state. Her cousin's is the belly-up raft; hers is this.
+    foxHaley.rotation.x += (0 - foxHaley.rotation.x) * 0.1;
+    foxHaley.rotation.z += (0.55 - foxHaley.rotation.z) * 0.06;
+    foxHaley.position.y -= 0.12;
+    W.headGroup.rotation.x += (0.9 - W.headGroup.rotation.x) * 0.06;
+    W.headGroup.rotation.y += (-0.9 - W.headGroup.rotation.y) * 0.06;
+    W.tail.rotation.x += (-0.2 - W.tail.rotation.x) * 0.06;
+    W.tail.rotation.y += (1.9 - W.tail.rotation.y) * 0.06;
+    W.legs.forEach((l, i) => { l.rotation.x += ((i < 2 ? 0.9 : -0.9) - l.rotation.x) * 0.08; });
+    // Breathing — the only motion, and it is small
+    foxHaley.position.y += Math.sin(t * 1.4) * 0.006;
+    if (t > S.until && t > (S.summonUntil || 0)) { S.mode = 'sit'; S.t0 = t; S.until = t + 4; }
+    return;
+  }
+
+  // SIT — on her haunches, brush curled round her feet, watching. If the
+  // Princess is in the water she watches HER, and turns her head to keep
+  // her as she drifts; otherwise she watches whatever passes.
+  foxHaley.rotation.x += (-0.32 - foxHaley.rotation.x) * 0.08;
+  foxHaley.rotation.z += (0 - foxHaley.rotation.z) * 0.08;
+  foxHaley.position.y -= 0.05;
+  W.legs.forEach((l, i) => { l.rotation.x += ((i < 2 ? 0.42 : -1.2) - l.rotation.x) * 0.08; });
+  W.tail.rotation.x += (-0.45 - W.tail.rotation.x) * 0.08;
+  W.tail.rotation.y += (1.3 + Math.sin(t * 0.7) * 0.15 - W.tail.rotation.y) * 0.08;
+  W.headGroup.rotation.x += (0.35 + Math.sin(t * 0.5) * 0.06 - W.headGroup.rotation.x) * 0.08;
+  if (cousinOut && !S.summonTarget) {
+    haleyLookAt(otterPrincess.position, 0.05);
+  } else if (S.summonTarget && typeof visitorAvatar !== 'undefined' && visitorAvatar.visible) {
+    haleyLookAt(visitorAvatar.position, 0.05);
+  } else {
+    W.headGroup.rotation.y += (Math.sin(t * 0.31) * 0.6 - W.headGroup.rotation.y) * 0.04;
+  }
+  // The ears — this stylisation has no ear joints, so alertness is the
+  // head coming up a fraction when something moves near her
+  if (t > S.until && t > (S.summonUntil || 0)) {
+    S.summonTarget = null;
+    let next = Math.floor(Math.abs(Math.sin(t * 67.7)) * HALEY_SPOTS.length) % HALEY_SPOTS.length;
+    if (next === S.spot) next = (next + 1) % HALEY_SPOTS.length;
+    S.spot = next;
+    S.from = foxHaley.position.clone();
+    S.to = haleyGround(HALEY_SPOTS[next].x, HALEY_SPOTS[next].z);
+    const far = S.from.distanceTo(S.to);
+    const run = Math.abs(Math.sin(t * 89.3)) > 0.78;
+    S.mode = run ? 'run' : 'trot';
+    S.dur = Math.max(run ? 1.2 : 3, far / (run ? 7 : 2.4));
+    S.t0 = t;
+  }
+}
+
 // ── Arrivals, continuing the staggered cadence ──
 // Houston runs the terrace, so he comes in late enough that the camera is
 // not still on the threshold when a dog goes past it at speed.
@@ -18668,6 +18987,7 @@ setTimeout(function () { if (lukeState.mode === 'off') toggleLuke(); }, 58000);
 setTimeout(function () { if (bigColinState.mode === 'off') toggleBigColin(); }, 61500);
 setTimeout(function () { if (doctorColinState.mode === 'off') toggleDoctorColin(); }, 65000);
 setTimeout(function () { if (alrikBeaverState.mode === 'off') toggleAlrikBeaver(); }, 68500);
+setTimeout(function () { if (haleyState.mode === 'off') toggleHaley(); }, 72000);
 
 // ── GOING PLACES (Sailor, 2026-08-01) ───────────────────────
 // Orbiting a 3D scene with a scroll wheel is a bad way to get anywhere,
@@ -18812,6 +19132,7 @@ const RESIDENTS = {
   bigcolin: { state: function () { return bigColinState; }, toggle: toggleBigColin },
   doctorcolin: { state: function () { return doctorColinState; }, toggle: toggleDoctorColin },
   'alrik-new': { state: function () { return alrikBeaverState; }, toggle: toggleAlrikBeaver },
+  haley: { state: function () { return haleyState; }, toggle: toggleHaley },
 };
 
 function tapResident(key) {
@@ -19246,6 +19567,21 @@ function summonResident(key, silent, at) {
     greyhoundHouston.userData.roll.rotation.z = 0;
     houstonState.summonUntil = t + houstonState.dur + 90;
     houstonState.until = houstonState.summonUntil;
+  } else if (key === 'haley') {
+    if (haleyState.mode === 'off') toggleHaley();
+    // She comes at a run, on land. A fox will wade and no further, so a
+    // summons from the water brings her to the nearest dry sand, where she
+    // sits and watches you instead — the ontology answers for her here.
+    const dry = getVisitorHeight(here.x, here.z) > OCEAN_Y + 0.25;
+    const dst = haleyNearestSand(here.x - 1.0, here.z + 0.9);
+    haleyState.summonTarget = dst;
+    haleyState.summonUntil = t + 90;
+    haleyState.from = foxHaley.position.clone();
+    haleyState.to = dst;
+    haleyState.dur = Math.max(1.5, haleyState.from.distanceTo(dst) / 6);
+    haleyState.mode = 'run';
+    haleyState.t0 = t;
+    if (!dry) showNavLabel('Haley will not swim — she is waiting for you on the sand');
   } else if (key === 'turtle') {
     if (turtleState.mode === 'off') toggleTurtle();
     // He goes where he is called, ashore included — turtleY guarantees he
@@ -22675,7 +23011,7 @@ container.addEventListener('pointerup', e => {
       [troutFish, sealPup, y2kHusky, otterPrincess, sharkPetra, dolphinKyle, diddyKong,
        wizardAlrik, ravenHornedSphere, heronJulia, stoatEmilia, catAdlib, pelicanAustin,
        greyhoundHouston, seaTurtle, catEdburg, albatrossLuke, raccoonBigColin,
-       sparrowDoctorColin, tedTurner].forEach(consider);
+       sparrowDoctorColin, foxHaley, tedTurner].forEach(consider);
     } catch (e) {}
     return d;
   })();
@@ -22742,6 +23078,7 @@ container.addEventListener('pointerup', e => {
     if (raccoonBigColin.visible) critters.push({ key: 'bigcolin', mesh: raccoonBigColin });
     if (sparrowDoctorColin.visible) critters.push({ key: 'doctorcolin', mesh: sparrowDoctorColin });
     if (beaverAlrik.visible) critters.push({ key: 'alrik-new', mesh: beaverAlrik });
+    if (foxHaley.visible) critters.push({ key: 'haley', mesh: foxHaley });
     if (typeof tedTurner !== 'undefined' && tedTurner.visible) critters.push({ key: 'ted', mesh: tedTurner });
     for (const c of critters) {
       if (raycaster.intersectObject(c.mesh, true).length > 0) {
@@ -26138,6 +26475,7 @@ const PIERCE_BODIES = [
   ['austin', pelicanAustin], ['houston', greyhoundHouston], ['turtle', seaTurtle],
   ['edburg', catEdburg], ['luke', albatrossLuke],
   ['bigcolin', raccoonBigColin], ['doctorcolin', sparrowDoctorColin], ['alrik-new', beaverAlrik],
+  ['haley', foxHaley],
 ];
 
 // EVERY light sees the pierce layer — not just the two directionals.
@@ -26461,6 +26799,7 @@ function animate() {
   residentBudget.run('bigcolin',    animateBigColin,    t, raccoonBigColin);
   residentBudget.run('doctorcolin', animateDoctorColin, t, sparrowDoctorColin);
   residentBudget.run('alrik-new',   animateAlrikBeaver, t, beaverAlrik);
+  residentBudget.run('haley',       animateHaley,       t, foxHaley);
   residentBudget.end();
   addressFaceTheHouse();   // last, after every mover has set its own yaw
   // The tour's toasts are pinned to world points, so they are projected
