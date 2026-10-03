@@ -22,7 +22,22 @@ const DG_ARCS = [
         stated: 'The next public admission goes institutionally unread, same per-position modes ' +
           '(LI surface-bound · RI aligned/method-occluded · RP inverted-lens · LP reaching, ' +
           'attribution declined). Calibration: Bessent, CNBC, 2026-06-24.' },
+      { id: 'P2', outcome: 'pending', statedDate: '2026-09-17',
+        stated: 'Institutional coverage of the Russian-theater strike campaign reads war, shortages ' +
+          'and prices, never settlement structure. Falsified by any RI/LI piece connecting the ' +
+          'campaign to invoicing or the dollar\'s share of the marginal barrel, 2026-08-14 → 11-30.' },
+      { id: 'P3', outcome: 'pending', statedDate: '2026-10-02', zTarget: 0.8,
+        stated: 'The shock realizes the object by re-routing it. TF03 (the Strait closure) scores the ' +
+          'real object at z ≥ +0.8 at the hemisphere barrel: Gulf supply to the US goes to zero and ' +
+          'is replaced by Western-Hemisphere supply, dollar-settled by construction; the dollar-settled ' +
+          'share of US crude imports does not fall. Basis: the active layer, first fetch 2026-10-02.' },
     ],
+
+    // §6 — the active layer (ruled 2026-10-02): the arc read as motion. Columns: realization (flows,
+    // with a declared settlement layer) · detection (events, as-of + detected) · price (the shadow).
+    // Drawn in the G4's Active pane (Prism/active/). Flows do not score z; no instrumentality claim.
+    active: { ruled: '2026-10-02', pane: 'Active', source: 'Prism/data/active/active.json',
+      guards: ['the frame stands still', 'flows do not score z', 'no instrumentality', 'accruals stay accruals', 'Prism sees it through Readings'] },
 
     // The ruled six-frame series — the film, Feb 2025 → Aug 2026.
     series: [

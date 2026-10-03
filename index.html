@@ -1607,6 +1607,7 @@
     <button class="g4-tab" data-pane="notes" onclick="switchG4Tab('notes')">Notes</button>
     <button class="g4-tab" data-pane="story" onclick="switchG4Tab('story')">Story</button>
     <button class="g4-tab" data-pane="kaleido" onclick="switchG4Tab('kaleido')">Kaleidoscope</button>
+    <button class="g4-tab" data-pane="active" onclick="switchG4Tab('active')">Active</button>
   </div>
   <div class="g4-pane active" id="g4-inspect-pane">
     <div class="g4-inspect-empty" id="g4-inspect-empty">Click a trace element on the graphmap</div>
@@ -1651,6 +1652,17 @@
     <div id="g4-story-info" style="padding:12px 16px; opacity:0.4; font-size:12px; text-align:center;">
       No trace loaded
     </div>
+  </div>
+  <!-- ACTIVE (2026-10-02) — PG01 §6, the active layer: the arc read as motion, in the iMac. A dashboard OF the
+       Parallelogram (Sailor's call, 10-02): the Prism repo's instrument page framed here with Ted presenting.
+       Same github.io origin, so ../Prism/active/ resolves on the deployed villa; locally it needs both repos served
+       from the workspace root (python3 -m http.server from PARALLELOGRAM PRISM/). -->
+  <div class="g4-pane" id="g4-active-pane" style="padding:0;">
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px 6px; font-family:Georgia,serif; font-size:11px; opacity:.6;">
+      <span>PG01 · the active layer — the petrogas-dollar, read as motion</span>
+      <a id="g4-active-open" href="../../Prism/active/?ted" target="_blank" style="color:#d4aa52; text-decoration:none; font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase;">open full ↗</a>
+    </div>
+    <iframe id="g4-active-frame" title="PG01 · the active layer" loading="lazy" style="display:block; width:100%; height:min(62vh, 640px); border:0; background:#0b1020;"></iframe>
   </div>
   <div class="g4-pane" id="g4-kaleido-pane">
     <div style="font-family:Georgia,serif; font-size:11px; opacity:.6; margin-bottom:8px; text-align:center;">One object, many instances — the clouds kaleid in place.</div>
@@ -24147,6 +24159,12 @@ function updateG4ScreenOverlay() {
 
 function switchG4Tab(pane) {
   g4State.activeTab = pane;
+  if (pane === 'active') {
+    // deployed: sailor7613.github.io/dreamgetty/ → /Prism/active/ (same origin). Workspace: DreamGetty/dreamgetty/ → ../../Prism/active/
+    var base = /github\.io$/.test(location.hostname) ? '/Prism/active/' : '../../Prism/active/';
+    var fr = document.getElementById('g4-active-frame'); if (fr && !fr.getAttribute('src')) fr.setAttribute('src', base + '?g4');
+    var lk = document.getElementById('g4-active-open'); if (lk) lk.href = base + '?ted';
+  }
   document.querySelectorAll('#g4-panel .g4-tab').forEach(function(tab) {
     tab.classList.toggle('active', tab.dataset.pane === pane);
   });
