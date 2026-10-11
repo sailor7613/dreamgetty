@@ -24870,6 +24870,92 @@ loadTraceOnEasel = function(traceData) {
 // ============================================================
 // G4 SCREEN — Canvas texture rendering (like parchment)
 // ============================================================
+// ── ACTIVE — PG01 §6 on the screen (2026-10-03) ──
+// deployed: sailor7613.github.io/dreamgetty/ → /Prism/ (same origin). Workspace: DreamGetty/dreamgetty/ → ../../Prism/
+function g4ActiveBase() { return /github\.io$/.test(location.hostname) ? '/Prism/active/' : '../../Prism/active/'; }
+let g4ActiveData = null, g4ActiveFetched = false, g4ActiveError = null;
+function g4ActiveFetch() {
+  if (g4ActiveFetched) return; g4ActiveFetched = true;
+  fetch(g4ActiveBase() + '../data/active/active.json', { cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(function (j) { g4ActiveData = j; redrawG4Screen(); })
+    .catch(function (e) { g4ActiveError = e.message; redrawG4Screen(); });
+}
+// latest month's numbers, straight from the official series (EIA labels areas by ISO-3; aggregates excluded)
+function g4ActiveLatest(d) {
+  try {
+    const imp = d.realization.importsByOrigin.series, exp = d.realization.exportsByDestination.series;
+    const last = function (s) { return s && s.points.length ? s.points[s.points.length - 1] : null; };
+    const total = last(imp['NUS-Z00']); if (!total) return null;
+    const period = total[0];
+    const at = function (s) { if (!s) return 0; const p = s.points.find(function (q) { return q[0] === period; }); return p ? p[1] : 0; };
+    const GULF = ['SAU', 'IRQ', 'KWT', 'ARE', 'QAT', 'OMN', 'BHR'], HEMI = ['CAN', 'MEX', 'VEN', 'BRA', 'COL', 'ECU', 'PER', 'ARG', 'GUY', 'TTO', 'GTM'];
+    const sum = function (codes) { return Object.values(imp).filter(function (s) { return codes.indexOf(s.label) >= 0; }).reduce(function (a, s) { return a + at(s); }, 0); };
+    const ven = Object.values(imp).find(function (s) { return s.label === 'VEN'; });
+    const brent = d.price && d.price.series && d.price.series.RBRTE ? last(d.price.series.RBRTE) : null;
+    return { period: period, total: total[1], gulf: sum(GULF), hemi: sum(HEMI), ven: at(ven), exports: (last(exp['NUS-Z00']) || [0, 0])[1], brent: brent };
+  } catch (e) { return null; }
+}
+function drawG4Active(ctx, W, H, y, cream, blue, contentY, S) {
+  g4ActiveFetch();
+  const cx = Math.round(28 * S), cwid = W - cx * 2, lh = Math.round(18 * S);
+  function wrap(text, x, yy, maxW, lineH, font, color, maxLines) {
+    ctx.font = font; ctx.fillStyle = color; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    const words = String(text).split(' '); let line = '', n = 0;
+    for (let i = 0; i < words.length; i++) {
+      const test = line ? line + ' ' + words[i] : words[i];
+      if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, yy); yy += lineH; line = words[i]; n++; if (maxLines && n >= maxLines) return yy; }
+      else line = test;
+    }
+    if (line) { ctx.fillText(line, x, yy); yy += lineH; }
+    return yy;
+  }
+  const op = function (a) { return 'rgba(245,240,232,' + a + ')'; }, gold = 'rgba(212,170,82,';
+  y += Math.round(22 * S);
+  y = wrap('PG01 · the active layer', cx, y, cwid, Math.round(26 * S), 'italic ' + Math.round(20 * S) + 'px Georgia', op(0.62));
+  y = wrap('the petrogas-dollar, read as motion — ruled 2026-10-02', cx, y, cwid, lh, Math.round(12 * S) + 'px Georgia', op(0.45));
+  y += Math.round(10 * S);
+  const d = g4ActiveData, L = d ? g4ActiveLatest(d) : null;
+  if (!d && !g4ActiveError) { y = wrap('reading the layer…', cx, y, cwid, lh, 'italic ' + Math.round(13 * S) + 'px Georgia', op(0.4)); }
+  else if (!d) { y = wrap('the layer is not reachable from here (' + g4ActiveError + ') — open the full page.', cx, y, cwid, lh, 'italic ' + Math.round(13 * S) + 'px Georgia', op(0.4)); }
+  else if (L) {
+    const month = (function (p) { const m = ['January','February','March','April','May','June','July','August','September','October','November','December']; return m[Number(p.slice(5, 7)) - 1] + ' ' + p.slice(0, 4); })(L.period);
+    y = wrap(month + ' · official US crude flows (EIA), thousand barrels a day', cx, y, cwid, lh, '600 ' + Math.round(12 * S) + 'px Georgia', blue + '0.55)');
+    const row = function (k, v) { ctx.font = Math.round(14 * S) + 'px Georgia'; ctx.fillStyle = op(0.6); ctx.textAlign = 'left'; ctx.fillText(k, cx, y); ctx.fillStyle = op(0.85); ctx.textAlign = 'right'; ctx.font = '600 ' + Math.round(14 * S) + 'px Georgia'; ctx.fillText(v, cx + cwid, y); y += Math.round(21 * S); };
+    y += Math.round(6 * S);
+    row('imports, all origins', Math.round(L.total).toLocaleString());
+    row('from the Gulf (Saudi · Iraq · Kuwait · UAE)', Math.round(L.gulf).toLocaleString() + '  ·  ' + (L.total ? Math.round(L.gulf / L.total * 100) : 0) + '%');
+    row('from the hemisphere (Canada → Guyana)', Math.round(L.hemi).toLocaleString() + '  ·  ' + (L.total ? Math.round(L.hemi / L.total * 100) : 0) + '%');
+    row('of which Venezuela', Math.round(L.ven).toLocaleString());
+    row('exports, all destinations', Math.round(L.exports).toLocaleString());
+    if (L.brent) row('Brent, the shadow (' + L.brent[0] + ')', '$' + L.brent[1].toFixed(2));
+    y += Math.round(6 * S);
+    const hyp = d.hypotheses && d.hypotheses.rows && d.hypotheses.rows[0];
+    if (hyp) {
+      y = wrap('THE BET · ' + hyp.id + ' · stated ' + hyp.statedDate + ' · ' + (hyp.outcome === 'pending' ? 'unscored' : hyp.outcome), cx, y, cwid, lh, '600 ' + Math.round(12 * S) + 'px Georgia', gold + '0.75)');
+      y = wrap(hyp.short + ' z ≥ +' + hyp.zTarget + ' when TF03 is authored. The flows do not score it; a traceframe does.', cx, y, cwid, lh, 'italic ' + Math.round(13 * S) + 'px Georgia', op(0.55), 3);
+    }
+    y += Math.round(4 * S);
+    y = wrap('Gold edges are dollar-invoiced; blue are not; dashed means we draw not-knowing instead of guessing. A line that goes dark is a fact. No arrows between a strike and a re-route — ever.', cx, y, cwid, lh, Math.round(12 * S) + 'px Georgia', op(0.42), 4);
+  }
+  // the door
+  y += Math.round(12 * S);
+  const bw = Math.round(300 * S), bh = Math.round(40 * S), bx = cx, by = y;
+  ctx.fillStyle = gold + '0.12)'; ctx.strokeStyle = gold + '0.55)'; ctx.lineWidth = 1;
+  ctx.fillRect(bx, by, bw, bh); ctx.strokeRect(bx, by, bw, bh);
+  ctx.fillStyle = gold + '0.9)'; ctx.font = '600 ' + Math.round(13 * S) + 'px Georgia'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('OPEN THE ACTIVE LAYER  ↗', bx + bw / 2, by + bh / 2);
+  g4Screen.hitRegions.push({ x: bx, y: by, w: bw, h: bh, action: 'activeOpen' });
+  const rx = bx + bw + Math.round(14 * S), rw = Math.round(110 * S);
+  ctx.strokeStyle = op(0.18); ctx.strokeRect(rx, by, rw, bh);
+  ctx.fillStyle = op(0.45); ctx.font = Math.round(12 * S) + 'px Georgia'; ctx.fillText('refresh', rx + rw / 2, by + bh / 2);
+  g4Screen.hitRegions.push({ x: rx, y: by, w: rw, h: bh, action: 'activeRefresh' });
+  ctx.textBaseline = 'alphabetic';
+  y = by + bh + Math.round(14 * S);
+  y = wrap('Opens in a new tab: the flow map, the scrubber, the ledger, and Ted presenting. The iMac shows the numbers; the page shows the motion.', cx, y, cwid, lh, 'italic ' + Math.round(12 * S) + 'px Georgia', op(0.38));
+  return y - contentY + Math.round(30 * S);
+}
+
 function redrawG4Screen() {
   const ctx = g4ScreenCanvas.getContext('2d');
   ctx.setTransform(2, 0, 0, 2, 0, 0);   // logical 1024x820 over the 2x store
@@ -25035,8 +25121,11 @@ function redrawG4Screen() {
   // #g4-kaleido-pane never took `.active`, and the module's own paneActive()
   // guard returned false on every frame it ever ran. The whole visualization
   // was reachable only by typing into the console.
-  const tabs = ['inspect', 'chat', 'notes', 'story', 'kaleido'];
-  const tabLabels = ['INSPECT', 'CHAT', 'NOTES', 'STORY', 'KALEIDO'];
+  // ACTIVE (2026-10-03): PG01 §6, the active layer — the arc read as motion. The screen is a
+  // canvas texture and can't hold the dashboard page, so the tab draws the arc's live numbers
+  // and the bet (P3), and opens the full page (Prism/active/?ted) in a browser tab.
+  const tabs = ['inspect', 'chat', 'notes', 'story', 'kaleido', 'active'];
+  const tabLabels = ['INSPECT', 'CHAT', 'NOTES', 'STORY', 'KALEIDO', 'ACTIVE'];
   const tabW = W / tabs.length;
   tabs.forEach(function(tab, i) {
     const tx = i * tabW;
@@ -25084,6 +25173,8 @@ function redrawG4Screen() {
     totalContentH = drawG4Story(ctx, W, H, contentY - scroll, cream, blue, contentY);
   } else if (pane === 'kaleido') {
     totalContentH = drawG4Kaleido(ctx, W, H, contentY - scroll, cream, blue, contentY, S);
+  } else if (pane === 'active') {
+    totalContentH = drawG4Active(ctx, W, H, contentY - scroll, cream, blue, contentY, S);
   }
 
   ctx.restore();
@@ -26206,6 +26297,10 @@ function handleG4ScreenClick(region) {
     switchG4Tab('chat');
     const apiInput = document.getElementById('g4-api-key');
     if (apiInput) { apiInput.focus(); apiInput.select(); }
+  } else if (region.action === 'activeOpen') {
+    try { window.open(g4ActiveBase() + '?ted', '_blank'); } catch (e) {}
+  } else if (region.action === 'activeRefresh') {
+    g4ActiveData = null; g4ActiveFetched = false; redrawG4Screen();
   } else if (region.action === 'kaleidoPrev') {
     try { g4Kaleido.prev(); } catch (e) {}
     redrawG4Screen();
