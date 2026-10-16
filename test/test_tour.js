@@ -473,7 +473,7 @@ function check(name, ok, detail) {
       words: said.split(/\s+/).filter(Boolean).length,
       marks: Object.keys(TOUR_MARKS),
       marksReal: Object.keys(TOUR_MARKS).every(k => !!PLACE_REGISTRY.find(p => p.key === k)),
-      graphmap: /graphmap/i.test(said) && /dialectic/i.test(said),
+      graphmap: /graphmap, Prism’s instrument|graphmap: Prism’s dialectical tool/.test(said),   // 2026-10-12: the walk ends on the tracker; the graphmap is named behind it
       construction: /under construction/i.test(said) && /open for visitors/i.test(said),
       ledger: /ledger/i.test(said) && /left, not sent/i.test(said),
       noSoftware: !/\b(button|click the UI|menu bar|app|software|interface)\b/i.test(said),
@@ -483,7 +483,7 @@ function check(name, ok, detail) {
   });
   check('every mark names a real registry row', score.marksReal, score.marks.join(', '));
   check('all seven stops are named aloud', score.allStops);
-  check('the graphmap is introduced as Prism’s dialectical tool', score.graphmap);
+  check('the graphmap is introduced as Prism’s instrument (behind the tracker since 2026-10-12)', score.graphmap);
   check('the observatory is under construction AND open for visitors', score.construction);
   check('the ledger rule is spoken (word is left, not sent)', score.ledger);
   check('no guest hears a software word', score.noSoftware);

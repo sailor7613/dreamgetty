@@ -36,7 +36,10 @@ const DG_ARCS = [
     // §6 — the active layer (ruled 2026-10-02): the arc read as motion. Columns: realization (flows,
     // with a declared settlement layer) · detection (events, as-of + detected) · price (the shadow).
     // Drawn in the G4's Active pane (Prism/active/). Flows do not score z; no instrumentality claim.
-    active: { ruled: '2026-10-02', pane: 'Active', source: 'Prism/data/active/active.json',
+    // §6.7 (DRAFTED 2026-10-12, awaiting ruling): the map is a globe on the public pedestal; one determination —
+    // the share of traded energy sold in dollars, with its denominator; a point of view, the US by default.
+    active: { ruled: '2026-10-02', amendment: '§6.7 drafted 2026-10-12 — the globe', pane: 'Active', source: 'Prism/data/active/active.json',
+      settlement: 'Prism/data/active/settlement.json',
       guards: ['the frame stands still', 'flows do not score z', 'no instrumentality', 'accruals stay accruals', 'Prism sees it through Readings'] },
 
     // The ruled six-frame series — the film, Feb 2025 → Aug 2026.

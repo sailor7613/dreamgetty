@@ -22,12 +22,12 @@ function check(name, ok, detail) {
   const iran = await p.evaluate(() => ({
     loaded: parchState.loadedTraceData && parchState.loadedTraceData.id,
     label: parchState.loadedTraceData && parchState.loadedTraceData.label,
-    graphmapOn: graphmapVisible,
+    graphmapOn: graphmapVisible || (typeof pedestalMode !== 'undefined' && pedestalMode === 'tracker' && trackerBoard.visible),   // 2026-10-12: the tracker holds the pedestal at open; the trace still hangs
     storyBuilt: g4State.story.steps.length > 0,
     g4StillOnDesktop: g4State.app === null,
   }));
   check('TS01 stands on the graphmap at open', iran.loaded === 'TS01', iran.label);
-  check('…with the graphmap visible and the story built', iran.graphmapOn && iran.storyBuilt);
+  check('…with the pedestal holding the tracker (graphmap one ask away) and the story built', iran.graphmapOn && iran.storyBuilt);
   check('…and the G4 still boots to its DESKTOP — the Workstation is an app now',
         iran.g4StillOnDesktop);
 
@@ -37,7 +37,7 @@ function check(name, ok, detail) {
     g4State.app = null; redrawG4Screen();
     const regions = () => g4Screen.hitRegions.map(r => r.action);
     out.deskRegions = regions();
-    out.twoApps = g4Screen.hitRegions.filter(r => r.action === 'openApp').length === 2;
+    out.twoApps = g4Screen.hitRegions.filter(r => r.action === 'openApp').length === 3;   // 2026-10-14: Prism · BloomBurger · Codex
     out.noTabs = !regions().includes('tab');
     // open the Workstation
     handleG4ScreenClick(g4Screen.hitRegions.find(r => r.action === 'openApp' && r.data === 'prism'));
@@ -45,10 +45,10 @@ function check(name, ok, detail) {
     out.tabsBack = g4Screen.hitRegions.some(r => r.action === 'tab');
     // back to the desktop
     handleG4ScreenClick(g4Screen.hitRegions.find(r => r.action === 'desktop'));
-    out.backToDesk = g4State.app === null && g4Screen.hitRegions.filter(r => r.action === 'openApp').length === 2;
+    out.backToDesk = g4State.app === null && g4Screen.hitRegions.filter(r => r.action === 'openApp').length === 3;
     return out;
   });
-  check('the desktop offers two applications and no tabs', desk.twoApps && desk.noTabs);
+  check('the desktop offers three applications and no tabs', desk.twoApps && desk.noTabs);
   check('Prism Workstation opens — the tabs are its furniture', desk.prismOpen && desk.tabsBack);
   check('DESKTOP brings you home', desk.backToDesk);
 
@@ -63,6 +63,12 @@ function check(name, ok, detail) {
     g4State.app = null; redrawG4Screen();
     handleG4ScreenClick(g4Screen.hitRegions.find(r => r.action === 'openApp' && r.data === 'bloomburger'));
     out.open = g4State.app === 'bloomburger';
+    out.opensOnPaper = (g4State.bloomFn || 'pg') === 'pg' && g4Screen.hitRegions.filter(r => r.action === 'bloomFn').length === 3;   // 2026-10-14: the terminal opens on the paper
+    handleG4ScreenClick(g4Screen.hitRegions.find(r => r.action === 'bloomFn' && r.data === 'sst'));
+    out.sstIsTracker = g4State.bloomFn === 'sst' && g4Screen.activeTab === 'trackerApp' && g4Screen.hitRegions.some(r => r.action === 'trackerPedestal' || r.action === 'bloomFn');
+    g4State.app = 'tracker'; redrawG4Screen();
+    out.trackerFolds = g4State.app === 'bloomburger' && g4State.bloomFn === 'sst';
+    handleG4ScreenClick(g4Screen.hitRegions.find(r => r.action === 'bloomFn' && r.data === 'wire'));
     out.writeBtn = g4Screen.hitRegions.some(r => r.action === 'bloomWrite');
     // the write button opens the notebook panel on the bloomburger book
     handleG4ScreenClick(g4Screen.hitRegions.find(r => r.action === 'bloomWrite'));
@@ -75,6 +81,8 @@ function check(name, ok, detail) {
     return out;
   });
   check('BloomBurger opens on the glass', bloom.open && bloom.writeBtn);
+  check('…on the paper, with PG · SST · WIRE', bloom.opensOnPaper);
+  check('…SST is the tracker; an old \'tracker\' open folds into it', bloom.sstIsTracker && bloom.trackerFolds);
   check('WRITE IN IT opens the BloomBurger notebook', bloom.panelOpen && bloom.panelTitle === 'BloomBurger');
   check('…showing its page', bloom.pages === 1, bloom.pages + ' page(s)');
   check('…words only — files stay the exedra\'s', bloom.noFileSlot);
