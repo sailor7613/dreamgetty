@@ -50,3 +50,9 @@ Venus de Milo scan used under the licence in
 ---
 
 *Part of Western Diametrica — Prism.*
+
+## Moved (2026-10-17)
+
+The villa now lives in the Prism repo, at `Prism/dreamgetty/` — https://sailor7613.github.io/Prism/dreamgetty/.
+This repo's `index.html` is a redirect. Keep this repo (do not archive it): the villa-gate writes the visitors'
+feed into `feed/` here, and the villa reads it from https://sailor7613.github.io/dreamgetty/feed/.
